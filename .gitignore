@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+
+# Environment secrets
+.env
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Vector database (local data)
+qdrant_data/
+
+# External dependencies / binaries (download separately)
+ffmpeg-win-x86_64-v7.1.exe
+nssm.exe
+
+# Archives (re-downloadable)
+*.zip
+
+# Submodule / external repo
+mem0/
+
+# Logs
+*.log
+
+# OS junk
+nul
+Thumbs.db
+.DS_Store
