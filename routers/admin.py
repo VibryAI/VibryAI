@@ -2,7 +2,8 @@
 import hashlib, hmac, os, secrets, time, logging
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from app.config import config
 import db
 
@@ -75,6 +76,21 @@ async def admin_panel():
     if html_path.exists():
         return HTMLResponse(html_path.read_text(encoding="utf-8"))
     raise HTTPException(status_code=404, detail="admin_panel.html not found")
+
+
+# ---- Static files (i18n, etc.) ----
+@router.get("/static/{file_path:path}")
+async def serve_static(file_path: str):
+    """Serve static files from the static/ directory"""
+    full_path = BASE_DIR / "static" / file_path
+    # Security: prevent directory traversal
+    try:
+        full_path.resolve().relative_to((BASE_DIR / "static").resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if not full_path.exists() or not full_path.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(str(full_path))
 
 
 # ============================================================
