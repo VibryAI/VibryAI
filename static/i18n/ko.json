@@ -17,6 +17,7 @@
     "send_btn": "인증 코드 전송",
     "reset_btn": "비밀번호 재설정",
     "code_sent": "인증 코드가 전송되었습니다. 이메일을 확인하세요",
+    "code_fallback": "이메일 API 사용 불가 — server_output.log에서 코드를 확인하세요",
     "reset_ok": "비밀번호가 재설정되었습니다! 로그인하세요"
   },
 
@@ -272,11 +273,11 @@
     "new_pw_placeholder": "새 비밀번호 (최소 4자)",
     "change_pw_btn": "비밀번호 변경",
     "pw_saved": "✅ 변경됨",
-    "smtp_section": "📨 이메일 서비스 (SMTP)",
-    "smtp_desc": "SMTP 설정 후 비밀번호 찾기 기능을 사용할 수 있습니다. QQ 메일, Gmail 등을 지원합니다.",
+    "smtp_section": "📨 이메일 서비스 (AgentMail)",
+    "smtp_desc": "AgentMail을 통해 인증 코드를 전송합니다. .env에 AGENTMAIL_API_KEY를 설정하세요.",
     "smtp_loading": "로딩 중...",
-    "smtp_configured": "✅ SMTP 설정됨",
-    "smtp_not_configured": "⚠️ SMTP 미설정 — .env에 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS를 설정하세요. 개발 모드에서는 인증 코드가 서버 로그에 출력됩니다."
+    "smtp_configured": "✅ AgentMail 연결됨",
+    "smtp_not_configured": "⚠️ AgentMail 미설정 — .env에 AGENTMAIL_API_KEY와 AGENTMAIL_FROM_EMAIL을 설정하세요. 개발 모드에서는 인증 코드가 서버 로그에 출력됩니다."
   },
 
   "common": {

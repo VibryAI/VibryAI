@@ -348,8 +348,8 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </div>
 
       <div class="card">
-        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="account.smtp_section">Email Service (SMTP)</h3>
-        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px" data-i18n="account.smtp_desc">Configure SMTP to enable password reset. Supports QQ Mail, Gmail, etc.</p>
+        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="account.smtp_section">Email Service (AgentMail)</h3>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px" data-i18n="account.smtp_desc">Powered by AgentMail for sending verification codes. Configure API Key in .env.</p>
         <div id="smtp-info" style="font-size:13px;color:var(--text-dim)" data-i18n="account.smtp_loading">Loading...</div>
       </div>
     </div>
@@ -964,8 +964,8 @@ function forgotFlow() {
         document.getElementById('forgot-code').style.display='block';
         document.getElementById('forgot-new-pw').style.display='block';
         document.getElementById('forgot-btn').textContent = T('forgot.reset_btn');
-        errEl.textContent = d.sent ? T('forgot.code_sent') : '';
-        errEl.style.color = 'var(--accent2)';
+        errEl.textContent = d.sent ? T('forgot.code_sent') : T('forgot.code_fallback');
+        errEl.style.color = d.sent ? 'var(--accent2)' : 'var(--warn)';
       }).catch(e => { errEl.textContent = 'Request failed: '+e.message; });
   } else {
     const code = document.getElementById('forgot-code').value.trim();
@@ -989,8 +989,8 @@ function loadAccount() {
     document.getElementById('acct-email').value = d.email || '';
   });
   fetch('/admin/api/email-config', {headers:authHeaders()}).then(r=>r.json()).then(d => {
-    document.getElementById('smtp-info').innerHTML = d.smtp_configured
-      ? `<span style="color:var(--accent2)">${T('account.smtp_configured')}</span> — ${d.smtp_user} @ ${d.smtp_host}:${d.smtp_port}`
+    document.getElementById('smtp-info').innerHTML = d.api_key_configured
+      ? `<span style="color:var(--accent2)">${T('account.smtp_configured')}</span> — ${d.from_email} (AgentMail)`
       : `<span style="color:var(--warn)">${T('account.smtp_not_configured')}</span>`;
   });
 }

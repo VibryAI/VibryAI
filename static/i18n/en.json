@@ -17,6 +17,7 @@
     "send_btn": "Send Code",
     "reset_btn": "Reset Password",
     "code_sent": "Verification code sent, check your email",
+    "code_fallback": "Email API unavailable — check server_output.log for the code",
     "reset_ok": "Password reset! Please login"
   },
 
@@ -272,11 +273,11 @@
     "new_pw_placeholder": "New password (min 4 chars)",
     "change_pw_btn": "Change Password",
     "pw_saved": "Changed",
-    "smtp_section": "Email Service (SMTP)",
-    "smtp_desc": "Configure SMTP to enable password reset. Supports QQ Mail, Gmail, etc.",
+    "smtp_section": "Email Service (AgentMail)",
+    "smtp_desc": "Powered by AgentMail for sending verification codes. Configure AGENTMAIL_API_KEY in .env.",
     "smtp_loading": "Loading...",
-    "smtp_configured": "SMTP Configured",
-    "smtp_not_configured": "SMTP Not Configured — set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in .env. In dev mode, codes are printed to server log."
+    "smtp_configured": "AgentMail Connected",
+    "smtp_not_configured": "AgentMail Not Configured — set AGENTMAIL_API_KEY and AGENTMAIL_FROM_EMAIL in .env. In dev mode, codes are printed to server log."
   },
 
   "common": {

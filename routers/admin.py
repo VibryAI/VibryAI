@@ -275,10 +275,9 @@ async def admin_set_email(request: Request):
 async def admin_get_email_config(request: Request):
     _require_admin(request)
     return JSONResponse({
-        "smtp_host": os.getenv("SMTP_HOST", "smtp.qq.com"),
-        "smtp_port": int(os.getenv("SMTP_PORT", "587")),
-        "smtp_user": os.getenv("SMTP_USER", ""),
-        "smtp_configured": bool(os.getenv("SMTP_USER", "") and os.getenv("SMTP_PASS", "")),
+        "provider": "agentmail",
+        "api_key_configured": bool(os.getenv("AGENTMAIL_API_KEY", "")),
+        "from_email": os.getenv("AGENTMAIL_FROM_EMAIL", "vibryai@agentmail.to"),
     })
 
 
@@ -298,7 +297,7 @@ async def admin_forgot_password(request: Request):
     db.set_verification_code(code, expiry)
     from services.email import send_verification_code
     ok = send_verification_code(admin_email, code)
-    return JSONResponse({"ok": True, "sent": ok, "hint": "Code sent" if ok else "SMTP failed"})
+    return JSONResponse({"ok": True, "sent": ok, "hint": "Code sent" if ok else "Email API failed — check server log for code"})
 
 
 @router.post("/admin/api/reset-password")
