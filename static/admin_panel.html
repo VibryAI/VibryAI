@@ -87,6 +87,10 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .toast { position: fixed; top: 20px; right: 20px; background: var(--accent2); color: #000; padding: 12px 20px; border-radius: var(--radius); font-weight: 600; z-index: 999; animation: fade 3s forwards; }
 @keyframes fade { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
+/* Both hidden until boot decides */
+#login-page, #app { display: none; }
+#boot-loading { display: flex; align-items: center; justify-content: center; height: 100vh; color: var(--text-dim); font-size: 16px; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .nav-toggle { display: block; }
@@ -132,6 +136,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <p style="margin-top:12px;text-align:center;font-size:13px"><a href="#" onclick="showLogin()" style="color:var(--accent);text-decoration:none" data-i18n="login.back_link">Back to login</a></p>
   </div>
 </div>
+
+<!-- Boot loading -->
+<div id="boot-loading">⏳ Loading...</div>
 
 <!-- App -->
 <div id="app">
@@ -484,9 +491,9 @@ function login() {
       else { document.getElementById('login-err').textContent = d.error || I18N.t('common.unknown_error'); }
     });
 }
-function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); document.getElementById('login-page').style.display='block'; document.getElementById('app').style.display='none'; }
+function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); document.getElementById('login-page').style.display='block'; document.getElementById('app').style.display='none'; document.getElementById('boot-loading').style.display='none'; }
 function authHeaders() { return {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}; }
-function showApp() { document.getElementById('login-page').style.display='none'; document.getElementById('app').style.display='flex'; refreshDashboard(); }
+function showApp() { document.getElementById('login-page').style.display='none'; document.getElementById('boot-loading').style.display='none'; document.getElementById('app').style.display='flex'; refreshDashboard(); }
 
 // ==================== Navigation ====================
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
@@ -509,6 +516,22 @@ document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
 });
 document.querySelector('.main').addEventListener('click', () => {
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+});
+
+// ==================== i18n: language change → refresh current page ====================
+window.addEventListener('i18n:langChanged', () => {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const pageId = activePage.id;
+  // Re-invoke the page's data-fetch function to re-render dynamic content
+  if (pageId === 'page-dashboard') refreshDashboard();
+  else if (pageId === 'page-billing') refreshBilling();
+  else if (pageId === 'page-models') loadConfig();
+  else if (pageId === 'page-personality') loadPersonality();
+  else if (pageId === 'page-account') loadAccount();
+  else if (pageId === 'page-logs') refreshLogs();
+  else if (pageId === 'page-wiki') refreshWikiStatus();
+  else if (pageId === 'page-memories') searchMems();
 });
 
 // ==================== Dashboard ====================
@@ -1022,7 +1045,20 @@ function toast(msg) { const t = document.createElement('div'); t.className='toas
 // ==================== Init ====================
 (async function boot() {
   await I18N.ready;
-  if (TOKEN) { fetch('/admin/api/verify', {headers:authHeaders()}).then(r=>r.json()).then(d => { if(d.ok) showApp(); else logout(); }).catch(()=>logout()); }
+  if (!TOKEN) {
+    // No token → show login
+    document.getElementById('boot-loading').style.display = 'none';
+    document.getElementById('login-page').style.display = 'block';
+    return;
+  }
+  // Have token → verify with server
+  try {
+    const r = await fetch('/admin/api/verify', {headers:authHeaders()});
+    const d = await r.json();
+    if (d.ok) { showApp(); } else { logout(); }
+  } catch(e) {
+    logout();
+  }
 })();
 </script>
 </body>
