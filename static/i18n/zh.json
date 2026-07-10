@@ -1,0 +1,289 @@
+{
+  "login": {
+    "title": "Vibry AI Core",
+    "subtitle": "管理控制台 · 请输入管理员密码",
+    "password_placeholder": "管理员密码",
+    "login_btn": "登 录",
+    "forgot_link": "忘记密码？",
+    "back_link": "返回登录"
+  },
+  "forgot": {
+    "title": "重置密码",
+    "step1": "第1步：输入管理员邮箱",
+    "step2": "第2步：输入验证码 + 新密码",
+    "email_placeholder": "管理员邮箱",
+    "code_placeholder": "6位验证码",
+    "new_pw_placeholder": "新密码（至少4位）",
+    "send_btn": "发送验证码",
+    "reset_btn": "重置密码",
+    "code_sent": "验证码已发送，请查收邮件",
+    "reset_ok": "密码已重置！请登录"
+  },
+
+  "nav": {
+    "brand": "Vibry AI",
+    "dashboard": "📊 仪表盘",
+    "chat": "💬 聊天测试",
+    "models": "⚙️ 模型配置",
+    "personality": "🎭 人格设定",
+    "memories": "🧩 记忆管理",
+    "wiki": "📚 Wiki 知识库",
+    "billing": "💰 计费明细",
+    "logs": "📋 运行日志",
+    "account": "👤 账户设置",
+    "logout": "🚪 退出"
+  },
+
+  "dashboard": {
+    "title": "📊 系统概览",
+    "cards": {
+      "recordings": "录音总数",
+      "memories": "记忆总数",
+      "api_calls": "API 调用",
+      "tokens": "Token 用量",
+      "cost": "累计费用",
+      "status": "服务状态"
+    },
+    "status_online": "● Online",
+    "user_usage_title": "各用户用量",
+    "user_usage_headers": {
+      "user": "用户",
+      "calls": "调用次数",
+      "tokens": "Token 用量",
+      "cost": "费用 (¥)"
+    },
+    "recent_title": "最近调用",
+    "recent_headers": {
+      "time": "时间",
+      "user": "用户",
+      "endpoint": "端点",
+      "model": "模型",
+      "tokens": "Tokens",
+      "duration": "耗时",
+      "cost": "费用"
+    }
+  },
+
+  "chat": {
+    "title": "💬 聊天测试",
+    "user_id_label": "User ID:",
+    "stream_label": "流式",
+    "memory_indicator_wait": "🧠 记忆: 等待测试",
+    "memory_indicator_none": "🧠 记忆: 无匹配",
+    "memory_indicator": "🧠 记忆: 已注入 {0} 条",
+    "wiki_indicator_ok": "📚 Wiki: ✅ 已注入 ({0} 篇文章)",
+    "wiki_indicator_no": "📚 Wiki: ⚠️ 未初始化",
+    "wiki_indicator_wait": "📚 Wiki: 等待测试",
+    "input_placeholder": "输入消息测试记忆注入...",
+    "send_btn": "发送",
+    "role_you": "👤 You",
+    "role_assistant": "🤖 Assistant",
+    "loading": "⏳ ...",
+    "error": "Error",
+    "history_title": "📜 聊天记录",
+    "history_loading": "点击加载...",
+    "history_empty": "暂无记录"
+  },
+
+  "models": {
+    "title": "⚙️ 模型配置",
+    "chat_section": "📡 基础模型配置",
+    "chat_model_label": "Chat 模型",
+    "chat_model_hint": "推荐: doubao-seed-2-1-turbo-260628（快）| doubao-seed-2-1-pro-260628（强）",
+    "emb_model_label": "Embedding 模型",
+    "emb_model_hint": "推荐: doubao-embedding-vision-251215（2048d 多模态向量）",
+    "topk_label": "记忆检索数量 (top_k)",
+    "topk_hint": "每次对话注入的记忆条数，推荐 3-7",
+    "threshold_label": "记忆相似度阈值",
+    "threshold_hint": "低于此分数的记忆不会被注入，推荐 0.3-0.5",
+    "wiki_section": "📚 Wiki 编译模型配置",
+    "wiki_section_desc": "Wiki 编译需要长上下文 + 便宜（默认 DeepSeek）。留空则用上游 Chat 模型。",
+    "wiki_model_label": "Wiki 编译模型",
+    "wiki_model_hint": "推荐: deepseek-chat（64K 上下文，极便宜）",
+    "wiki_base_url_label": "Wiki API Base URL",
+    "wiki_api_key_label": "Wiki API Key",
+    "wiki_api_key_hint": "DeepSeek API Key，留空则复用上游 API Key",
+    "asr_section": "🎤 ASR 模型配置",
+    "asr_section_desc": "豆包 ASR 云端配置。从火山引擎控制台获取 App ID 和 Access Key。保存后立即生效，无需重启。",
+    "asr_mode_label": "📁 文件转写 ASR 模式",
+    "asr_mode_local": "local · FunASR 本地",
+    "asr_mode_cloud": "cloud · 豆包极速版",
+    "asr_mode_cloud_std": "cloud_standard · 豆包标准版（说话人分离）",
+    "asr_mode_hint": "用于 /api/transcribe，上传音频文件转写。推荐: 标准版",
+    "voice_mode_label": "🎙️ 语音聊天 ASR 模式",
+    "voice_mode_cloud": "cloud · 豆包极速版（推荐）",
+    "voice_mode_local": "local · FunASR 本地",
+    "voice_mode_hint": "用于 /api/transcribe/voice，实时语音消息识别。推荐: 极速版",
+    "app_id_label": "App ID",
+    "app_id_hint": "火山引擎 → 语音技术 → 应用列表 → App ID",
+    "access_key_label": "Access Key",
+    "access_key_hint": "火山引擎 → 密钥管理 → Access Key",
+    "flash_url_label": "极速版接口 URL",
+    "standard_url_label": "标准版接口 URL",
+    "prompt_section": "📝 Prompt 模板配置",
+    "prompt_section_desc": "自定义摘要和洞察的 System Prompt。支持 {name}, {role}, {context} 占位符。",
+    "summary_prompt_label": "摘要 Prompt (summary_prompt)",
+    "summary_prompt_hint": "用于 /api/summarize，留空使用默认模板",
+    "insight_prompt_label": "洞察 Prompt (insight_prompt)",
+    "insight_prompt_hint": "用于 /api/insight，留空使用默认模板",
+    "save_btn": "保存配置",
+    "save_wiki_btn": "💾 保存 Wiki 配置",
+    "save_asr_btn": "💾 保存 ASR 配置",
+    "save_prompt_btn": "💾 保存 Prompt",
+    "saved": "✅ 已保存"
+  },
+
+  "personality": {
+    "title": "🎭 人格设定 (System Prompt)",
+    "desc": "这条 prompt 会注入到每次对话的 system 消息最前面，定义 AI 的行为风格。支持 Markdown。",
+    "placeholder": "输入 system prompt...",
+    "save_btn": "💾 保存人格",
+    "reset_btn": "🔄 恢复默认",
+    "saved": "✅ 已保存",
+    "default_prompt": "你是 Vibry AI，用户的数字孪生战略副驾。你拥有用户的长期记忆，了解他们的偏好、项目和决策历史。\n\n沟通风格：\n- 简洁直接，避免废话\n- 数据驱动，注重逻辑\n- 主动提醒用户过往的决策和偏好\n- 在相关时引用历史记忆\n\n你的价值在于：记住用户说过的一切，在合适的时机提供上下文。"
+  },
+
+  "memories": {
+    "title": "🧩 记忆管理",
+    "search_placeholder": "搜索记忆...",
+    "search_btn": "搜索",
+    "no_results": "无结果",
+    "score_label": "score"
+  },
+
+  "wiki": {
+    "title": "📚 Wiki 知识库 (karpathy-llm-wiki RAG)",
+    "desc": "编译器模式 RAG：原始材料 → LLM 编译为结构化 Wiki 页面 → 查询时引用。<br><b>mem0 让系统更懂你，wiki-rag 让系统更专业。</b>",
+    "status_label": "Wiki 状态",
+    "status_ready": "✅ 已就绪",
+    "status_not_init": "未初始化",
+    "status_load_fail": "加载失败",
+    "raw_count_label": "Raw 材料",
+    "article_count_label": "Wiki 文章",
+    "topic_count_label": "主题话题",
+    "init_btn": "🚀 初始化 Wiki",
+    "init_hint": "（创建 raw/ 和 wiki/ 目录结构）",
+    "init_ok": "✅ Wiki 已初始化",
+    "init_fail": "❌ 初始化失败",
+    "tabs": {
+      "ingest": "📥 摄入",
+      "query": "🔍 查询",
+      "browse": "📖 浏览",
+      "lint": "🔍 检查"
+    },
+    "ingest": {
+      "title": "📥 摄入原始材料",
+      "title_label": "标题 *",
+      "topic_label": "主题分类",
+      "topic_default": "general",
+      "url_label": "来源 URL（可选）",
+      "content_label": "内容 *",
+      "content_placeholder": "粘贴原始文本...（支持 Markdown）",
+      "compile_btn": "🤖 编译到 Wiki",
+      "file_upload_title": "📁 文件上传",
+      "file_label": "选择文件 (.md/.txt)",
+      "file_topic_label": "主题",
+      "upload_btn": "📤 上传并编译",
+      "title_required": "⚠️ 请输入标题",
+      "content_required": "⚠️ 请输入内容",
+      "compiling": "⏳ 正在调用 LLM 编译 wiki 页面...",
+      "done": "✅ 完成！新建 {0} 篇，更新 {1} 篇 (编译耗时 {2}s)",
+      "uploading": "⏳ 上传中...",
+      "upload_done": "✅ 完成！新建 {0} 篇",
+      "error": "❌ 错误",
+      "request_fail": "❌ 请求失败"
+    },
+    "query": {
+      "search_placeholder": "搜索 wiki 知识库...",
+      "search_btn": "🔍 搜索",
+      "gen_answer": "生成 AI 回答",
+      "semantic_search": "语义搜索",
+      "ai_answer_label": "🤖 AI 回答:",
+      "no_results": "无结果"
+    },
+    "browse": {
+      "refresh_btn": "🔄 刷新",
+      "rebuild_btn": "📋 重建索引",
+      "filter_all": "全部主题",
+      "no_articles": "暂无文章，请先执行 Ingest",
+      "headers": {
+        "title": "标题",
+        "topic": "主题",
+        "updated": "更新",
+        "actions": "操作"
+      },
+      "close_btn": "✕ 关闭",
+      "delete_confirm": "确定删除 {0} ？",
+      "deleted": "🗑️ 已删除",
+      "rebuild_ok": "📋 索引已重建: {0} 篇文章, {1} 个主题"
+    },
+    "lint": {
+      "run_btn": "🔍 执行检查",
+      "heuristic_label": "LLM 启发式检查（较慢）",
+      "checking": "⏳ 检查中...",
+      "done": "✅ 完成",
+      "auto_fix_title": "✅ 自动修复",
+      "issues_title": "⚠️ 待处理问题",
+      "heuristic_title": "💡 启发式发现",
+      "no_auto_fix": "无自动修复项",
+      "fail": "❌ 失败"
+    },
+    "raw_title": "📂 Raw 原始材料",
+    "raw_refresh_hint": "点击刷新...",
+    "raw_empty": "暂无 raw 材料",
+    "log_title": "📝 操作日志"
+  },
+
+  "billing": {
+    "title": "💰 计费明细",
+    "summary_cards": {
+      "total_calls": "总调用",
+      "total_tokens": "总 Token",
+      "total_cost": "总费用"
+    },
+    "table_headers": {
+      "time": "时间",
+      "user": "用户",
+      "endpoint": "端点",
+      "model": "模型",
+      "prompt_tokens": "Prompt",
+      "completion_tokens": "Completion",
+      "total_tokens": "总Tokens",
+      "duration": "耗时",
+      "cost": "费用 ¥"
+    }
+  },
+
+  "logs": {
+    "title": "📋 运行日志",
+    "refresh_btn": "🔄 刷新",
+    "lines_label": "行"
+  },
+
+  "account": {
+    "title": "👤 账户设置",
+    "email_section": "📧 管理员邮箱",
+    "email_desc": "用于忘记密码时接收验证码",
+    "email_placeholder": "admin@example.com",
+    "save_email_btn": "保存邮箱",
+    "email_saved": "✅ 已保存",
+    "password_section": "🔐 修改密码",
+    "old_pw_placeholder": "当前密码",
+    "new_pw_placeholder": "新密码（至少4位）",
+    "change_pw_btn": "修改密码",
+    "pw_saved": "✅ 已修改",
+    "smtp_section": "📨 邮件服务 (SMTP)",
+    "smtp_desc": "配置 SMTP 后可使用忘记密码功能。支持 QQ邮箱、Gmail 等。",
+    "smtp_loading": "加载中...",
+    "smtp_configured": "✅ SMTP 已配置",
+    "smtp_not_configured": "⚠️ SMTP 未配置 — 请在 .env 中设置 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS。开发模式下验证码会打印到服务器日志。"
+  },
+
+  "common": {
+    "menu": "菜单",
+    "close": "关闭",
+    "confirm": "确定",
+    "cancel": "取消",
+    "unknown_error": "未知错误"
+  }
+}

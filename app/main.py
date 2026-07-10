@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import config
 
@@ -87,3 +88,7 @@ app.include_router(voiceprint.router)
 app.include_router(wiki.router)
 app.include_router(memory.router)
 app.include_router(health.router)
+
+# Mount static files (i18n JSON, etc.)
+BASE_DIR = Path(__file__).parent.parent
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")

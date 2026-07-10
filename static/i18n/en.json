@@ -1,0 +1,289 @@
+{
+  "login": {
+    "title": "Vibry AI Core",
+    "subtitle": "Admin Console · Enter admin password",
+    "password_placeholder": "Admin Password",
+    "login_btn": "Login",
+    "forgot_link": "Forgot password?",
+    "back_link": "Back to login"
+  },
+  "forgot": {
+    "title": "Reset Password",
+    "step1": "Step 1: Enter admin email",
+    "step2": "Step 2: Enter code + new password",
+    "email_placeholder": "Admin Email",
+    "code_placeholder": "6-digit code",
+    "new_pw_placeholder": "New password (min 4 chars)",
+    "send_btn": "Send Code",
+    "reset_btn": "Reset Password",
+    "code_sent": "Verification code sent, check your email",
+    "reset_ok": "Password reset! Please login"
+  },
+
+  "nav": {
+    "brand": "Vibry AI",
+    "dashboard": "Dashboard",
+    "chat": "Chat Test",
+    "models": "Model Config",
+    "personality": "Personality",
+    "memories": "Memory Mgmt",
+    "wiki": "Wiki KB",
+    "billing": "Billing",
+    "logs": "Runtime Logs",
+    "account": "Account",
+    "logout": "Logout"
+  },
+
+  "dashboard": {
+    "title": "System Overview",
+    "cards": {
+      "recordings": "Recordings",
+      "memories": "Memories",
+      "api_calls": "API Calls",
+      "tokens": "Token Usage",
+      "cost": "Total Cost",
+      "status": "Service Status"
+    },
+    "status_online": "Online",
+    "user_usage_title": "Usage by User",
+    "user_usage_headers": {
+      "user": "User",
+      "calls": "Calls",
+      "tokens": "Token Usage",
+      "cost": "Cost (¥)"
+    },
+    "recent_title": "Recent Calls",
+    "recent_headers": {
+      "time": "Time",
+      "user": "User",
+      "endpoint": "Endpoint",
+      "model": "Model",
+      "tokens": "Tokens",
+      "duration": "Duration",
+      "cost": "Cost"
+    }
+  },
+
+  "chat": {
+    "title": "Chat Test",
+    "user_id_label": "User ID:",
+    "stream_label": "Stream",
+    "memory_indicator_wait": "Memory: waiting for test",
+    "memory_indicator_none": "Memory: no matches",
+    "memory_indicator": "Memory: injected {0} items",
+    "wiki_indicator_ok": "Wiki: {0} articles",
+    "wiki_indicator_no": "Wiki: not initialized",
+    "wiki_indicator_wait": "Wiki: waiting for test",
+    "input_placeholder": "Type a message to test memory injection...",
+    "send_btn": "Send",
+    "role_you": "You",
+    "role_assistant": "Assistant",
+    "loading": "Loading...",
+    "error": "Error",
+    "history_title": "Chat History",
+    "history_loading": "Click to load...",
+    "history_empty": "No records"
+  },
+
+  "models": {
+    "title": "Model Configuration",
+    "chat_section": "Chat Model Config",
+    "chat_model_label": "Chat Model",
+    "chat_model_hint": "Recommended: doubao-seed-2-1-turbo-260628 (fast) | doubao-seed-2-1-pro-260628 (powerful)",
+    "emb_model_label": "Embedding Model",
+    "emb_model_hint": "Recommended: doubao-embedding-vision-251215 (2048d multimodal)",
+    "topk_label": "Memory Retrieval Count (top_k)",
+    "topk_hint": "Number of memories injected per conversation, recommended 3-7",
+    "threshold_label": "Memory Similarity Threshold",
+    "threshold_hint": "Memories below this score are not injected, recommended 0.3-0.5",
+    "wiki_section": "Wiki Compilation Model Config",
+    "wiki_section_desc": "Wiki compilation needs long context + cheap (default: DeepSeek). Leave blank to use upstream Chat model.",
+    "wiki_model_label": "Wiki Compilation Model",
+    "wiki_model_hint": "Recommended: deepseek-chat (64K context, very cheap)",
+    "wiki_base_url_label": "Wiki API Base URL",
+    "wiki_api_key_label": "Wiki API Key",
+    "wiki_api_key_hint": "DeepSeek API Key. Leave blank to reuse upstream API Key.",
+    "asr_section": "ASR Model Config",
+    "asr_section_desc": "Doubao ASR cloud config. Get App ID and Access Key from Volcengine Console. Takes effect immediately after saving.",
+    "asr_mode_label": "File Transcription ASR Mode",
+    "asr_mode_local": "local · FunASR Local",
+    "asr_mode_cloud": "cloud · Doubao Flash",
+    "asr_mode_cloud_std": "cloud_standard · Doubao Standard (speaker diarization)",
+    "asr_mode_hint": "Used for /api/transcribe, audio file transcription. Recommended: Standard",
+    "voice_mode_label": "Voice Chat ASR Mode",
+    "voice_mode_cloud": "cloud · Doubao Flash (Recommended)",
+    "voice_mode_local": "local · FunASR Local",
+    "voice_mode_hint": "Used for /api/transcribe/voice, real-time voice messages. Recommended: Flash",
+    "app_id_label": "App ID",
+    "app_id_hint": "Volcengine → Voice Tech → App List → App ID",
+    "access_key_label": "Access Key",
+    "access_key_hint": "Volcengine → Key Management → Access Key",
+    "flash_url_label": "Flash API URL",
+    "standard_url_label": "Standard API URL",
+    "prompt_section": "Prompt Template Config",
+    "prompt_section_desc": "Custom System Prompts for summaries and insights. Supports {name}, {role}, {context} placeholders.",
+    "summary_prompt_label": "Summary Prompt",
+    "summary_prompt_hint": "Used for /api/summarize, leave blank for default template",
+    "insight_prompt_label": "Insight Prompt",
+    "insight_prompt_hint": "Used for /api/insight, leave blank for default template",
+    "save_btn": "Save Config",
+    "save_wiki_btn": "Save Wiki Config",
+    "save_asr_btn": "Save ASR Config",
+    "save_prompt_btn": "Save Prompt",
+    "saved": "Saved"
+  },
+
+  "personality": {
+    "title": "Personality (System Prompt)",
+    "desc": "This prompt is injected at the beginning of every conversation's system message, defining the AI's behavioral style. Supports Markdown.",
+    "placeholder": "Enter system prompt...",
+    "save_btn": "Save Personality",
+    "reset_btn": "Reset Default",
+    "saved": "Saved",
+    "default_prompt": "You are Vibry AI, the user's digital twin strategy co-pilot. You hold the user's long-term memory — their preferences, projects, and decision history.\n\nCommunication Style:\n- Concise and direct, avoid fluff\n- Data-driven, logic-focused\n- Proactively remind the user of past decisions and preferences\n- Reference historical memories when relevant\n\nYour value: remember everything the user has said, and provide context at the right moment."
+  },
+
+  "memories": {
+    "title": "Memory Management",
+    "search_placeholder": "Search memories...",
+    "search_btn": "Search",
+    "no_results": "No results",
+    "score_label": "score"
+  },
+
+  "wiki": {
+    "title": "Wiki KB (karpathy-llm-wiki RAG)",
+    "desc": "Compiler-mode RAG: raw materials → LLM compiled into structured Wiki pages → referenced on query.<br><b>mem0 makes the system understand you better; wiki-rag makes the system more professional.</b>",
+    "status_label": "Wiki Status",
+    "status_ready": "Ready",
+    "status_not_init": "Not initialized",
+    "status_load_fail": "Load failed",
+    "raw_count_label": "Raw Materials",
+    "article_count_label": "Wiki Articles",
+    "topic_count_label": "Topics",
+    "init_btn": "Initialize Wiki",
+    "init_hint": "(Create raw/ and wiki/ directory structure)",
+    "init_ok": "Wiki initialized",
+    "init_fail": "Initialization failed",
+    "tabs": {
+      "ingest": "Ingest",
+      "query": "Query",
+      "browse": "Browse",
+      "lint": "Lint"
+    },
+    "ingest": {
+      "title": "Ingest Raw Material",
+      "title_label": "Title *",
+      "topic_label": "Topic",
+      "topic_default": "general",
+      "url_label": "Source URL (optional)",
+      "content_label": "Content *",
+      "content_placeholder": "Paste raw text... (Markdown supported)",
+      "compile_btn": "Compile to Wiki",
+      "file_upload_title": "File Upload",
+      "file_label": "Select file (.md/.txt)",
+      "file_topic_label": "Topic",
+      "upload_btn": "Upload & Compile",
+      "title_required": "Please enter a title",
+      "content_required": "Please enter content",
+      "compiling": "Compiling wiki page via LLM...",
+      "done": "Done! Created {0}, Updated {1} (compile time {2}s)",
+      "uploading": "Uploading...",
+      "upload_done": "Done! Created {0} articles",
+      "error": "Error",
+      "request_fail": "Request failed"
+    },
+    "query": {
+      "search_placeholder": "Search wiki KB...",
+      "search_btn": "Search",
+      "gen_answer": "Generate AI Answer",
+      "semantic_search": "Semantic Search",
+      "ai_answer_label": "AI Answer:",
+      "no_results": "No results"
+    },
+    "browse": {
+      "refresh_btn": "Refresh",
+      "rebuild_btn": "Rebuild Index",
+      "filter_all": "All Topics",
+      "no_articles": "No articles yet. Run Ingest first.",
+      "headers": {
+        "title": "Title",
+        "topic": "Topic",
+        "updated": "Updated",
+        "actions": "Actions"
+      },
+      "close_btn": "Close",
+      "delete_confirm": "Delete {0}?",
+      "deleted": "Deleted",
+      "rebuild_ok": "Index rebuilt: {0} articles, {1} topics"
+    },
+    "lint": {
+      "run_btn": "Run Lint",
+      "heuristic_label": "LLM Heuristic Check (slower)",
+      "checking": "Checking...",
+      "done": "Done",
+      "auto_fix_title": "Auto-fixed",
+      "issues_title": "Pending Issues",
+      "heuristic_title": "Heuristic Findings",
+      "no_auto_fix": "No auto-fix items",
+      "fail": "Failed"
+    },
+    "raw_title": "Raw Materials",
+    "raw_refresh_hint": "Click to refresh...",
+    "raw_empty": "No raw materials",
+    "log_title": "Operation Log"
+  },
+
+  "billing": {
+    "title": "Billing Details",
+    "summary_cards": {
+      "total_calls": "Total Calls",
+      "total_tokens": "Total Tokens",
+      "total_cost": "Total Cost"
+    },
+    "table_headers": {
+      "time": "Time",
+      "user": "User",
+      "endpoint": "Endpoint",
+      "model": "Model",
+      "prompt_tokens": "Prompt",
+      "completion_tokens": "Completion",
+      "total_tokens": "Total Tokens",
+      "duration": "Duration",
+      "cost": "Cost ¥"
+    }
+  },
+
+  "logs": {
+    "title": "Runtime Logs",
+    "refresh_btn": "Refresh",
+    "lines_label": "lines"
+  },
+
+  "account": {
+    "title": "Account Settings",
+    "email_section": "Admin Email",
+    "email_desc": "Used for receiving verification codes when resetting password",
+    "email_placeholder": "admin@example.com",
+    "save_email_btn": "Save Email",
+    "email_saved": "Saved",
+    "password_section": "Change Password",
+    "old_pw_placeholder": "Current password",
+    "new_pw_placeholder": "New password (min 4 chars)",
+    "change_pw_btn": "Change Password",
+    "pw_saved": "Changed",
+    "smtp_section": "Email Service (SMTP)",
+    "smtp_desc": "Configure SMTP to enable password reset. Supports QQ Mail, Gmail, etc.",
+    "smtp_loading": "Loading...",
+    "smtp_configured": "SMTP Configured",
+    "smtp_not_configured": "SMTP Not Configured — set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in .env. In dev mode, codes are printed to server log."
+  },
+
+  "common": {
+    "menu": "Menu",
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "unknown_error": "Unknown error"
+  }
+}

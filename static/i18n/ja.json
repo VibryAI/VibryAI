@@ -1,0 +1,289 @@
+{
+  "login": {
+    "title": "Vibry AI Core",
+    "subtitle": "管理コンソール · 管理者パスワードを入力",
+    "password_placeholder": "管理者パスワード",
+    "login_btn": "ログイン",
+    "forgot_link": "パスワードをお忘れですか？",
+    "back_link": "ログインに戻る"
+  },
+  "forgot": {
+    "title": "パスワードリセット",
+    "step1": "ステップ1: 管理者メールを入力",
+    "step2": "ステップ2: 認証コード + 新しいパスワード",
+    "email_placeholder": "管理者メール",
+    "code_placeholder": "6桁の認証コード",
+    "new_pw_placeholder": "新しいパスワード（4文字以上）",
+    "send_btn": "認証コードを送信",
+    "reset_btn": "パスワードをリセット",
+    "code_sent": "認証コードを送信しました。メールをご確認ください",
+    "reset_ok": "パスワードがリセットされました！ログインしてください"
+  },
+
+  "nav": {
+    "brand": "Vibry AI",
+    "dashboard": "📊 ダッシュボード",
+    "chat": "💬 チャットテスト",
+    "models": "⚙️ モデル設定",
+    "personality": "🎭 ペルソナ",
+    "memories": "🧩 メモリ管理",
+    "wiki": "📚 Wiki ナレッジベース",
+    "billing": "💰 課金詳細",
+    "logs": "📋 実行ログ",
+    "account": "👤 アカウント",
+    "logout": "🚪 ログアウト"
+  },
+
+  "dashboard": {
+    "title": "📊 システム概要",
+    "cards": {
+      "recordings": "録音数",
+      "memories": "メモリ数",
+      "api_calls": "API呼出",
+      "tokens": "トークン使用量",
+      "cost": "累計費用",
+      "status": "サービス状態"
+    },
+    "status_online": "● Online",
+    "user_usage_title": "ユーザー別使用量",
+    "user_usage_headers": {
+      "user": "ユーザー",
+      "calls": "呼出回数",
+      "tokens": "トークン使用量",
+      "cost": "費用 (¥)"
+    },
+    "recent_title": "最近の呼出",
+    "recent_headers": {
+      "time": "時刻",
+      "user": "ユーザー",
+      "endpoint": "エンドポイント",
+      "model": "モデル",
+      "tokens": "トークン",
+      "duration": "所要時間",
+      "cost": "費用"
+    }
+  },
+
+  "chat": {
+    "title": "💬 チャットテスト",
+    "user_id_label": "User ID:",
+    "stream_label": "ストリーミング",
+    "memory_indicator_wait": "🧠 メモリ: テスト待ち",
+    "memory_indicator_none": "🧠 メモリ: 一致なし",
+    "memory_indicator": "🧠 メモリ: {0}件注入済み",
+    "wiki_indicator_ok": "📚 Wiki: ✅ {0}件の記事",
+    "wiki_indicator_no": "📚 Wiki: ⚠️ 未初期化",
+    "wiki_indicator_wait": "📚 Wiki: テスト待ち",
+    "input_placeholder": "メモリ注入をテストするメッセージを入力...",
+    "send_btn": "送信",
+    "role_you": "👤 You",
+    "role_assistant": "🤖 Assistant",
+    "loading": "⏳ ...",
+    "error": "エラー",
+    "history_title": "📜 チャット履歴",
+    "history_loading": "クリックして読み込む...",
+    "history_empty": "記録なし"
+  },
+
+  "models": {
+    "title": "⚙️ モデル設定",
+    "chat_section": "📡 基本モデル設定",
+    "chat_model_label": "Chat モデル",
+    "chat_model_hint": "推奨: doubao-seed-2-1-turbo-260628（高速）| doubao-seed-2-1-pro-260628（高性能）",
+    "emb_model_label": "Embedding モデル",
+    "emb_model_hint": "推奨: doubao-embedding-vision-251215（2048d マルチモーダルベクトル）",
+    "topk_label": "メモリ検索数 (top_k)",
+    "topk_hint": "会話ごとに注入されるメモリ数、3-7を推奨",
+    "threshold_label": "メモリ類似度閾値",
+    "threshold_hint": "このスコア未満のメモリは注入されません、0.3-0.5を推奨",
+    "wiki_section": "📚 Wiki コンパイルモデル設定",
+    "wiki_section_desc": "Wikiコンパイルには長いコンテキスト + 低コストが必要です（デフォルト: DeepSeek）。空白のままにすると上位のChatモデルを使用します。",
+    "wiki_model_label": "Wiki コンパイルモデル",
+    "wiki_model_hint": "推奨: deepseek-chat（64Kコンテキスト、非常に安価）",
+    "wiki_base_url_label": "Wiki API Base URL",
+    "wiki_api_key_label": "Wiki API Key",
+    "wiki_api_key_hint": "DeepSeek API Key。空白のままにすると上位のAPI Keyを再利用します。",
+    "asr_section": "🎤 ASR モデル設定",
+    "asr_section_desc": "Doubao ASRクラウド設定。VolcengineコンソールからApp IDとAccess Keyを取得してください。保存後すぐに有効になります。",
+    "asr_mode_label": "📁 ファイル文字起こし ASRモード",
+    "asr_mode_local": "local · FunASR ローカル",
+    "asr_mode_cloud": "cloud · Doubao フラッシュ",
+    "asr_mode_cloud_std": "cloud_standard · Doubao 標準（話者分離）",
+    "asr_mode_hint": "/api/transcribe用、音声ファイルの文字起こし。推奨: 標準",
+    "voice_mode_label": "🎙️ 音声チャット ASRモード",
+    "voice_mode_cloud": "cloud · Doubao フラッシュ（推奨）",
+    "voice_mode_local": "local · FunASR ローカル",
+    "voice_mode_hint": "/api/transcribe/voice用、リアルタイム音声メッセージ。推奨: フラッシュ",
+    "app_id_label": "App ID",
+    "app_id_hint": "Volcengine → 音声技術 → アプリ一覧 → App ID",
+    "access_key_label": "Access Key",
+    "access_key_hint": "Volcengine → キー管理 → Access Key",
+    "flash_url_label": "フラッシュAPI URL",
+    "standard_url_label": "標準API URL",
+    "prompt_section": "📝 プロンプトテンプレート設定",
+    "prompt_section_desc": "要約とインサイト用のカスタムSystem Prompt。{name}, {role}, {context} プレースホルダーをサポートします。",
+    "summary_prompt_label": "要約プロンプト (summary_prompt)",
+    "summary_prompt_hint": "/api/summarizeで使用、空白でデフォルトテンプレート",
+    "insight_prompt_label": "インサイトプロンプト (insight_prompt)",
+    "insight_prompt_hint": "/api/insightで使用、空白でデフォルトテンプレート",
+    "save_btn": "設定を保存",
+    "save_wiki_btn": "💾 Wiki設定を保存",
+    "save_asr_btn": "💾 ASR設定を保存",
+    "save_prompt_btn": "💾 プロンプトを保存",
+    "saved": "✅ 保存済み"
+  },
+
+  "personality": {
+    "title": "🎭 ペルソナ (System Prompt)",
+    "desc": "このプロンプトは各会話のsystemメッセージの先頭に注入され、AIの行動スタイルを定義します。Markdownをサポートします。",
+    "placeholder": "system promptを入力...",
+    "save_btn": "💾 ペルソナを保存",
+    "reset_btn": "🔄 デフォルトに戻す",
+    "saved": "✅ 保存済み",
+    "default_prompt": "あなたはVibry AI、ユーザーのデジタルツイン戦略パートナーです。ユーザーの長期記憶 — 好み、プロジェクト、意思決定の履歴を保持しています。\n\nコミュニケーションスタイル:\n- 簡潔で直接的、無駄な言葉を避ける\n- データ駆動、論理重視\n- 過去の決定や好みを積極的に思い出させる\n- 関連する場合に過去の記憶を引用する\n\nあなたの価値: ユーザーが話したすべてを記憶し、適切なタイミングでコンテキストを提供します。"
+  },
+
+  "memories": {
+    "title": "🧩 メモリ管理",
+    "search_placeholder": "メモリを検索...",
+    "search_btn": "検索",
+    "no_results": "結果なし",
+    "score_label": "score"
+  },
+
+  "wiki": {
+    "title": "📚 Wiki ナレッジベース (karpathy-llm-wiki RAG)",
+    "desc": "コンパイラモードRAG: 元資料 → LLMが構造化Wikiページにコンパイル → クエリ時に参照。<br><b>mem0はシステムがあなたをより理解するようにし、wiki-ragはシステムをより専門的にします。</b>",
+    "status_label": "Wiki 状態",
+    "status_ready": "✅ 準備完了",
+    "status_not_init": "未初期化",
+    "status_load_fail": "読み込み失敗",
+    "raw_count_label": "元資料",
+    "article_count_label": "Wiki記事",
+    "topic_count_label": "トピック",
+    "init_btn": "🚀 Wikiを初期化",
+    "init_hint": "（raw/ と wiki/ ディレクトリ構造を作成）",
+    "init_ok": "✅ Wiki初期化完了",
+    "init_fail": "❌ 初期化失敗",
+    "tabs": {
+      "ingest": "📥 取込",
+      "query": "🔍 検索",
+      "browse": "📖 閲覧",
+      "lint": "🔍 チェック"
+    },
+    "ingest": {
+      "title": "📥 元資料の取込",
+      "title_label": "タイトル *",
+      "topic_label": "トピック分類",
+      "topic_default": "general",
+      "url_label": "ソースURL（任意）",
+      "content_label": "内容 *",
+      "content_placeholder": "元テキストを貼り付け...（Markdown対応）",
+      "compile_btn": "🤖 Wikiにコンパイル",
+      "file_upload_title": "📁 ファイルアップロード",
+      "file_label": "ファイル選択 (.md/.txt)",
+      "file_topic_label": "トピック",
+      "upload_btn": "📤 アップロードしてコンパイル",
+      "title_required": "⚠️ タイトルを入力してください",
+      "content_required": "⚠️ 内容を入力してください",
+      "compiling": "⏳ LLMでwikiページをコンパイル中...",
+      "done": "✅ 完了！新規作成 {0}件、更新 {1}件 (コンパイル時間 {2}秒)",
+      "uploading": "⏳ アップロード中...",
+      "upload_done": "✅ 完了！{0}件の記事を作成",
+      "error": "❌ エラー",
+      "request_fail": "❌ リクエスト失敗"
+    },
+    "query": {
+      "search_placeholder": "wikiナレッジベースを検索...",
+      "search_btn": "🔍 検索",
+      "gen_answer": "AI回答を生成",
+      "semantic_search": "意味検索",
+      "ai_answer_label": "🤖 AI回答:",
+      "no_results": "結果なし"
+    },
+    "browse": {
+      "refresh_btn": "🔄 更新",
+      "rebuild_btn": "📋 インデックス再構築",
+      "filter_all": "すべてのトピック",
+      "no_articles": "記事がありません。先に取込を実行してください。",
+      "headers": {
+        "title": "タイトル",
+        "topic": "トピック",
+        "updated": "更新",
+        "actions": "操作"
+      },
+      "close_btn": "✕ 閉じる",
+      "delete_confirm": "{0}を削除しますか？",
+      "deleted": "🗑️ 削除済み",
+      "rebuild_ok": "📋 インデックス再構築完了: {0}記事, {1}トピック"
+    },
+    "lint": {
+      "run_btn": "🔍 チェック実行",
+      "heuristic_label": "LLMヒューリスティックチェック（低速）",
+      "checking": "⏳ チェック中...",
+      "done": "✅ 完了",
+      "auto_fix_title": "✅ 自動修正済み",
+      "issues_title": "⚠️ 保留中の問題",
+      "heuristic_title": "💡 ヒューリスティック検出",
+      "no_auto_fix": "自動修正項目なし",
+      "fail": "❌ 失敗"
+    },
+    "raw_title": "📂 元資料",
+    "raw_refresh_hint": "クリックして更新...",
+    "raw_empty": "元資料なし",
+    "log_title": "📝 操作ログ"
+  },
+
+  "billing": {
+    "title": "💰 課金詳細",
+    "summary_cards": {
+      "total_calls": "総呼出",
+      "total_tokens": "総トークン",
+      "total_cost": "総費用"
+    },
+    "table_headers": {
+      "time": "時刻",
+      "user": "ユーザー",
+      "endpoint": "エンドポイント",
+      "model": "モデル",
+      "prompt_tokens": "Prompt",
+      "completion_tokens": "Completion",
+      "total_tokens": "総トークン",
+      "duration": "所要時間",
+      "cost": "費用 ¥"
+    }
+  },
+
+  "logs": {
+    "title": "📋 実行ログ",
+    "refresh_btn": "🔄 更新",
+    "lines_label": "行"
+  },
+
+  "account": {
+    "title": "👤 アカウント設定",
+    "email_section": "📧 管理者メール",
+    "email_desc": "パスワードリセット時の認証コード受信に使用されます",
+    "email_placeholder": "admin@example.com",
+    "save_email_btn": "メールを保存",
+    "email_saved": "✅ 保存済み",
+    "password_section": "🔐 パスワード変更",
+    "old_pw_placeholder": "現在のパスワード",
+    "new_pw_placeholder": "新しいパスワード（4文字以上）",
+    "change_pw_btn": "パスワード変更",
+    "pw_saved": "✅ 変更済み",
+    "smtp_section": "📨 メールサービス (SMTP)",
+    "smtp_desc": "SMTP設定後、パスワードリセット機能が使用可能になります。QQメール、Gmail等に対応。",
+    "smtp_loading": "読み込み中...",
+    "smtp_configured": "✅ SMTP設定済み",
+    "smtp_not_configured": "⚠️ SMTP未設定 — .envでSMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSを設定してください。開発モードでは認証コードがサーバーログに出力されます。"
+  },
+
+  "common": {
+    "menu": "メニュー",
+    "close": "閉じる",
+    "confirm": "確認",
+    "cancel": "キャンセル",
+    "unknown_error": "不明なエラー"
+  }
+}

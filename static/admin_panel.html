@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vibry AI Core — 管理控制台</title>
+<title>Vibry AI Core — Admin Console</title>
 <style>
 :root {
   --bg: #0b0f14; --surface: #131920; --border: #1e2a36; --text: #c8d6e5;
@@ -35,6 +35,10 @@ body { font-family: -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif; ba
 /* Mobile nav toggle */
 .nav-toggle { display: none; position: fixed; top: 12px; left: 12px; z-index: 200; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 20px; padding: 6px 10px; border-radius: var(--radius); cursor: pointer; }
 .sidebar.open { transform: translateX(0); }
+
+/* Lang switcher */
+.lang-switch { padding: 0 20px 16px; }
+.lang-switch select { width: 100%; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 12px; cursor: pointer; }
 
 /* Cards */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
@@ -110,292 +114,297 @@ tr:hover td { background: rgba(255,255,255,.02); }
 <!-- Login -->
 <div id="login-page">
   <div class="login-box" id="login-form">
-    <h1>🧠 Vibry AI Core</h1>
-    <p>管理控制台 · 请输入管理员密码</p>
-    <input id="login-pwd" type="password" placeholder="管理员密码" onkeydown="if(event.key==='Enter')login()">
-    <button onclick="login()">登 录</button>
+    <h1 data-i18n="login.title">Vibry AI Core</h1>
+    <p data-i18n="login.subtitle">Admin Console · Enter admin password</p>
+    <input id="login-pwd" type="password" data-i18n-placeholder="login.password_placeholder" placeholder="Admin Password" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()" data-i18n="login.login_btn">Login</button>
     <div class="err" id="login-err"></div>
-    <p style="margin-top:12px;text-align:center;font-size:13px"><a href="#" onclick="showForgot()" style="color:var(--accent);text-decoration:none">忘记密码？</a></p>
+    <p style="margin-top:12px;text-align:center;font-size:13px"><a href="#" onclick="showForgot()" style="color:var(--accent);text-decoration:none" data-i18n="login.forgot_link">Forgot password?</a></p>
   </div>
   <div class="login-box" id="forgot-form" style="display:none">
-    <h1>🔑 重置密码</h1>
-    <p id="forgot-step">第1步：输入管理员邮箱</p>
-    <input id="forgot-email" type="email" placeholder="管理员邮箱">
-    <input id="forgot-code" type="text" placeholder="6位验证码" style="display:none;text-transform:uppercase;letter-spacing:4px;text-align:center;font-size:18px">
-    <input id="forgot-new-pw" type="password" placeholder="新密码（至少4位）" style="display:none">
-    <button onclick="forgotFlow()" id="forgot-btn">发送验证码</button>
+    <h1 data-i18n="forgot.title">Reset Password</h1>
+    <p id="forgot-step" data-i18n="forgot.step1">Step 1: Enter admin email</p>
+    <input id="forgot-email" type="email" data-i18n-placeholder="forgot.email_placeholder" placeholder="Admin Email">
+    <input id="forgot-code" type="text" data-i18n-placeholder="forgot.code_placeholder" placeholder="6-digit code" style="display:none;text-transform:uppercase;letter-spacing:4px;text-align:center;font-size:18px">
+    <input id="forgot-new-pw" type="password" data-i18n-placeholder="forgot.new_pw_placeholder" placeholder="New password (min 4 chars)" style="display:none">
+    <button onclick="forgotFlow()" id="forgot-btn" data-i18n="forgot.send_btn">Send Code</button>
     <div class="err" id="forgot-err"></div>
-    <p style="margin-top:12px;text-align:center;font-size:13px"><a href="#" onclick="showLogin()" style="color:var(--accent);text-decoration:none">返回登录</a></p>
+    <p style="margin-top:12px;text-align:center;font-size:13px"><a href="#" onclick="showLogin()" style="color:var(--accent);text-decoration:none" data-i18n="login.back_link">Back to login</a></p>
   </div>
 </div>
 
 <!-- App -->
 <div id="app">
-  <button class="nav-toggle" onclick="toggleSidebar()" title="菜单">☰</button>
+  <button class="nav-toggle" onclick="toggleSidebar()" data-i18n-title="common.menu" title="Menu">☰</button>
   <nav class="sidebar" id="sidebar">
-    <h2>🧠 Vibry AI</h2>
-    <a href="#" data-page="dashboard" class="active">📊 仪表盘</a>
-    <a href="#" data-page="chat">💬 聊天测试</a>
-    <a href="#" data-page="models">⚙️ 模型配置</a>
-    <a href="#" data-page="personality">🎭 人格设定</a>
-    <a href="#" data-page="memories">🧩 记忆管理</a>
-    <a href="#" data-page="wiki">📚 Wiki 知识库</a>
-    <a href="#" data-page="billing">💰 计费明细</a>
-    <a href="#" data-page="logs">📋 运行日志</a>
-    <a href="#" data-page="account">👤 账户设置</a>
-    <a href="#" onclick="logout()" style="margin-top:20px; color:var(--danger)">🚪 退出</a>
+    <h2 data-i18n="nav.brand">Vibry AI</h2>
+    <div class="lang-switch">
+      <select id="lang-switcher" onchange="I18N.setLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ko">한국어</option>
+        <option value="ja">日本語</option>
+      </select>
+    </div>
+    <a href="#" data-page="dashboard" class="active" data-i18n="nav.dashboard">Dashboard</a>
+    <a href="#" data-page="chat" data-i18n="nav.chat">Chat Test</a>
+    <a href="#" data-page="models" data-i18n="nav.models">Model Config</a>
+    <a href="#" data-page="personality" data-i18n="nav.personality">Personality</a>
+    <a href="#" data-page="memories" data-i18n="nav.memories">Memory Mgmt</a>
+    <a href="#" data-page="wiki" data-i18n="nav.wiki">Wiki KB</a>
+    <a href="#" data-page="billing" data-i18n="nav.billing">Billing</a>
+    <a href="#" data-page="logs" data-i18n="nav.logs">Runtime Logs</a>
+    <a href="#" data-page="account" data-i18n="nav.account">Account</a>
+    <a href="#" onclick="logout()" style="margin-top:20px; color:var(--danger)" data-i18n="nav.logout">Logout</a>
   </nav>
 
   <div class="main">
     <!-- Dashboard -->
     <div id="page-dashboard" class="page active">
-      <h2 style="margin-bottom:20px">📊 系统概览</h2>
+      <h2 style="margin-bottom:20px" data-i18n="dashboard.title">System Overview</h2>
       <div class="cards" id="dash-cards"></div>
-      <h3 style="margin:20px 0 10px;font-size:14px;color:var(--text-dim)">各用户用量</h3>
-      <div class="table-wrap"><table id="dash-users"><thead><tr><th>用户</th><th>调用次数</th><th>Token 用量</th><th>费用 (¥)</th></tr></thead><tbody></tbody></table></div>
-      <h3 style="margin:20px 0 10px;font-size:14px;color:var(--text-dim)">最近调用</h3>
-      <div class="table-wrap"><table id="dash-recent"><thead><tr><th>时间</th><th>用户</th><th>端点</th><th>模型</th><th>Tokens</th><th>耗时</th><th>费用</th></tr></thead><tbody></tbody></table></div>
+      <h3 style="margin:20px 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="dashboard.user_usage_title">Usage by User</h3>
+      <div class="table-wrap"><table id="dash-users"><thead><tr><th data-i18n="dashboard.user_usage_headers.user">User</th><th data-i18n="dashboard.user_usage_headers.calls">Calls</th><th data-i18n="dashboard.user_usage_headers.tokens">Token Usage</th><th data-i18n="dashboard.user_usage_headers.cost">Cost (¥)</th></tr></thead><tbody></tbody></table></div>
+      <h3 style="margin:20px 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="dashboard.recent_title">Recent Calls</h3>
+      <div class="table-wrap"><table id="dash-recent"><thead><tr><th data-i18n="dashboard.recent_headers.time">Time</th><th data-i18n="dashboard.recent_headers.user">User</th><th data-i18n="dashboard.recent_headers.endpoint">Endpoint</th><th data-i18n="dashboard.recent_headers.model">Model</th><th data-i18n="dashboard.recent_headers.tokens">Tokens</th><th data-i18n="dashboard.recent_headers.duration">Duration</th><th data-i18n="dashboard.recent_headers.cost">Cost</th></tr></thead><tbody></tbody></table></div>
     </div>
 
     <!-- Chat -->
     <div id="page-chat" class="page">
-      <h2 style="margin-bottom:16px">💬 聊天测试</h2>
+      <h2 style="margin-bottom:16px" data-i18n="chat.title">Chat Test</h2>
       <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-        <span style="font-size:13px;color:var(--text-dim)">User ID:</span>
+        <span style="font-size:13px;color:var(--text-dim)" data-i18n="chat.user_id_label">User ID:</span>
         <input id="chat-uid" value="admin" style="width:140px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px">
-        <label style="font-size:13px;color:var(--text-dim);margin-left:8px"><input type="checkbox" id="chat-stream" checked> 流式</label>
+        <label style="font-size:13px;color:var(--text-dim);margin-left:8px"><input type="checkbox" id="chat-stream" checked> <span data-i18n="chat.stream_label">Stream</span></label>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--text-dim)" id="mem-indicator">🧠 记忆: 等待测试</span>
-        <span style="font-size:12px;color:var(--text-dim)" id="wiki-indicator">📚 Wiki: 等待测试</span>
+        <span style="font-size:12px;color:var(--text-dim)" id="mem-indicator" data-i18n="chat.memory_indicator_wait">Memory: waiting for test</span>
+        <span style="font-size:12px;color:var(--text-dim)" id="wiki-indicator" data-i18n="chat.wiki_indicator_wait">Wiki: waiting for test</span>
       </div>
       <div class="chat-area" id="chat-area"></div>
       <div class="chat-input">
-        <input id="chat-input" placeholder="输入消息测试记忆注入..." onkeydown="if(event.key==='Enter')sendChat()">
-        <button onclick="sendChat()">发送</button>
+        <input id="chat-input" data-i18n-placeholder="chat.input_placeholder" placeholder="Type a message to test memory injection..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" data-i18n="chat.send_btn">Send</button>
       </div>
-      <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px">📜 聊天记录</summary>
-        <div id="chat-history" style="margin-top:8px;color:var(--text-dim);font-size:12px">点击加载...</div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px" data-i18n="chat.history_title">Chat History</summary>
+        <div id="chat-history" style="margin-top:8px;color:var(--text-dim);font-size:12px" data-i18n="chat.history_loading">Click to load...</div>
       </details>
     </div>
 
     <!-- Models -->
     <div id="page-models" class="page">
-      <h2 style="margin-bottom:16px">⚙️ 模型配置</h2>
+      <h2 style="margin-bottom:16px" data-i18n="models.title">Model Configuration</h2>
 
       <details open style="margin-bottom:16px">
-        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">📡 基础模型配置</summary>
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.chat_section">Chat Model Config</summary>
         <div class="card" style="margin-top:8px">
         <div class="form-group">
-          <label>Chat 模型</label>
+          <label data-i18n="models.chat_model_label">Chat Model</label>
           <input id="cfg-chat-model" placeholder="doubao-seed-2-1-turbo-260628">
-          <div class="hint">推荐: doubao-seed-2-1-turbo-260628（快）| doubao-seed-2-1-pro-260628（强）</div>
+          <div class="hint" data-i18n="models.chat_model_hint">Recommended: doubao-seed-2-1-turbo-260628 (fast) | doubao-seed-2-1-pro-260628 (powerful)</div>
         </div>
         <div class="form-group">
-          <label>Embedding 模型</label>
+          <label data-i18n="models.emb_model_label">Embedding Model</label>
           <input id="cfg-emb-model" placeholder="doubao-embedding-vision-251215">
-          <div class="hint">推荐: doubao-embedding-vision-251215（2048d 多模态向量）</div>
+          <div class="hint" data-i18n="models.emb_model_hint">Recommended: doubao-embedding-vision-251215 (2048d multimodal)</div>
         </div>
         <div class="form-group">
-          <label>记忆检索数量 (top_k)</label>
+          <label data-i18n="models.topk_label">Memory Retrieval Count (top_k)</label>
           <input id="cfg-topk" type="number" min="1" max="20" placeholder="5">
-          <div class="hint">每次对话注入的记忆条数，推荐 3-7</div>
+          <div class="hint" data-i18n="models.topk_hint">Number of memories injected per conversation, recommended 3-7</div>
         </div>
         <div class="form-group">
-          <label>记忆相似度阈值</label>
+          <label data-i18n="models.threshold_label">Memory Similarity Threshold</label>
           <input id="cfg-threshold" type="number" min="0" max="1" step="0.05" placeholder="0.35">
-          <div class="hint">低于此分数的记忆不会被注入，推荐 0.3-0.5</div>
+          <div class="hint" data-i18n="models.threshold_hint">Memories below this score are not injected, recommended 0.3-0.5</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
-        <span id="cfg-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_btn">Save Config</button>
+        <span id="cfg-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
 
       <details style="margin-bottom:16px">
-        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">📚 Wiki 编译模型配置</summary>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">Wiki 编译需要长上下文 + 便宜（默认 DeepSeek）。留空则用上游 Chat 模型。</p>
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.wiki_section">Wiki Compilation Model Config</summary>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.wiki_section_desc">Wiki compilation needs long context + cheap (default: DeepSeek). Leave blank to use upstream Chat model.</p>
       <div class="card" style="margin-bottom:16px">
         <div class="form-group">
-          <label>Wiki 编译模型</label>
+          <label data-i18n="models.wiki_model_label">Wiki Compilation Model</label>
           <input id="cfg-wiki-model" placeholder="deepseek-chat">
-          <div class="hint">推荐: deepseek-chat（64K 上下文，极便宜）</div>
+          <div class="hint" data-i18n="models.wiki_model_hint">Recommended: deepseek-chat (64K context, very cheap)</div>
         </div>
         <div class="form-group">
-          <label>Wiki API Base URL</label>
+          <label data-i18n="models.wiki_base_url_label">Wiki API Base URL</label>
           <input id="cfg-wiki-base-url" placeholder="https://api.deepseek.com">
         </div>
         <div class="form-group">
-          <label>Wiki API Key</label>
+          <label data-i18n="models.wiki_api_key_label">Wiki API Key</label>
           <input id="cfg-wiki-api-key" placeholder="sk-..." type="password">
-          <div class="hint">DeepSeek API Key，留空则复用上游 API Key</div>
+          <div class="hint" data-i18n="models.wiki_api_key_hint">DeepSeek API Key. Leave blank to reuse upstream API Key.</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()">💾 保存 Wiki 配置</button>
-        <span id="cfg-wiki-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_wiki_btn">Save Wiki Config</button>
+        <span id="cfg-wiki-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
 
       <details style="margin-bottom:16px">
-        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">🎤 ASR 模型配置</summary>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">豆包 ASR 云端配置。从火山引擎控制台获取 App ID 和 Access Key。保存后立即生效，无需重启。</p>
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.asr_section">ASR Model Config</summary>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.asr_section_desc">Doubao ASR cloud config. Get App ID and Access Key from Volcengine Console. Takes effect immediately after saving.</p>
       <div class="card" style="margin-bottom:16px">
         <div class="form-group">
-          <label>📁 文件转写 ASR 模式</label>
+          <label data-i18n="models.asr_mode_label">File Transcription ASR Mode</label>
           <select id="cfg-asr-mode">
-            <option value="local">local · FunASR 本地</option>
-            <option value="cloud">cloud · 豆包极速版</option>
-            <option value="cloud_standard">cloud_standard · 豆包标准版（说话人分离）</option>
+            <option value="local" data-i18n="models.asr_mode_local">local · FunASR Local</option>
+            <option value="cloud" data-i18n="models.asr_mode_cloud">cloud · Doubao Flash</option>
+            <option value="cloud_standard" data-i18n="models.asr_mode_cloud_std">cloud_standard · Doubao Standard (speaker diarization)</option>
           </select>
-          <div class="hint">用于 /api/transcribe，上传音频文件转写。推荐: 标准版</div>
+          <div class="hint" data-i18n="models.asr_mode_hint">Used for /api/transcribe, audio file transcription. Recommended: Standard</div>
         </div>
         <div class="form-group">
-          <label>🎙️ 语音聊天 ASR 模式</label>
+          <label data-i18n="models.voice_mode_label">Voice Chat ASR Mode</label>
           <select id="cfg-voice-mode">
-            <option value="cloud">cloud · 豆包极速版（推荐）</option>
-            <option value="local">local · FunASR 本地</option>
+            <option value="cloud" data-i18n="models.voice_mode_cloud">cloud · Doubao Flash (Recommended)</option>
+            <option value="local" data-i18n="models.voice_mode_local">local · FunASR Local</option>
           </select>
-          <div class="hint">用于 /api/transcribe/voice，实时语音消息识别。推荐: 极速版</div>
+          <div class="hint" data-i18n="models.voice_mode_hint">Used for /api/transcribe/voice, real-time voice messages. Recommended: Flash</div>
         </div>
         <div class="form-group">
-          <label>App ID</label>
-          <input id="cfg-doubao-appid" placeholder="火山引擎 App ID">
-          <div class="hint">火山引擎 → 语音技术 → 应用列表 → App ID</div>
+          <label data-i18n="models.app_id_label">App ID</label>
+          <input id="cfg-doubao-appid" placeholder="Volcengine App ID">
+          <div class="hint" data-i18n="models.app_id_hint">Volcengine → Voice Tech → App List → App ID</div>
         </div>
         <div class="form-group">
-          <label>Access Key</label>
-          <input id="cfg-doubao-accesskey" placeholder="火山引擎 Access Key" type="password">
-          <div class="hint">火山引擎 → 密钥管理 → Access Key</div>
+          <label data-i18n="models.access_key_label">Access Key</label>
+          <input id="cfg-doubao-accesskey" placeholder="Volcengine Access Key" type="password">
+          <div class="hint" data-i18n="models.access_key_hint">Volcengine → Key Management → Access Key</div>
         </div>
         <div class="form-group">
-          <label>极速版接口 URL</label>
+          <label data-i18n="models.flash_url_label">Flash API URL</label>
           <input id="cfg-doubao-flash-url" placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash">
         </div>
         <div class="form-group">
-          <label>标准版接口 URL</label>
+          <label data-i18n="models.standard_url_label">Standard API URL</label>
           <input id="cfg-doubao-standard-url" placeholder="https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit">
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()">💾 保存 ASR 配置</button>
-        <span id="cfg-asr-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_asr_btn">Save ASR Config</button>
+        <span id="cfg-asr-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
 
       <details style="margin-bottom:16px">
-        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">📝 Prompt 模板配置</summary>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">自定义摘要和洞察的 System Prompt。支持 {"{name}"}, {"{role}"}, {"{context}"} 占位符。</p>
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.prompt_section">Prompt Template Config</summary>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.prompt_section_desc">Custom System Prompts for summaries and insights. Supports {name}, {role}, {context} placeholders.</p>
       <div class="card" style="margin-bottom:16px">
         <div class="form-group">
-          <label>摘要 Prompt (summary_prompt)</label>
-          <textarea id="cfg-summary-prompt" style="min-height:250px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" placeholder="会议纪要 System Prompt..."></textarea>
-          <div class="hint">用于 /api/summarize，留空使用默认模板</div>
+          <label data-i18n="models.summary_prompt_label">Summary Prompt</label>
+          <textarea id="cfg-summary-prompt" style="min-height:250px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" data-i18n-placeholder="models.summary_prompt_label" placeholder="Summary Prompt..."></textarea>
+          <div class="hint" data-i18n="models.summary_prompt_hint">Used for /api/summarize, leave blank for default template</div>
         </div>
         <div class="form-group">
-          <label>洞察 Prompt (insight_prompt)</label>
-          <textarea id="cfg-insight-prompt" style="min-height:200px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" placeholder="商业洞察 System Prompt..."></textarea>
-          <div class="hint">用于 /api/insight，留空使用默认模板</div>
+          <label data-i18n="models.insight_prompt_label">Insight Prompt</label>
+          <textarea id="cfg-insight-prompt" style="min-height:200px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" data-i18n-placeholder="models.insight_prompt_label" placeholder="Insight Prompt..."></textarea>
+          <div class="hint" data-i18n="models.insight_prompt_hint">Used for /api/insight, leave blank for default template</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()">💾 保存 Prompt</button>
-        <span id="cfg-prompt-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_prompt_btn">Save Prompt</button>
+        <span id="cfg-prompt-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
     </div>
 
     <!-- Personality -->
     <div id="page-personality" class="page">
-      <h2 style="margin-bottom:12px">🎭 人格设定 (System Prompt)</h2>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">这条 prompt 会注入到每次对话的 system 消息最前面，定义 AI 的行为风格。支持 Markdown。</p>
+      <h2 style="margin-bottom:12px" data-i18n="personality.title">Personality (System Prompt)</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="personality.desc">This prompt is injected at the beginning of every conversation's system message, defining the AI's behavioral style. Supports Markdown.</p>
       <div class="card" style="margin-bottom:16px">
         <div class="form-group">
-          <textarea id="personality-text" style="min-height:280px;max-width:100%;font-family:monospace;font-size:13px;line-height:1.5" placeholder="输入 system prompt..."></textarea>
+          <textarea id="personality-text" style="min-height:280px;max-width:100%;font-family:monospace;font-size:13px;line-height:1.5" data-i18n-placeholder="personality.placeholder" placeholder="Enter system prompt..."></textarea>
         </div>
-        <button class="btn btn-primary" onclick="savePersonality()">💾 保存人格</button>
-        <button class="btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text);margin-left:8px" onclick="resetPersonality()">🔄 恢复默认</button>
-        <span id="per-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+        <button class="btn btn-primary" onclick="savePersonality()" data-i18n="personality.save_btn">Save Personality</button>
+        <button class="btn" style="background:var(--surface);border:1px solid var(--border);color:var(--text);margin-left:8px" onclick="resetPersonality()" data-i18n="personality.reset_btn">Reset Default</button>
+        <span id="per-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="personality.saved">Saved</span>
       </div>
     </div>
 
     <!-- Account -->
     <div id="page-account" class="page">
-      <h2 style="margin-bottom:16px">👤 账户设置</h2>
+      <h2 style="margin-bottom:16px" data-i18n="account.title">Account Settings</h2>
 
       <div class="card" style="margin-bottom:16px">
-        <h3 style="font-size:15px;margin-bottom:12px">📧 管理员邮箱</h3>
-        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px">用于忘记密码时接收验证码</p>
+        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="account.email_section">Admin Email</h3>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px" data-i18n="account.email_desc">Used for receiving verification codes when resetting password</p>
         <div class="form-group">
-          <input id="acct-email" type="email" placeholder="admin@example.com" style="max-width:400px">
+          <input id="acct-email" type="email" data-i18n-placeholder="account.email_placeholder" placeholder="admin@example.com" style="max-width:400px">
         </div>
-        <button class="btn btn-primary" onclick="saveEmail()">保存邮箱</button>
-        <span id="acct-email-saved" style="margin-left:10px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+        <button class="btn btn-primary" onclick="saveEmail()" data-i18n="account.save_email_btn">Save Email</button>
+        <span id="acct-email-saved" style="margin-left:10px;color:var(--accent2);font-size:13px;display:none" data-i18n="account.email_saved">Saved</span>
       </div>
 
       <div class="card" style="margin-bottom:16px">
-        <h3 style="font-size:15px;margin-bottom:12px">🔐 修改密码</h3>
-        <div class="form-group"><input id="acct-old-pw" type="password" placeholder="当前密码" style="max-width:300px"></div>
-        <div class="form-group"><input id="acct-new-pw" type="password" placeholder="新密码（至少4位）" style="max-width:300px"></div>
-        <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
-        <span id="acct-pw-saved" style="margin-left:10px;color:var(--accent2);font-size:13px;display:none">✅ 已修改</span>
+        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="account.password_section">Change Password</h3>
+        <div class="form-group"><input id="acct-old-pw" type="password" data-i18n-placeholder="account.old_pw_placeholder" placeholder="Current password" style="max-width:300px"></div>
+        <div class="form-group"><input id="acct-new-pw" type="password" data-i18n-placeholder="account.new_pw_placeholder" placeholder="New password (min 4 chars)" style="max-width:300px"></div>
+        <button class="btn btn-primary" onclick="changePassword()" data-i18n="account.change_pw_btn">Change Password</button>
+        <span id="acct-pw-saved" style="margin-left:10px;color:var(--accent2);font-size:13px;display:none" data-i18n="account.pw_saved">Changed</span>
         <span id="acct-pw-err" style="margin-left:10px;color:var(--danger);font-size:13px;display:none"></span>
       </div>
 
       <div class="card">
-        <h3 style="font-size:15px;margin-bottom:12px">📨 邮件服务 (SMTP)</h3>
-        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px">配置 SMTP 后可使用忘记密码功能。支持 QQ邮箱、Gmail 等。</p>
-        <div id="smtp-info" style="font-size:13px;color:var(--text-dim)">加载中...</div>
+        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="account.smtp_section">Email Service (SMTP)</h3>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:10px" data-i18n="account.smtp_desc">Configure SMTP to enable password reset. Supports QQ Mail, Gmail, etc.</p>
+        <div id="smtp-info" style="font-size:13px;color:var(--text-dim)" data-i18n="account.smtp_loading">Loading...</div>
       </div>
     </div>
 
     <!-- Memories -->
     <div id="page-memories" class="page">
-      <h2 style="margin-bottom:16px">🧩 记忆管理</h2>
+      <h2 style="margin-bottom:16px" data-i18n="memories.title">Memory Management</h2>
       <div style="display:flex;gap:8px;margin-bottom:16px">
-        <input id="mem-search" placeholder="搜索记忆..." style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')searchMems()">
-        <button class="btn btn-primary" onclick="searchMems()">搜索</button>
+        <input id="mem-search" data-i18n-placeholder="memories.search_placeholder" placeholder="Search memories..." style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')searchMems()">
+        <button class="btn btn-primary" onclick="searchMems()" data-i18n="memories.search_btn">Search</button>
       </div>
       <div id="mem-results"></div>
     </div>
 
     <!-- Wiki RAG -->
     <div id="page-wiki" class="page">
-      <h2 style="margin-bottom:16px">📚 Wiki 知识库 (karpathy-llm-wiki RAG)</h2>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px">
-        编译器模式 RAG：原始材料 → LLM 编译为结构化 Wiki 页面 → 查询时引用。<br>
-        <b>mem0 让系统更懂你，wiki-rag 让系统更专业。</b>
-      </p>
+      <h2 style="margin-bottom:16px" data-i18n="wiki.title">Wiki KB (karpathy-llm-wiki RAG)</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px" data-i18n="wiki.desc">Compiler-mode RAG: raw materials → LLM compiled into structured Wiki pages → referenced on query.<br><b>mem0 makes the system understand you better; wiki-rag makes the system more professional.</b></p>
 
       <!-- Status -->
       <div class="cards" id="wiki-cards">
-        <div class="card"><div class="label">Wiki 状态</div><div class="value" id="wiki-status-text">-</div></div>
-        <div class="card"><div class="label">Raw 材料</div><div class="value" id="wiki-raw-count">-</div></div>
-        <div class="card"><div class="label">Wiki 文章</div><div class="value" id="wiki-article-count">-</div></div>
-        <div class="card"><div class="label">主题话题</div><div class="value" id="wiki-topic-count">-</div></div>
+        <div class="card"><div class="label" data-i18n="wiki.status_label">Wiki Status</div><div class="value" id="wiki-status-text">-</div></div>
+        <div class="card"><div class="label" data-i18n="wiki.raw_count_label">Raw Materials</div><div class="value" id="wiki-raw-count">-</div></div>
+        <div class="card"><div class="label" data-i18n="wiki.article_count_label">Wiki Articles</div><div class="value" id="wiki-article-count">-</div></div>
+        <div class="card"><div class="label" data-i18n="wiki.topic_count_label">Topics</div><div class="value" id="wiki-topic-count">-</div></div>
       </div>
 
       <div id="wiki-init-section" style="margin-bottom:20px">
-        <button class="btn btn-primary" onclick="wikiInit()">🚀 初始化 Wiki</button>
-        <span style="color:var(--text-dim);font-size:12px;margin-left:8px">（创建 raw/ 和 wiki/ 目录结构）</span>
+        <button class="btn btn-primary" onclick="wikiInit()" data-i18n="wiki.init_btn">Initialize Wiki</button>
+        <span style="color:var(--text-dim);font-size:12px;margin-left:8px" data-i18n="wiki.init_hint">(Create raw/ and wiki/ directory structure)</span>
       </div>
 
       <!-- Tabs -->
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="wiki-tabs" hidden>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('ingest')" id="wiki-tab-ingest">📥 摄入</button>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('query')" id="wiki-tab-query">🔍 查询</button>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('browse')" id="wiki-tab-browse">📖 浏览</button>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('lint')" id="wiki-tab-lint">🔍 检查</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('ingest')" id="wiki-tab-ingest" data-i18n="wiki.tabs.ingest">Ingest</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('query')" id="wiki-tab-query" data-i18n="wiki.tabs.query">Query</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('browse')" id="wiki-tab-browse" data-i18n="wiki.tabs.browse">Browse</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('lint')" id="wiki-tab-lint" data-i18n="wiki.tabs.lint">Lint</button>
       </div>
 
       <!-- Ingest -->
       <div id="wiki-tab-content-ingest" class="wiki-tab-content" hidden>
-        <h3 style="font-size:15px;margin-bottom:12px">📥 摄入原始材料</h3>
-        <div class="form-group"><label>标题 *</label><input id="wiki-ingest-title" placeholder="来源标题（如：Transformer 论文精读）"></div>
-        <div class="form-group"><label>主题分类</label><input id="wiki-ingest-topic" value="general" placeholder="如：ai-research"></div>
-        <div class="form-group"><label>来源 URL（可选）</label><input id="wiki-ingest-url" placeholder="https://..."></div>
-        <div class="form-group"><label>内容 *</label><textarea id="wiki-ingest-content" placeholder="粘贴原始文本...（支持 Markdown）" style="min-height:200px"></textarea></div>
-        <button class="btn btn-primary" onclick="wikiIngest()">🤖 编译到 Wiki</button>
+        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="wiki.ingest.title">Ingest Raw Material</h3>
+        <div class="form-group"><label data-i18n="wiki.ingest.title_label">Title *</label><input id="wiki-ingest-title" data-i18n-placeholder="wiki.ingest.title_label" placeholder="Title *"></div>
+        <div class="form-group"><label data-i18n="wiki.ingest.topic_label">Topic</label><input id="wiki-ingest-topic" value="general" data-i18n-placeholder="wiki.ingest.topic_default" placeholder="general"></div>
+        <div class="form-group"><label data-i18n="wiki.ingest.url_label">Source URL (optional)</label><input id="wiki-ingest-url" placeholder="https://..."></div>
+        <div class="form-group"><label data-i18n="wiki.ingest.content_label">Content *</label><textarea id="wiki-ingest-content" data-i18n-placeholder="wiki.ingest.content_placeholder" placeholder="Paste raw text... (Markdown supported)" style="min-height:200px"></textarea></div>
+        <button class="btn btn-primary" onclick="wikiIngest()" data-i18n="wiki.ingest.compile_btn">Compile to Wiki</button>
         <span id="wiki-ingest-status" style="margin-left:12px;font-size:13px;color:var(--text-dim)"></span>
 
-        <h3 style="font-size:15px;margin:24px 0 12px">📁 文件上传</h3>
+        <h3 style="font-size:15px;margin:24px 0 12px" data-i18n="wiki.ingest.file_upload_title">File Upload</h3>
         <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-          <div class="form-group" style="margin:0"><label>选择文件 (.md/.txt)</label><input type="file" id="wiki-upload-file" accept=".md,.txt,.json" style="max-width:300px"></div>
-          <div class="form-group" style="margin:0"><label>主题</label><input id="wiki-upload-topic" value="general" style="width:140px"></div>
-          <button class="btn btn-primary" onclick="wikiUploadFile()">📤 上传并编译</button>
+          <div class="form-group" style="margin:0"><label data-i18n="wiki.ingest.file_label">Select file (.md/.txt)</label><input type="file" id="wiki-upload-file" accept=".md,.txt,.json" style="max-width:300px"></div>
+          <div class="form-group" style="margin:0"><label data-i18n="wiki.ingest.file_topic_label">Topic</label><input id="wiki-upload-topic" value="general" style="width:140px"></div>
+          <button class="btn btn-primary" onclick="wikiUploadFile()" data-i18n="wiki.ingest.upload_btn">Upload & Compile</button>
           <span id="wiki-upload-status" style="font-size:13px;color:var(--text-dim)"></span>
         </div>
       </div>
@@ -403,11 +412,11 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <!-- Query -->
       <div id="wiki-tab-content-query" class="wiki-tab-content" hidden>
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input id="wiki-query-input" placeholder="搜索 wiki 知识库..." style="flex:1;max-width:500px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')wikiQuery()">
-          <button class="btn btn-primary" onclick="wikiQuery()">🔍 搜索</button>
+          <input id="wiki-query-input" data-i18n-placeholder="wiki.query.search_placeholder" placeholder="Search wiki KB..." style="flex:1;max-width:500px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')wikiQuery()">
+          <button class="btn btn-primary" onclick="wikiQuery()" data-i18n="wiki.query.search_btn">Search</button>
         </div>
-        <label style="font-size:12px;color:var(--text-dim);margin-right:12px"><input type="checkbox" id="wiki-query-gen-answer"> 生成 AI 回答</label>
-        <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-query-embedding"> 语义搜索</label>
+        <label style="font-size:12px;color:var(--text-dim);margin-right:12px"><input type="checkbox" id="wiki-query-gen-answer"> <span data-i18n="wiki.query.gen_answer">Generate AI Answer</span></label>
+        <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-query-embedding"> <span data-i18n="wiki.query.semantic_search">Semantic Search</span></label>
         <div id="wiki-query-answer" style="margin:12px 0;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:none"></div>
         <div id="wiki-query-results" style="margin-top:12px"></div>
       </div>
@@ -415,9 +424,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <!-- Browse -->
       <div id="wiki-tab-content-browse" class="wiki-tab-content" hidden>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-primary" onclick="wikiRefreshList()">🔄 刷新</button>
-          <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="wikiRebuildIndex()">📋 重建索引</button>
-          <select id="wiki-topic-filter" onchange="wikiRefreshList()" style="padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)"><option value="">全部主题</option></select>
+          <button class="btn btn-primary" onclick="wikiRefreshList()" data-i18n="wiki.browse.refresh_btn">Refresh</button>
+          <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="wikiRebuildIndex()" data-i18n="wiki.browse.rebuild_btn">Rebuild Index</button>
+          <select id="wiki-topic-filter" onchange="wikiRefreshList()" style="padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)"><option value="" data-i18n="wiki.browse.filter_all">All Topics</option></select>
         </div>
         <div id="wiki-article-list"></div>
         <div id="wiki-article-detail" style="display:none;margin-top:16px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)"></div>
@@ -426,8 +435,8 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <!-- Lint -->
       <div id="wiki-tab-content-lint" class="wiki-tab-content" hidden>
         <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="wikiLint()">🔍 执行检查</button>
-          <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-lint-heuristic"> LLM 启发式检查（较慢）</label>
+          <button class="btn btn-primary" onclick="wikiLint()" data-i18n="wiki.lint.run_btn">Run Lint</button>
+          <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-lint-heuristic"> <span data-i18n="wiki.lint.heuristic_label">LLM Heuristic Check (slower)</span></label>
           <span id="wiki-lint-status" style="font-size:13px;color:var(--text-dim)"></span>
         </div>
         <div id="wiki-lint-fixed"></div>
@@ -435,33 +444,34 @@ tr:hover td { background: rgba(255,255,255,.02); }
         <div id="wiki-lint-heuristic-results"></div>
       </div>
 
-      <details style="margin-top:20px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px">📂 Raw 原始材料</summary>
-        <div id="wiki-raw-list" style="margin-top:8px;color:var(--text-dim);font-size:12px">点击刷新...</div>
+      <details style="margin-top:20px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px" data-i18n="wiki.raw_title">Raw Materials</summary>
+        <div id="wiki-raw-list" style="margin-top:8px;color:var(--text-dim);font-size:12px" data-i18n="wiki.raw_refresh_hint">Click to refresh...</div>
       </details>
-      <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px">📝 操作日志</summary>
+      <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px" data-i18n="wiki.log_title">Operation Log</summary>
         <div id="wiki-log-preview" style="margin-top:8px;color:var(--text-dim);font-size:12px;font-family:monospace;white-space:pre-wrap"></div>
       </details>
     </div>
 
     <!-- Billing -->
     <div id="page-billing" class="page">
-      <h2 style="margin-bottom:16px">💰 计费明细</h2>
+      <h2 style="margin-bottom:16px" data-i18n="billing.title">Billing Details</h2>
       <div class="cards" id="bill-cards"></div>
-      <div class="table-wrap"><table id="bill-table"><thead><tr><th>时间</th><th>用户</th><th>端点</th><th>模型</th><th>Prompt</th><th>Completion</th><th>总Tokens</th><th>耗时</th><th>费用 ¥</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="bill-table"><thead><tr><th data-i18n="billing.table_headers.time">Time</th><th data-i18n="billing.table_headers.user">User</th><th data-i18n="billing.table_headers.endpoint">Endpoint</th><th data-i18n="billing.table_headers.model">Model</th><th data-i18n="billing.table_headers.prompt_tokens">Prompt</th><th data-i18n="billing.table_headers.completion_tokens">Completion</th><th data-i18n="billing.table_headers.total_tokens">Total Tokens</th><th data-i18n="billing.table_headers.duration">Duration</th><th data-i18n="billing.table_headers.cost">Cost ¥</th></tr></thead><tbody></tbody></table></div>
     </div>
 
     <!-- Logs -->
     <div id="page-logs" class="page">
-      <h2 style="margin-bottom:12px">📋 运行日志</h2>
+      <h2 style="margin-bottom:12px" data-i18n="logs.title">Runtime Logs</h2>
       <div style="margin-bottom:12px;display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="refreshLogs()">🔄 刷新</button>
-        <select id="log-lines" onchange="refreshLogs()"><option value="50">50行</option><option value="100" selected>100行</option><option value="200">200行</option><option value="500">500行</option></select>
+        <button class="btn btn-primary" onclick="refreshLogs()" data-i18n="logs.refresh_btn">Refresh</button>
+        <select id="log-lines" onchange="refreshLogs()"><option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option></select>
       </div>
       <div class="log-view" id="log-view"></div>
     </div>
   </div>
 </div>
 
+<script src="/static/i18n.js"></script>
 <script>
 // ==================== Auth ====================
 let TOKEN = localStorage.getItem('vibry_admin_token') || '';
@@ -471,7 +481,7 @@ function login() {
   fetch('/admin/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password:pwd}) })
     .then(r => r.json()).then(d => {
       if (d.ok) { TOKEN = d.token; localStorage.setItem('vibry_admin_token', TOKEN); showApp(); }
-      else { document.getElementById('login-err').textContent = d.error || '密码错误'; }
+      else { document.getElementById('login-err').textContent = d.error || I18N.t('common.unknown_error'); }
     });
 }
 function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); document.getElementById('login-page').style.display='block'; document.getElementById('app').style.display='none'; }
@@ -494,25 +504,24 @@ document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
     if (a.dataset.page === 'wiki') refreshWikiStatus();
     if (a.dataset.page === 'account') loadAccount();
     if (a.dataset.page === 'logs') refreshLogs();
-    // 移动端点击后关闭侧栏
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
   });
 });
-// 点击主内容区关闭侧栏
 document.querySelector('.main').addEventListener('click', () => {
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 });
 
 // ==================== Dashboard ====================
 function refreshDashboard() {
+  const T = I18N.t.bind(I18N);
   fetch('/admin/api/stats', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('dash-cards').innerHTML =
-      `<div class="card"><div class="label">录音总数</div><div class="value">${d.recordings}</div></div>
-       <div class="card"><div class="label">记忆总数</div><div class="value">${d.memories_count ?? '-'}</div></div>
-       <div class="card"><div class="label">API 调用</div><div class="value">${d.total_calls}</div></div>
-       <div class="card"><div class="label">Token 用量</div><div class="value">${(d.total_tokens/1000).toFixed(0)}k</div></div>
-       <div class="card"><div class="label">累计费用</div><div class="value" style="color:var(--warn)">¥${d.total_cost.toFixed(3)}</div></div>
-       <div class="card"><div class="label">服务状态</div><div class="value" style="color:var(--accent2)">● Online</div></div>`;
+      `<div class="card"><div class="label">${T('dashboard.cards.recordings')}</div><div class="value">${d.recordings}</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.memories')}</div><div class="value">${d.memories_count ?? '-'}</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.api_calls')}</div><div class="value">${d.total_calls}</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.tokens')}</div><div class="value">${(d.total_tokens/1000).toFixed(0)}k</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.cost')}</div><div class="value" style="color:var(--warn)">¥${d.total_cost.toFixed(3)}</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.status')}</div><div class="value" style="color:var(--accent2)">${T('dashboard.status_online')}</div></div>`;
 
     const tbu = document.querySelector('#dash-users tbody');
     tbu.innerHTML = (d.usage_by_user||[]).map(u => `<tr><td>${u.user_id}</td><td>${u.calls}</td><td>${(u.tokens/1000).toFixed(0)}k</td><td>¥${(u.cost||0).toFixed(4)}</td></tr>`).join('');
@@ -527,11 +536,15 @@ function appendMsg(role, text) {
   const area = document.getElementById('chat-area');
   const div = document.createElement('div');
   div.className = 'chat-msg ' + role;
-  div.innerHTML = `<div class="role">${role==='user'?'👤 You':'🤖 Assistant'}</div><div>${text.replace(/\n/g,'<br>')}</div>`;
+  const roleLabel = role === 'user' ? I18N.t('chat.role_you') : I18N.t('chat.role_assistant');
+  const content = role === 'assistant' && text === '⏳ ...' ? I18N.t('chat.loading') : text;
+  div.innerHTML = `<div class="role">${roleLabel}</div><div>${content.replace(/\n/g,'<br>')}</div>`;
   area.appendChild(div); area.scrollTop = area.scrollHeight;
   return div;
 }
+
 function sendChat() {
+  const T = I18N.t.bind(I18N);
   const input = document.getElementById('chat-input');
   const msg = input.value.trim(); if (!msg) return;
   const uid = document.getElementById('chat-uid').value || 'admin';
@@ -544,16 +557,15 @@ function sendChat() {
     method: 'POST', headers: {'Content-Type':'application/json','Authorization':'Bearer '+uid},
     body: JSON.stringify({messages:[{role:'user',content:msg}],stream,max_tokens:500})
   }).then(async resp => {
-    if (!resp.ok) { assistDiv.lastChild.textContent = 'Error: '+resp.status; return; }
+    if (!resp.ok) { assistDiv.lastChild.textContent = T('chat.error') + ': '+resp.status; return; }
     if (!stream) {
       const d = await resp.json();
       assistDiv.lastChild.textContent = d.choices?.[0]?.message?.content || JSON.stringify(d);
-      // 显示加载的记忆
       const mems = d._vibry_memories;
       if (mems && mems.count > 0) {
-        document.getElementById('mem-indicator').innerHTML = '🧠 记忆: 已注入 '+mems.count+' 条 — '+mems.items.map(i=>i.memory.substring(0,30)).join(', ');
+        document.getElementById('mem-indicator').textContent = T('chat.memory_indicator', mems.count) + ' — ' + mems.items.map(i=>i.memory.substring(0,30)).join(', ');
       } else {
-        document.getElementById('mem-indicator').textContent = '🧠 记忆: 无匹配';
+        document.getElementById('mem-indicator').textContent = T('chat.memory_indicator_none');
       }
       return;
     }
@@ -574,14 +586,13 @@ function sendChat() {
       }
     }
   }).then(() => {
-    // 更新 wiki 状态
     fetch('/api/wiki/status').then(r=>r.json()).then(d => {
-      document.getElementById('wiki-indicator').innerHTML = d.initialized
-        ? '📚 Wiki: ✅ 已注入 (' + (d.wiki_count||0) + ' 篇文章)'
-        : '📚 Wiki: ⚠️ 未初始化';
+      document.getElementById('wiki-indicator').textContent = d.initialized
+        ? T('chat.wiki_indicator_ok', (d.wiki_count||0))
+        : T('chat.wiki_indicator_no');
     }).catch(() => {});
     setTimeout(loadChatHistory, 500);
-  }).catch(e => { assistDiv.lastChild.textContent = 'Error: '+e.message; });
+  }).catch(e => { assistDiv.lastChild.textContent = T('chat.error') + ': '+e.message; });
 }
 
 // ==================== Config ====================
@@ -593,7 +604,6 @@ function loadConfig() {
     document.getElementById('cfg-voice-mode').value = d.asr_voice_mode || 'cloud';
     document.getElementById('cfg-topk').value = d.memory_top_k || 5;
     document.getElementById('cfg-threshold').value = d.memory_threshold || 0.35;
-    // Doubao ASR
     document.getElementById('cfg-doubao-appid').value = d.doubao_asr_app_id || '';
     document.getElementById('cfg-doubao-accesskey').value = d.doubao_asr_access_key || '';
     document.getElementById('cfg-doubao-flash-url').value = d.doubao_asr_flash_url || '';
@@ -613,7 +623,6 @@ function saveConfig() {
     asr_voice_mode: document.getElementById('cfg-voice-mode').value,
     memory_top_k: parseInt(document.getElementById('cfg-topk').value),
     memory_threshold: parseFloat(document.getElementById('cfg-threshold').value),
-    // Doubao ASR
     doubao_asr_app_id: document.getElementById('cfg-doubao-appid').value,
     doubao_asr_access_key: document.getElementById('cfg-doubao-accesskey').value,
     doubao_asr_flash_url: document.getElementById('cfg-doubao-flash-url').value,
@@ -627,22 +636,15 @@ function saveConfig() {
   fetch('/admin/api/config', {method:'POST',headers:authHeaders(),body:JSON.stringify(body)})
     .then(r=>r.json()).then(d => {
       if (d.ok) {
-        document.getElementById('cfg-saved').style.display='inline';
-        document.getElementById('cfg-wiki-saved').style.display='inline';
-        document.getElementById('cfg-asr-saved').style.display='inline';
-        document.getElementById('cfg-prompt-saved').style.display='inline';
-        setTimeout(()=>{
-          document.getElementById('cfg-saved').style.display='none';
-          document.getElementById('cfg-wiki-saved').style.display='none';
-          document.getElementById('cfg-asr-saved').style.display='none';
-          document.getElementById('cfg-prompt-saved').style.display='none';
-        }, 2000);
+        const ids = ['cfg-saved','cfg-wiki-saved','cfg-asr-saved','cfg-prompt-saved'];
+        ids.forEach(id => { const el = document.getElementById(id); if(el) { el.style.display='inline'; setTimeout(()=>{ el.style.display='none'; },2000); } });
       }
     });
 }
 
 // ==================== Memories ====================
 function searchMems() {
+  const T = I18N.t.bind(I18N);
   const q = document.getElementById('mem-search').value || 'test';
   fetch('/api/memories?q='+encodeURIComponent(q)+'&top_k=20', {headers:{'Authorization':'Bearer admin'}})
     .then(r=>r.json()).then(d => {
@@ -650,11 +652,11 @@ function searchMems() {
         `<div class="card" style="margin-bottom:8px">
           <div style="display:flex;justify-content:space-between">
             <strong>${m.memory||''}</strong>
-            <span class="badge badge-ok">score: ${(m.score||0).toFixed(2)}</span>
+            <span class="badge badge-ok">${T('memories.score_label')}: ${(m.score||0).toFixed(2)}</span>
           </div>
           <div style="font-size:11px;color:var(--text-dim);margin-top:4px">ID: ${m.id||''}</div>
         </div>`
-      ).join('') || '<p style="color:var(--text-dim)">无结果</p>';
+      ).join('') || `<p style="color:var(--text-dim)">${T('memories.no_results')}</p>`;
     });
 }
 
@@ -672,9 +674,10 @@ function switchWikiTab(tab) {
 }
 
 function refreshWikiStatus() {
+  const T = I18N.t.bind(I18N);
   fetch('/api/wiki/status').then(r=>r.json()).then(d => {
     if (d.initialized) {
-      document.getElementById('wiki-status-text').innerHTML = '<span style="color:var(--accent2)">✅ 已就绪</span>';
+      document.getElementById('wiki-status-text').innerHTML = `<span style="color:var(--accent2)">${T('wiki.status_ready')}</span>`;
       document.getElementById('wiki-raw-count').textContent = d.raw_count;
       document.getElementById('wiki-article-count').textContent = d.wiki_count;
       document.getElementById('wiki-topic-count').textContent = (d.topics||[]).length;
@@ -687,7 +690,7 @@ function refreshWikiStatus() {
         document.getElementById('wiki-log-preview').textContent = d.recent_logs.join('\n');
       }
     } else {
-      document.getElementById('wiki-status-text').textContent = '未初始化';
+      document.getElementById('wiki-status-text').textContent = T('wiki.status_not_init');
       document.getElementById('wiki-raw-count').textContent = '-';
       document.getElementById('wiki-article-count').textContent = '-';
       document.getElementById('wiki-topic-count').textContent = '-';
@@ -696,48 +699,51 @@ function refreshWikiStatus() {
       document.querySelectorAll('.wiki-tab-content').forEach(el => el.hidden = true);
     }
   }).catch(e => {
-    document.getElementById('wiki-status-text').textContent = '加载失败';
+    document.getElementById('wiki-status-text').textContent = T('wiki.status_load_fail');
   });
 }
 
 function wikiInit() {
+  const T = I18N.t.bind(I18N);
   fetch('/api/wiki/init', {method:'POST',headers:authHeaders(),body:'{}'})
     .then(r=>r.json()).then(d => {
-      if (d.ok) { toast('✅ Wiki 已初始化: ' + (d.created||[]).join(', ')); refreshWikiStatus(); }
-      else { toast('❌ 初始化失败'); }
+      if (d.ok) { toast(T('wiki.init_ok') + ': ' + (d.created||[]).join(', ')); refreshWikiStatus(); }
+      else { toast(T('wiki.init_fail')); }
     });
 }
 
 function wikiIngest() {
+  const T = I18N.t.bind(I18N);
   const title = document.getElementById('wiki-ingest-title').value.trim();
   const topic = document.getElementById('wiki-ingest-topic').value.trim() || 'general';
   const source_url = document.getElementById('wiki-ingest-url').value.trim();
   const content = document.getElementById('wiki-ingest-content').value.trim();
   const statusEl = document.getElementById('wiki-ingest-status');
 
-  if (!title) { statusEl.textContent = '⚠️ 请输入标题'; return; }
-  if (!content) { statusEl.textContent = '⚠️ 请输入内容'; return; }
+  if (!title) { statusEl.textContent = T('wiki.ingest.title_required'); return; }
+  if (!content) { statusEl.textContent = T('wiki.ingest.content_required'); return; }
 
-  statusEl.textContent = '⏳ 正在调用 LLM 编译 wiki 页面...';
+  statusEl.textContent = T('wiki.ingest.compiling');
   fetch('/api/wiki/ingest', {method:'POST',headers:authHeaders(),body:JSON.stringify({title,topic,source_url,content})})
     .then(r=>r.json()).then(d => {
       if (d.ok) {
-        statusEl.textContent = '✅ 完成！新建 '+(d.articles_created||[]).length+' 篇，更新 '+(d.articles_updated||[]).length+' 篇 (编译耗时 '+(d.compile_time_s||0).toFixed(1)+'s)';
+        statusEl.textContent = T('wiki.ingest.done', (d.articles_created||[]).length, (d.articles_updated||[]).length, (d.compile_time_s||0).toFixed(1));
         document.getElementById('wiki-ingest-content').value = '';
         refreshWikiStatus();
       } else {
-        statusEl.textContent = '❌ ' + (d.error||'未知错误');
+        statusEl.textContent = (d.error||T('wiki.ingest.error'));
       }
-    }).catch(e => { statusEl.textContent = '❌ 请求失败: '+e.message; });
+    }).catch(e => { statusEl.textContent = T('wiki.ingest.request_fail') + ': '+e.message; });
 }
 
 function wikiUploadFile() {
+  const T = I18N.t.bind(I18N);
   const fileInput = document.getElementById('wiki-upload-file');
   const file = fileInput.files[0];
   if (!file) return;
   const topic = document.getElementById('wiki-upload-topic').value || 'general';
   const statusEl = document.getElementById('wiki-upload-status');
-  statusEl.textContent = '⏳ 上传中...';
+  statusEl.textContent = T('wiki.ingest.uploading');
 
   const formData = new FormData();
   formData.append('file', file);
@@ -746,16 +752,17 @@ function wikiUploadFile() {
   fetch('/api/wiki/ingest/file', {method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:formData})
     .then(r=>r.json()).then(d => {
       if (d.ok) {
-        statusEl.textContent = '✅ 完成！新建 '+(d.articles_created||[]).length+' 篇';
+        statusEl.textContent = T('wiki.ingest.upload_done', (d.articles_created||[]).length);
         fileInput.value = '';
         refreshWikiStatus();
       } else {
-        statusEl.textContent = '❌ ' + (d.error||'未知错误');
+        statusEl.textContent = (d.error||T('wiki.ingest.error'));
       }
-    }).catch(e => { statusEl.textContent = '❌ 请求失败: '+e.message; });
+    }).catch(e => { statusEl.textContent = T('wiki.ingest.request_fail') + ': '+e.message; });
 }
 
 function wikiQuery() {
+  const T = I18N.t.bind(I18N);
   const q = document.getElementById('wiki-query-input').value.trim();
   if (!q) return;
   const genAnswer = document.getElementById('wiki-query-gen-answer').checked;
@@ -763,21 +770,19 @@ function wikiQuery() {
 
   fetch('/api/wiki/query', {method:'POST',headers:authHeaders(),body:JSON.stringify({query:q,top_k:5,generate_answer:genAnswer,use_embedding:useEmbedding})})
     .then(r=>r.json()).then(d => {
-      // Results
       document.getElementById('wiki-query-results').innerHTML = (d.results||[]).map(r =>
         `<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="wikiViewArticle('${r.path}')">
           <div style="display:flex;justify-content:space-between">
             <strong>📄 ${r.title||r.filename}</strong>
-            <span class="badge badge-ok">score: ${(r.score||0).toFixed(2)}</span>
+            <span class="badge badge-ok">${T('memories.score_label')}: ${(r.score||0).toFixed(2)}</span>
           </div>
           <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${r.topic} — ${r.snippet||''}</div>
         </div>`
-      ).join('') || '<p style="color:var(--text-dim)">无结果</p>';
+      ).join('') || `<p style="color:var(--text-dim)">${T('wiki.query.no_results')}</p>`;
 
-      // Answer
       if (d.answer) {
         document.getElementById('wiki-query-answer').style.display = 'block';
-        document.getElementById('wiki-query-answer').innerHTML = '<strong>🤖 AI 回答:</strong><br>' + d.answer.replace(/\n/g,'<br>');
+        document.getElementById('wiki-query-answer').innerHTML = '<strong>' + T('wiki.query.ai_answer_label') + '</strong><br>' + d.answer.replace(/\n/g,'<br>');
       } else {
         document.getElementById('wiki-query-answer').style.display = 'none';
       }
@@ -785,19 +790,19 @@ function wikiQuery() {
 }
 
 function wikiRefreshList() {
+  const T = I18N.t.bind(I18N);
   const topic = document.getElementById('wiki-topic-filter').value;
   const url = '/api/wiki/pages' + (topic ? '?topic='+encodeURIComponent(topic) : '');
   fetch(url).then(r=>r.json()).then(d => {
-    // Update topic filter
     const topics = [...new Set((d.articles||[]).map(a=>a.topic))];
     const sel = document.getElementById('wiki-topic-filter');
     const curVal = sel.value;
-    sel.innerHTML = '<option value="">全部主题</option>' + topics.map(t => '<option value="'+t+'">'+t+'</option>').join('');
+    sel.innerHTML = `<option value="">${T('wiki.browse.filter_all')}</option>` + topics.map(t => '<option value="'+t+'">'+t+'</option>').join('');
     sel.value = curVal;
 
     document.getElementById('wiki-article-list').innerHTML = (d.count === 0)
-      ? '<p style="color:var(--text-dim)">暂无文章，请先执行 Ingest</p>'
-      : '<div class="table-wrap"><table><thead><tr><th>标题</th><th>主题</th><th>更新</th><th>操作</th></tr></thead><tbody>' +
+      ? `<p style="color:var(--text-dim)">${T('wiki.browse.no_articles')}</p>`
+      : '<div class="table-wrap"><table><thead><tr><th data-i18n="wiki.browse.headers.title">' + T('wiki.browse.headers.title') + '</th><th data-i18n="wiki.browse.headers.topic">' + T('wiki.browse.headers.topic') + '</th><th data-i18n="wiki.browse.headers.updated">' + T('wiki.browse.headers.updated') + '</th><th data-i18n="wiki.browse.headers.actions">' + T('wiki.browse.headers.actions') + '</th></tr></thead><tbody>' +
         (d.articles||[]).map(a =>
           `<tr>
             <td><a href="#" onclick="wikiViewArticle('${a.path}')" style="color:var(--accent);text-decoration:none">📄 ${a.title||a.filename}</a></td>
@@ -810,12 +815,13 @@ function wikiRefreshList() {
 }
 
 function wikiViewArticle(path) {
+  const T = I18N.t.bind(I18N);
   fetch('/api/wiki/page?path='+encodeURIComponent(path)).then(r=>r.json()).then(d => {
     document.getElementById('wiki-article-detail').style.display = 'block';
     document.getElementById('wiki-article-detail').innerHTML =
       `<div style="display:flex;justify-content:space-between;margin-bottom:8px">
         <strong>📄 ${path}</strong>
-        <button class="btn" style="background:var(--bg);color:var(--text-dim);border:1px solid var(--border);padding:4px 10px;font-size:11px" onclick="document.getElementById('wiki-article-detail').style.display='none'">✕ 关闭</button>
+        <button class="btn" style="background:var(--bg);color:var(--text-dim);border:1px solid var(--border);padding:4px 10px;font-size:11px" onclick="document.getElementById('wiki-article-detail').style.display='none'">${T('wiki.browse.close_btn')}</button>
       </div>
       <div style="background:var(--bg);padding:12px;border-radius:var(--radius);max-height:400px;overflow-y:auto;font-size:13px;line-height:1.7">${(d.content||'').replace(/\n/g,'<br>').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="#" style="color:var(--accent)">$1</a>')}</div>`;
     document.getElementById('wiki-article-detail').scrollIntoView({behavior:'smooth'});
@@ -823,57 +829,62 @@ function wikiViewArticle(path) {
 }
 
 function wikiDeleteArticle(path) {
-  if (!confirm('确定删除 ' + path + ' ？')) return;
+  const T = I18N.t.bind(I18N);
+  if (!confirm(T('wiki.browse.delete_confirm', path))) return;
   fetch('/api/wiki/page?path='+encodeURIComponent(path), {method:'DELETE',headers:authHeaders()})
     .then(r=>r.json()).then(d => {
-      if (d.ok) { toast('🗑️ 已删除'); wikiRefreshList(); refreshWikiStatus(); }
+      if (d.ok) { toast(T('wiki.browse.deleted')); wikiRefreshList(); refreshWikiStatus(); }
     });
 }
 
 function wikiRebuildIndex() {
+  const T = I18N.t.bind(I18N);
   fetch('/api/wiki/rebuild-index', {method:'POST',headers:authHeaders(),body:'{}'})
     .then(r=>r.json()).then(d => {
-      if (d.ok) { toast('📋 索引已重建: ' + (d.articles||0) + ' 篇文章, ' + (d.topics||0) + ' 个主题'); wikiRefreshList(); }
+      if (d.ok) { toast(T('wiki.browse.rebuild_ok', (d.articles||0), (d.topics||0))); wikiRefreshList(); }
     });
 }
 
 function wikiLint() {
+  const T = I18N.t.bind(I18N);
   const heuristic = document.getElementById('wiki-lint-heuristic').checked;
   const statusEl = document.getElementById('wiki-lint-status');
-  statusEl.textContent = '⏳ 检查中...';
+  statusEl.textContent = T('wiki.lint.checking');
 
   fetch('/api/wiki/lint', {method:'POST',headers:authHeaders(),body:JSON.stringify({auto_fix:true,heuristic})})
     .then(r=>r.json()).then(d => {
-      statusEl.textContent = '✅ 完成';
+      statusEl.textContent = T('wiki.lint.done');
       const det = d.deterministic || {};
       document.getElementById('wiki-lint-fixed').innerHTML = (det.fixed||[]).length
-        ? '<h4 style="color:var(--accent2)">✅ 自动修复 (' + det.fixed.length + ')</h4>' + det.fixed.map(f => '<div style="font-size:12px;margin:2px 0">'+f+'</div>').join('')
-        : '<p style="color:var(--text-dim)">无自动修复项</p>';
+        ? `<h4 style="color:var(--accent2)">${T('wiki.lint.auto_fix_title')} (${det.fixed.length})</h4>` + det.fixed.map(f => '<div style="font-size:12px;margin:2px 0">'+f+'</div>').join('')
+        : `<p style="color:var(--text-dim)">${T('wiki.lint.no_auto_fix')}</p>`;
       document.getElementById('wiki-lint-reported').innerHTML = (det.reported||[]).length
-        ? '<h4 style="color:var(--warn)">⚠️ 待处理问题 (' + det.reported.length + ')</h4>' + det.reported.map(r => '<div style="font-size:12px;margin:2px 0">'+r+'</div>').join('')
+        ? `<h4 style="color:var(--warn)">${T('wiki.lint.issues_title')} (${det.reported.length})</h4>` + det.reported.map(r => '<div style="font-size:12px;margin:2px 0">'+r+'</div>').join('')
         : '';
       document.getElementById('wiki-lint-heuristic-results').innerHTML = (d.heuristic||[]).length
-        ? '<h4 style="color:var(--accent)">💡 启发式发现 (' + d.heuristic.length + ')</h4>' + d.heuristic.map(h => '<div style="font-size:12px;margin:2px 0">'+h+'</div>').join('')
+        ? `<h4 style="color:var(--accent)">${T('wiki.lint.heuristic_title')} (${d.heuristic.length})</h4>` + d.heuristic.map(h => '<div style="font-size:12px;margin:2px 0">'+h+'</div>').join('')
         : '';
       refreshWikiStatus();
-    }).catch(e => { statusEl.textContent = '❌ 失败: '+e.message; });
+    }).catch(e => { statusEl.textContent = T('wiki.lint.fail') + ': '+e.message; });
 }
 
 function wikiLoadRawList() {
+  const T = I18N.t.bind(I18N);
   fetch('/api/wiki/raw').then(r=>r.json()).then(d => {
     document.getElementById('wiki-raw-list').innerHTML = (d.files||[]).length === 0
-      ? '暂无 raw 材料'
+      ? T('wiki.raw_empty')
       : (d.files||[]).map(f => `<div>📄 ${f.path} <span style="color:var(--text-dim)">(${f.topic})</span></div>`).join('');
   });
 }
 
 // ==================== Billing ====================
 function refreshBilling() {
+  const T = I18N.t.bind(I18N);
   fetch('/admin/api/billing', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('bill-cards').innerHTML =
-      `<div class="card"><div class="label">总调用</div><div class="value">${d.summary.total_calls}</div></div>
-       <div class="card"><div class="label">总 Token</div><div class="value">${(d.summary.total_tokens/1000).toFixed(0)}k</div></div>
-       <div class="card"><div class="label">总费用</div><div class="value" style="color:var(--warn)">¥${d.summary.total_cost_rmb.toFixed(4)}</div></div>`;
+      `<div class="card"><div class="label">${T('billing.summary_cards.total_calls')}</div><div class="value">${d.summary.total_calls}</div></div>
+       <div class="card"><div class="label">${T('billing.summary_cards.total_tokens')}</div><div class="value">${(d.summary.total_tokens/1000).toFixed(0)}k</div></div>
+       <div class="card"><div class="label">${T('billing.summary_cards.total_cost')}</div><div class="value" style="color:var(--warn)">¥${d.summary.total_cost_rmb.toFixed(4)}</div></div>`;
     document.querySelector('#bill-table tbody').innerHTML = (d.recent||[]).map(u =>
       `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.prompt_tokens}</td><td>${u.completion_tokens}</td><td>${u.total_tokens}</td><td>${u.duration_ms}ms</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`
     ).join('');
@@ -892,16 +903,6 @@ function refreshLogs() {
 }
 
 // ==================== Personality ====================
-const DEFAULT_PERSONALITY = `你是 Vibry AI，用户的数字孪生战略副驾。你拥有用户的长期记忆，了解他们的偏好、项目和决策历史。
-
-沟通风格：
-- 简洁直接，避免废话
-- 数据驱动，注重逻辑
-- 主动提醒用户过往的决策和偏好
-- 在相关时引用历史记忆
-
-你的价值在于：记住用户说过的一切，在合适的时机提供上下文。`;
-
 function loadPersonality() {
   fetch('/admin/api/personality', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('personality-text').value = d.prompt || '';
@@ -915,18 +916,19 @@ function savePersonality() {
     });
 }
 function resetPersonality() {
-  document.getElementById('personality-text').value = DEFAULT_PERSONALITY;
+  document.getElementById('personality-text').value = I18N.t('personality.default_prompt');
   savePersonality();
 }
 
 // ==================== Chat History ====================
 function loadChatHistory() {
+  const T = I18N.t.bind(I18N);
   const uid = document.getElementById('chat-uid').value || 'admin';
   fetch('/admin/api/chat-history?user_id='+encodeURIComponent(uid), {headers:authHeaders()})
     .then(r=>r.json()).then(d => {
       const msgs = d.messages || [];
       document.getElementById('chat-history').innerHTML = msgs.length === 0
-        ? '<span style="color:var(--text-dim)">暂无记录</span>'
+        ? `<span style="color:var(--text-dim)">${T('chat.history_empty')}</span>`
         : msgs.map(m => `<div style="margin:4px 0;padding:6px 8px;background:var(--bg);border-radius:4px"><b>${m.role==='user'?'👤':'🤖'}</b> <span style="color:var(--text-dim);font-size:10px">${m.created_at||''}</span><br>${(m.content||'').substring(0,200)}</div>`).join('');
     });
 }
@@ -936,57 +938,60 @@ let forgotStep = 0;
 function showForgot() { document.getElementById('login-form').style.display='none'; document.getElementById('forgot-form').style.display='block'; forgotStep=0; resetForgotUI(); }
 function showLogin() { document.getElementById('login-form').style.display='block'; document.getElementById('forgot-form').style.display='none'; forgotStep=0; resetForgotUI(); }
 function resetForgotUI() {
-  document.getElementById('forgot-step').textContent = '第1步：输入管理员邮箱';
+  document.getElementById('forgot-step').textContent = I18N.t('forgot.step1');
   document.getElementById('forgot-email').style.display='block';
   document.getElementById('forgot-code').style.display='none';
   document.getElementById('forgot-new-pw').style.display='none';
-  document.getElementById('forgot-btn').textContent = '发送验证码';
+  document.getElementById('forgot-btn').textContent = I18N.t('forgot.send_btn');
   document.getElementById('forgot-err').textContent = '';
   document.getElementById('forgot-code').value = '';
   document.getElementById('forgot-new-pw').value = '';
 }
 function forgotFlow() {
+  const T = I18N.t.bind(I18N);
   const errEl = document.getElementById('forgot-err');
   errEl.textContent = '';
+  errEl.style.color = '';
   if (forgotStep === 0) {
     const email = document.getElementById('forgot-email').value.trim();
-    if (!email) { errEl.textContent = '请输入邮箱'; return; }
+    if (!email) { errEl.textContent = 'Please enter email'; return; }
     fetch('/admin/api/forgot-password', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
       .then(r=>r.json()).then(d => {
-        if (!d.ok) { errEl.textContent = d.detail||'发送失败'; return; }
+        if (!d.ok) { errEl.textContent = d.detail||'Send failed'; return; }
         forgotStep = 1;
-        document.getElementById('forgot-step').textContent = '第2步：输入验证码 + 新密码';
+        document.getElementById('forgot-step').textContent = T('forgot.step2');
         document.getElementById('forgot-email').style.display='none';
         document.getElementById('forgot-code').style.display='block';
         document.getElementById('forgot-new-pw').style.display='block';
-        document.getElementById('forgot-btn').textContent = '重置密码';
-        errEl.textContent = d.sent ? '验证码已发送，请查收邮件' : '';
+        document.getElementById('forgot-btn').textContent = T('forgot.reset_btn');
+        errEl.textContent = d.sent ? T('forgot.code_sent') : '';
         errEl.style.color = 'var(--accent2)';
-      }).catch(e => { errEl.textContent = '请求失败: '+e.message; });
+      }).catch(e => { errEl.textContent = 'Request failed: '+e.message; });
   } else {
     const code = document.getElementById('forgot-code').value.trim();
     const pw = document.getElementById('forgot-new-pw').value;
-    if (!code) { errEl.textContent = '请输入验证码'; return; }
-    if (pw.length < 4) { errEl.textContent = '新密码至少4位'; return; }
+    if (!code) { errEl.textContent = 'Please enter verification code'; return; }
+    if (pw.length < 4) { errEl.textContent = 'New password must be at least 4 characters'; return; }
     fetch('/admin/api/reset-password', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,new_password:pw})})
       .then(r=>r.json()).then(d => {
-        if (!d.ok) { errEl.textContent = d.detail||'重置失败'; return; }
-        errEl.textContent = '密码已重置！请登录';
+        if (!d.ok) { errEl.textContent = d.detail||'Reset failed'; return; }
+        errEl.textContent = T('forgot.reset_ok');
         errEl.style.color = 'var(--accent2)';
         setTimeout(showLogin, 2000);
-      }).catch(e => { errEl.textContent = '请求失败: '+e.message; });
+      }).catch(e => { errEl.textContent = 'Request failed: '+e.message; });
   }
 }
 
 // ==================== Account Settings ====================
 function loadAccount() {
+  const T = I18N.t.bind(I18N);
   fetch('/admin/api/admin-profile', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('acct-email').value = d.email || '';
   });
   fetch('/admin/api/email-config', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('smtp-info').innerHTML = d.smtp_configured
-      ? '<span style="color:var(--accent2)">✅ SMTP 已配置</span> — '+d.smtp_user+' @ '+d.smtp_host+':'+d.smtp_port
-      : '<span style="color:var(--warn)">⚠️ SMTP 未配置</span> — 请在 .env 中设置 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS。开发模式下验证码会打印到服务器日志。';
+      ? `<span style="color:var(--accent2)">${T('account.smtp_configured')}</span> — ${d.smtp_user} @ ${d.smtp_host}:${d.smtp_port}`
+      : `<span style="color:var(--warn)">${T('account.smtp_not_configured')}</span>`;
   });
 }
 function saveEmail() {
@@ -1003,7 +1008,7 @@ function changePassword() {
   if (!oldPw || newPw.length < 4) return;
   fetch('/admin/api/change-password', {method:'POST',headers:authHeaders(),body:JSON.stringify({old_password:oldPw,new_password:newPw})})
     .then(r=>r.json()).then(d => {
-      if (!d.ok) { const el=document.getElementById('acct-pw-err'); el.textContent=d.detail||'修改失败'; el.style.display='inline'; return; }
+      if (!d.ok) { const el=document.getElementById('acct-pw-err'); el.textContent=d.detail||'Change failed'; el.style.display='inline'; return; }
       document.getElementById('acct-pw-err').style.display='none';
       const el=document.getElementById('acct-pw-saved'); el.style.display='inline'; setTimeout(()=>el.style.display='none',2000);
       document.getElementById('acct-old-pw').value = '';
@@ -1015,7 +1020,10 @@ function changePassword() {
 function toast(msg) { const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
 
 // ==================== Init ====================
-if (TOKEN) { fetch('/admin/api/verify', {headers:authHeaders()}).then(r=>r.json()).then(d => { if(d.ok) showApp(); else logout(); }).catch(()=>logout()); }
+(async function boot() {
+  await I18N.ready;
+  if (TOKEN) { fetch('/admin/api/verify', {headers:authHeaders()}).then(r=>r.json()).then(d => { if(d.ok) showApp(); else logout(); }).catch(()=>logout()); }
+})();
 </script>
 </body>
 </html>
