@@ -56,13 +56,46 @@ class AudioConfig:
 
 @dataclass
 class DoubaoAsrConfig:
-    """豆包 ASR 云端配置"""
-    app_id: str = os.getenv("DOUBAO_ASR_APP_ID", "")
-    access_key: str = os.getenv("DOUBAO_ASR_ACCESS_KEY", "")
-    flash_url: str = os.getenv("DOUBAO_ASR_FLASH_URL",
-        "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash")
-    standard_url: str = os.getenv("DOUBAO_ASR_STANDARD_URL",
-        "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit")
+    """豆包 ASR 云端配置 — 启动时从 DB 读取，env vars 兜底"""
+    app_id: str = ""
+    access_key: str = ""
+    flash_url: str = "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
+    standard_url: str = "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit"
+
+    def __post_init__(self):
+        # 先用 env vars 作为初始值
+        self.app_id = os.getenv("DOUBAO_ASR_APP_ID", "")
+        self.access_key = os.getenv("DOUBAO_ASR_ACCESS_KEY", "")
+        self.flash_url = os.getenv("DOUBAO_ASR_FLASH_URL",
+            "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash")
+        self.standard_url = os.getenv("DOUBAO_ASR_STANDARD_URL",
+            "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit")
+
+    def reload_from_db(self):
+        """服务启动后从 DB 重新加载（覆盖 env vars）"""
+        try:
+            import db
+            asr_cfg = db.get_asr_config()
+            if asr_cfg.get("app_id"):
+                self.app_id = asr_cfg["app_id"]
+            if asr_cfg.get("access_key"):
+                self.access_key = asr_cfg["access_key"]
+            if asr_cfg.get("flash_url"):
+                self.flash_url = asr_cfg["flash_url"]
+            if asr_cfg.get("standard_url"):
+                self.standard_url = asr_cfg["standard_url"]
+        except Exception:
+            pass  # DB 还没初始化，保持 env vars 值
+
+    @property
+    def voice_mode(self) -> str:
+        """语音聊天 ASR 模式（默认极速版）"""
+        try:
+            import db
+            asr_cfg = db.get_asr_config()
+            return asr_cfg.get("voice_mode", "cloud")
+        except Exception:
+            return "cloud"
 
 
 @dataclass
@@ -88,7 +121,16 @@ class SummaryConfig:
 
     @property
     def system_prompt(self) -> str:
-        """生成纪要 system prompt"""
+        """生成纪要 system prompt — DB 优先，代码兜底"""
+        try:
+            import db
+            asr_cfg = db.get_asr_config()
+            db_prompt = asr_cfg.get("summary_prompt", "")
+            if db_prompt.strip():
+                return db_prompt
+        except Exception:
+            pass
+        # 代码兜底
         return f"""你是一位专业的会议纪要撰写助手，也是用户的数字孪生战略副驾。请根据以下录音转写内容，结合用户的个人背景和偏好，完成分析。
 
 要求：按以下 JSON 格式输出（不要包含 markdown 代码块标记），每个字段都必须填写：

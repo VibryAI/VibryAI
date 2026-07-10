@@ -15,8 +15,8 @@ from typing import AsyncGenerator
 
 import httpx
 
-from config import config
-from memory_engine import search_memories, format_memories_for_prompt
+from app.config import config
+from services.memory import search_memories, format_memories_for_prompt
 
 log = logging.getLogger("vibry.proxy")
 

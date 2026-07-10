@@ -1,127 +1,10 @@
-"""Vibry AI Core — SQLite 数据库
+"""Vibry AI Core — Database Models (CRUD, Config, Stats)"""
 
-录音、转写、纪要持久化。
-线程安全（WAL 模式 + 每线程独立连接）。
-从 VibryCard Flask Server 移植，新增 user_id 隔离支持。
-"""
-
-import secrets
-import sqlite3, json, os, threading
+import json, os, secrets
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vibrycard.db")
+from db.connection import get_conn, DB_PATH
 
-# 线程安全：每个线程使用独立连接
-_local = threading.local()
-
-
-def get_conn() -> sqlite3.Connection:
-    if not hasattr(_local, "conn") or _local.conn is None:
-        _local.conn = sqlite3.connect(DB_PATH)
-        _local.conn.row_factory = sqlite3.Row
-        _local.conn.execute("PRAGMA journal_mode=WAL")
-        _local.conn.execute("PRAGMA foreign_keys=ON")
-    return _local.conn
-
-
-def init_db():
-    conn = get_conn()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS recordings (
-            id TEXT PRIMARY KEY,
-            user_id TEXT NOT NULL DEFAULT 'anonymous',
-            title TEXT NOT NULL DEFAULT '',
-            filename TEXT NOT NULL DEFAULT '',
-            file_size INTEGER DEFAULT 0,
-            duration_sec REAL DEFAULT 0,
-            transcript TEXT DEFAULT '',
-            transcript_chars INTEGER DEFAULT 0,
-            summary_json TEXT DEFAULT '',
-            tags TEXT DEFAULT '[]',
-            category TEXT DEFAULT '未分类',
-            status TEXT DEFAULT 'pending',
-            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-            updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-        );
-
-        CREATE TABLE IF NOT EXISTS analysis_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            recording_id TEXT NOT NULL,
-            user_id TEXT NOT NULL DEFAULT 'anonymous',
-            stage TEXT NOT NULL,
-            status TEXT NOT NULL DEFAULT 'start',
-            input_size INTEGER DEFAULT 0,
-            output_chars INTEGER DEFAULT 0,
-            duration_ms INTEGER DEFAULT 0,
-            error_msg TEXT DEFAULT '',
-            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-            FOREIGN KEY (recording_id) REFERENCES recordings(id)
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_recordings_created ON recordings(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_recordings_status ON recordings(status);
-        CREATE INDEX IF NOT EXISTS idx_recordings_user ON recordings(user_id);
-        CREATE INDEX IF NOT EXISTS idx_log_recording ON analysis_log(recording_id);
-
-        CREATE TABLE IF NOT EXISTS usage_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL DEFAULT 'anonymous',
-            endpoint TEXT NOT NULL DEFAULT '',
-            model TEXT NOT NULL DEFAULT '',
-            prompt_tokens INTEGER DEFAULT 0,
-            completion_tokens INTEGER DEFAULT 0,
-            total_tokens INTEGER DEFAULT 0,
-            duration_ms INTEGER DEFAULT 0,
-            cost_rmb REAL DEFAULT 0.0,
-            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_usage_user ON usage_log(user_id);
-        CREATE INDEX IF NOT EXISTS idx_usage_created ON usage_log(created_at DESC);
-
-        CREATE TABLE IF NOT EXISTS chat_messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL DEFAULT 'anonymous',
-            conversation_id TEXT NOT NULL DEFAULT 'default',
-            role TEXT NOT NULL DEFAULT 'user',
-            content TEXT NOT NULL DEFAULT '',
-            model TEXT DEFAULT '',
-            tokens INTEGER DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_messages(user_id);
-        CREATE INDEX IF NOT EXISTS idx_chat_conv ON chat_messages(conversation_id);
-        CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at DESC);
-
-        CREATE TABLE IF NOT EXISTS personality (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            system_prompt TEXT NOT NULL DEFAULT '',
-            updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-        );
-
-        CREATE TABLE IF NOT EXISTS admin_users (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            email TEXT NOT NULL DEFAULT '',
-            password_hash TEXT NOT NULL DEFAULT '',
-            verification_code TEXT DEFAULT '',
-            code_expiry TEXT DEFAULT '',
-            updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-        );
-    """)
-
-    # ---- 兼容性迁移：为旧表添加新列（每录音独立token + 音频路径）----
-    cur = conn.execute("PRAGMA table_info(recordings)")
-    existing_cols = {row[1] for row in cur.fetchall()}
-    for col, decl in [("audio_token", "TEXT DEFAULT ''"), ("audio_path", "TEXT DEFAULT ''")]:
-        if col not in existing_cols:
-            conn.execute(f"ALTER TABLE recordings ADD COLUMN {col} {decl}")
-            print(f"  [migrate] recordings + {col}")
-
-    conn.commit()
-
-
-# ---- Usage / Billing ----
 
 # 模型定价 (RMB per 1M tokens)
 MODEL_PRICES = {
@@ -300,6 +183,86 @@ def set_personality(prompt: str) -> bool:
     )
     conn.commit()
     return True
+
+
+# ---- ASR Config (DB-persisted, env vars as fallback) ----
+
+DEFAULT_ASR_CONFIG = {
+    "app_id": os.getenv("DOUBAO_ASR_APP_ID", ""),
+    "access_key": os.getenv("DOUBAO_ASR_ACCESS_KEY", ""),
+    "asr_mode": os.getenv("ASR_MODE", "local"),
+    "voice_mode": os.getenv("ASR_VOICE_MODE", "cloud"),
+    "flash_url": os.getenv("DOUBAO_ASR_FLASH_URL",
+        "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"),
+    "standard_url": os.getenv("DOUBAO_ASR_STANDARD_URL",
+        "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit"),
+    "summary_prompt": os.getenv("SUMMARY_PROMPT", ""),
+    "insight_prompt": os.getenv("INSIGHT_PROMPT", ""),
+    "wiki_model": os.getenv("WIKI_MODEL", "deepseek-chat"),
+    "wiki_base_url": os.getenv("WIKI_BASE_URL", "https://api.deepseek.com"),
+    "wiki_api_key": os.getenv("WIKI_API_KEY", ""),
+}
+
+
+def get_asr_config() -> dict:
+    """获取 ASR 配置（DB 优先，env vars 兜底）"""
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM asr_config WHERE id=1").fetchone()
+    if row:
+        result = dict(row)
+        result.pop("id", None)
+        result.pop("updated_at", None)
+        # 兼容旧记录无 voice_mode
+        if "voice_mode" not in result:
+            result["voice_mode"] = "cloud"
+        return result
+    set_asr_config(**DEFAULT_ASR_CONFIG)
+    return dict(DEFAULT_ASR_CONFIG)
+
+
+def set_asr_config(app_id: str = "", access_key: str = "", asr_mode: str = "local",
+                   voice_mode: str = "cloud",
+                   flash_url: str = "", standard_url: str = "",
+                   summary_prompt: str = "", insight_prompt: str = "",
+                   wiki_model: str = "", wiki_base_url: str = "",
+                   wiki_api_key: str = "") -> bool:
+    """更新 ASR 配置到数据库"""
+    conn = get_conn()
+    conn.execute(
+        """INSERT OR REPLACE INTO asr_config
+           (id, app_id, access_key, asr_mode, voice_mode, flash_url, standard_url,
+            summary_prompt, insight_prompt,
+            wiki_model, wiki_base_url, wiki_api_key, updated_at)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))""",
+        (app_id, access_key, asr_mode, voice_mode, flash_url, standard_url,
+         summary_prompt, insight_prompt,
+         wiki_model, wiki_base_url, wiki_api_key),
+    )
+    conn.commit()
+    return True
+
+
+def get_wiki_llm_config() -> dict:
+    """获取 Wiki 编译专用 LLM 配置（base_url + api_key + model）
+
+    优先从 DB asr_config 读取，fallback 到 env vars，再 fallback 到 upstream config。
+    """
+    try:
+        asr = get_asr_config()
+        model = asr.get("wiki_model", "") or os.getenv("WIKI_MODEL", "deepseek-chat")
+        base_url = asr.get("wiki_base_url", "") or os.getenv("WIKI_BASE_URL", "https://api.deepseek.com")
+        api_key = asr.get("wiki_api_key", "") or os.getenv("WIKI_API_KEY", "")
+        if api_key:
+            return {"model": model, "base_url": base_url, "api_key": api_key}
+    except Exception:
+        pass
+    # Fallback: 用上游 Doubao 的 key + base_url
+    from config import config
+    return {
+        "model": "deepseek-chat",
+        "base_url": "https://api.deepseek.com",
+        "api_key": config.upstream.api_key,
+    }
 
 
 def get_usage_recent(limit: int = 50) -> list[dict]:

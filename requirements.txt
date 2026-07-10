@@ -15,6 +15,10 @@ funasr>=1.2.0
 soundfile>=0.12.0
 # openai-whisper  # 备用：Whisper 本地 ASR
 
+# 声纹识别 (VibryCard 移植)
+numpy>=2.0
+# librosa  # 可选：MFCC 声纹提取，未安装则用 FFT fallback
+
 # 可选：生产环境扩展
 # qdrant-client>=1.12.0  # 切换为 Qdrant 向量库
 # redis>=5.0.0           # 缓存层

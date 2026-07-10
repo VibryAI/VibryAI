@@ -12,7 +12,7 @@
 import logging
 from typing import Optional
 
-from config import config
+from app.config import config
 
 log = logging.getLogger("vibry.memory")
 
@@ -32,7 +32,7 @@ def _init_engine():
     try:
         from mem0 import Memory
         from mem0.configs.base import MemoryConfig
-        from volc_embedder import VolcengineEmbedder
+        from services.embedder import VolcengineEmbedder
 
         llm_cfg = config.upstream
         mem_cfg = config.memory

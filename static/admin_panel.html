@@ -139,6 +139,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <a href="#" data-page="models">⚙️ 模型配置</a>
     <a href="#" data-page="personality">🎭 人格设定</a>
     <a href="#" data-page="memories">🧩 记忆管理</a>
+    <a href="#" data-page="wiki">📚 Wiki 知识库</a>
     <a href="#" data-page="billing">💰 计费明细</a>
     <a href="#" data-page="logs">📋 运行日志</a>
     <a href="#" data-page="account">👤 账户设置</a>
@@ -166,6 +167,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--text-dim)" id="mem-indicator">🧠 记忆: 等待测试</span>
+        <span style="font-size:12px;color:var(--text-dim)" id="wiki-indicator">📚 Wiki: 等待测试</span>
       </div>
       <div class="chat-area" id="chat-area"></div>
       <div class="chat-input">
@@ -180,7 +182,10 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <!-- Models -->
     <div id="page-models" class="page">
       <h2 style="margin-bottom:16px">⚙️ 模型配置</h2>
-      <div class="card" style="margin-bottom:16px">
+
+      <details open style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">📡 基础模型配置</summary>
+        <div class="card" style="margin-top:8px">
         <div class="form-group">
           <label>Chat 模型</label>
           <input id="cfg-chat-model" placeholder="doubao-seed-2-1-turbo-260628">
@@ -190,11 +195,6 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <label>Embedding 模型</label>
           <input id="cfg-emb-model" placeholder="doubao-embedding-vision-251215">
           <div class="hint">推荐: doubao-embedding-vision-251215（2048d 多模态向量）</div>
-        </div>
-        <div class="form-group">
-          <label>ASR 模式</label>
-          <select id="cfg-asr-mode"><option value="local">local · FunASR 本地</option><option value="cloud">cloud · Doubao 云端</option></select>
-          <div class="hint">本地无需 API / 云端更准确但消耗 token</div>
         </div>
         <div class="form-group">
           <label>记忆检索数量 (top_k)</label>
@@ -209,6 +209,93 @@ tr:hover td { background: rgba(255,255,255,.02); }
         <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
         <span id="cfg-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
       </div>
+      </details>
+
+      <details style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">📚 Wiki 编译模型配置</summary>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">Wiki 编译需要长上下文 + 便宜（默认 DeepSeek）。留空则用上游 Chat 模型。</p>
+      <div class="card" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Wiki 编译模型</label>
+          <input id="cfg-wiki-model" placeholder="deepseek-chat">
+          <div class="hint">推荐: deepseek-chat（64K 上下文，极便宜）</div>
+        </div>
+        <div class="form-group">
+          <label>Wiki API Base URL</label>
+          <input id="cfg-wiki-base-url" placeholder="https://api.deepseek.com">
+        </div>
+        <div class="form-group">
+          <label>Wiki API Key</label>
+          <input id="cfg-wiki-api-key" placeholder="sk-..." type="password">
+          <div class="hint">DeepSeek API Key，留空则复用上游 API Key</div>
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()">💾 保存 Wiki 配置</button>
+        <span id="cfg-wiki-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+      </div>
+      </details>
+
+      <details style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">🎤 ASR 模型配置</summary>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">豆包 ASR 云端配置。从火山引擎控制台获取 App ID 和 Access Key。保存后立即生效，无需重启。</p>
+      <div class="card" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>📁 文件转写 ASR 模式</label>
+          <select id="cfg-asr-mode">
+            <option value="local">local · FunASR 本地</option>
+            <option value="cloud">cloud · 豆包极速版</option>
+            <option value="cloud_standard">cloud_standard · 豆包标准版（说话人分离）</option>
+          </select>
+          <div class="hint">用于 /api/transcribe，上传音频文件转写。推荐: 标准版</div>
+        </div>
+        <div class="form-group">
+          <label>🎙️ 语音聊天 ASR 模式</label>
+          <select id="cfg-voice-mode">
+            <option value="cloud">cloud · 豆包极速版（推荐）</option>
+            <option value="local">local · FunASR 本地</option>
+          </select>
+          <div class="hint">用于 /api/transcribe/voice，实时语音消息识别。推荐: 极速版</div>
+        </div>
+        <div class="form-group">
+          <label>App ID</label>
+          <input id="cfg-doubao-appid" placeholder="火山引擎 App ID">
+          <div class="hint">火山引擎 → 语音技术 → 应用列表 → App ID</div>
+        </div>
+        <div class="form-group">
+          <label>Access Key</label>
+          <input id="cfg-doubao-accesskey" placeholder="火山引擎 Access Key" type="password">
+          <div class="hint">火山引擎 → 密钥管理 → Access Key</div>
+        </div>
+        <div class="form-group">
+          <label>极速版接口 URL</label>
+          <input id="cfg-doubao-flash-url" placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash">
+        </div>
+        <div class="form-group">
+          <label>标准版接口 URL</label>
+          <input id="cfg-doubao-standard-url" placeholder="https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit">
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()">💾 保存 ASR 配置</button>
+        <span id="cfg-asr-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+      </div>
+      </details>
+
+      <details style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0">📝 Prompt 模板配置</summary>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px">自定义摘要和洞察的 System Prompt。支持 {"{name}"}, {"{role}"}, {"{context}"} 占位符。</p>
+      <div class="card" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>摘要 Prompt (summary_prompt)</label>
+          <textarea id="cfg-summary-prompt" style="min-height:250px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" placeholder="会议纪要 System Prompt..."></textarea>
+          <div class="hint">用于 /api/summarize，留空使用默认模板</div>
+        </div>
+        <div class="form-group">
+          <label>洞察 Prompt (insight_prompt)</label>
+          <textarea id="cfg-insight-prompt" style="min-height:200px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" placeholder="商业洞察 System Prompt..."></textarea>
+          <div class="hint">用于 /api/insight，留空使用默认模板</div>
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()">💾 保存 Prompt</button>
+        <span id="cfg-prompt-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none">✅ 已保存</span>
+      </div>
+      </details>
     </div>
 
     <!-- Personality -->
@@ -265,6 +352,97 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <div id="mem-results"></div>
     </div>
 
+    <!-- Wiki RAG -->
+    <div id="page-wiki" class="page">
+      <h2 style="margin-bottom:16px">📚 Wiki 知识库 (karpathy-llm-wiki RAG)</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px">
+        编译器模式 RAG：原始材料 → LLM 编译为结构化 Wiki 页面 → 查询时引用。<br>
+        <b>mem0 让系统更懂你，wiki-rag 让系统更专业。</b>
+      </p>
+
+      <!-- Status -->
+      <div class="cards" id="wiki-cards">
+        <div class="card"><div class="label">Wiki 状态</div><div class="value" id="wiki-status-text">-</div></div>
+        <div class="card"><div class="label">Raw 材料</div><div class="value" id="wiki-raw-count">-</div></div>
+        <div class="card"><div class="label">Wiki 文章</div><div class="value" id="wiki-article-count">-</div></div>
+        <div class="card"><div class="label">主题话题</div><div class="value" id="wiki-topic-count">-</div></div>
+      </div>
+
+      <div id="wiki-init-section" style="margin-bottom:20px">
+        <button class="btn btn-primary" onclick="wikiInit()">🚀 初始化 Wiki</button>
+        <span style="color:var(--text-dim);font-size:12px;margin-left:8px">（创建 raw/ 和 wiki/ 目录结构）</span>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="wiki-tabs" hidden>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('ingest')" id="wiki-tab-ingest">📥 摄入</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('query')" id="wiki-tab-query">🔍 查询</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('browse')" id="wiki-tab-browse">📖 浏览</button>
+        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('lint')" id="wiki-tab-lint">🔍 检查</button>
+      </div>
+
+      <!-- Ingest -->
+      <div id="wiki-tab-content-ingest" class="wiki-tab-content" hidden>
+        <h3 style="font-size:15px;margin-bottom:12px">📥 摄入原始材料</h3>
+        <div class="form-group"><label>标题 *</label><input id="wiki-ingest-title" placeholder="来源标题（如：Transformer 论文精读）"></div>
+        <div class="form-group"><label>主题分类</label><input id="wiki-ingest-topic" value="general" placeholder="如：ai-research"></div>
+        <div class="form-group"><label>来源 URL（可选）</label><input id="wiki-ingest-url" placeholder="https://..."></div>
+        <div class="form-group"><label>内容 *</label><textarea id="wiki-ingest-content" placeholder="粘贴原始文本...（支持 Markdown）" style="min-height:200px"></textarea></div>
+        <button class="btn btn-primary" onclick="wikiIngest()">🤖 编译到 Wiki</button>
+        <span id="wiki-ingest-status" style="margin-left:12px;font-size:13px;color:var(--text-dim)"></span>
+
+        <h3 style="font-size:15px;margin:24px 0 12px">📁 文件上传</h3>
+        <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0"><label>选择文件 (.md/.txt)</label><input type="file" id="wiki-upload-file" accept=".md,.txt,.json" style="max-width:300px"></div>
+          <div class="form-group" style="margin:0"><label>主题</label><input id="wiki-upload-topic" value="general" style="width:140px"></div>
+          <button class="btn btn-primary" onclick="wikiUploadFile()">📤 上传并编译</button>
+          <span id="wiki-upload-status" style="font-size:13px;color:var(--text-dim)"></span>
+        </div>
+      </div>
+
+      <!-- Query -->
+      <div id="wiki-tab-content-query" class="wiki-tab-content" hidden>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="wiki-query-input" placeholder="搜索 wiki 知识库..." style="flex:1;max-width:500px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')wikiQuery()">
+          <button class="btn btn-primary" onclick="wikiQuery()">🔍 搜索</button>
+        </div>
+        <label style="font-size:12px;color:var(--text-dim);margin-right:12px"><input type="checkbox" id="wiki-query-gen-answer"> 生成 AI 回答</label>
+        <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-query-embedding"> 语义搜索</label>
+        <div id="wiki-query-answer" style="margin:12px 0;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:none"></div>
+        <div id="wiki-query-results" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Browse -->
+      <div id="wiki-tab-content-browse" class="wiki-tab-content" hidden>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="wikiRefreshList()">🔄 刷新</button>
+          <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="wikiRebuildIndex()">📋 重建索引</button>
+          <select id="wiki-topic-filter" onchange="wikiRefreshList()" style="padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)"><option value="">全部主题</option></select>
+        </div>
+        <div id="wiki-article-list"></div>
+        <div id="wiki-article-detail" style="display:none;margin-top:16px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)"></div>
+      </div>
+
+      <!-- Lint -->
+      <div id="wiki-tab-content-lint" class="wiki-tab-content" hidden>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="wikiLint()">🔍 执行检查</button>
+          <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-lint-heuristic"> LLM 启发式检查（较慢）</label>
+          <span id="wiki-lint-status" style="font-size:13px;color:var(--text-dim)"></span>
+        </div>
+        <div id="wiki-lint-fixed"></div>
+        <div id="wiki-lint-reported"></div>
+        <div id="wiki-lint-heuristic-results"></div>
+      </div>
+
+      <details style="margin-top:20px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px">📂 Raw 原始材料</summary>
+        <div id="wiki-raw-list" style="margin-top:8px;color:var(--text-dim);font-size:12px">点击刷新...</div>
+      </details>
+      <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px">📝 操作日志</summary>
+        <div id="wiki-log-preview" style="margin-top:8px;color:var(--text-dim);font-size:12px;font-family:monospace;white-space:pre-wrap"></div>
+      </details>
+    </div>
+
     <!-- Billing -->
     <div id="page-billing" class="page">
       <h2 style="margin-bottom:16px">💰 计费明细</h2>
@@ -313,6 +491,7 @@ document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
     if (a.dataset.page === 'billing') refreshBilling();
     if (a.dataset.page === 'models') loadConfig();
     if (a.dataset.page === 'personality') loadPersonality();
+    if (a.dataset.page === 'wiki') refreshWikiStatus();
     if (a.dataset.page === 'account') loadAccount();
     if (a.dataset.page === 'logs') refreshLogs();
     // 移动端点击后关闭侧栏
@@ -395,7 +574,12 @@ function sendChat() {
       }
     }
   }).then(() => {
-    // 刷新聊天记录
+    // 更新 wiki 状态
+    fetch('/api/wiki/status').then(r=>r.json()).then(d => {
+      document.getElementById('wiki-indicator').innerHTML = d.initialized
+        ? '📚 Wiki: ✅ 已注入 (' + (d.wiki_count||0) + ' 篇文章)'
+        : '📚 Wiki: ⚠️ 未初始化';
+    }).catch(() => {});
     setTimeout(loadChatHistory, 500);
   }).catch(e => { assistDiv.lastChild.textContent = 'Error: '+e.message; });
 }
@@ -406,8 +590,19 @@ function loadConfig() {
     document.getElementById('cfg-chat-model').value = d.upstream_model || '';
     document.getElementById('cfg-emb-model').value = d.embedding_model || '';
     document.getElementById('cfg-asr-mode').value = d.asr_mode || 'local';
+    document.getElementById('cfg-voice-mode').value = d.asr_voice_mode || 'cloud';
     document.getElementById('cfg-topk').value = d.memory_top_k || 5;
     document.getElementById('cfg-threshold').value = d.memory_threshold || 0.35;
+    // Doubao ASR
+    document.getElementById('cfg-doubao-appid').value = d.doubao_asr_app_id || '';
+    document.getElementById('cfg-doubao-accesskey').value = d.doubao_asr_access_key || '';
+    document.getElementById('cfg-doubao-flash-url').value = d.doubao_asr_flash_url || '';
+    document.getElementById('cfg-doubao-standard-url').value = d.doubao_asr_standard_url || '';
+    document.getElementById('cfg-summary-prompt').value = d.summary_prompt || '';
+    document.getElementById('cfg-insight-prompt').value = d.insight_prompt || '';
+    document.getElementById('cfg-wiki-model').value = d.wiki_model || '';
+    document.getElementById('cfg-wiki-base-url').value = d.wiki_base_url || '';
+    document.getElementById('cfg-wiki-api-key').value = d.wiki_api_key || '';
   });
 }
 function saveConfig() {
@@ -415,12 +610,34 @@ function saveConfig() {
     upstream_model: document.getElementById('cfg-chat-model').value,
     embedding_model: document.getElementById('cfg-emb-model').value,
     asr_mode: document.getElementById('cfg-asr-mode').value,
+    asr_voice_mode: document.getElementById('cfg-voice-mode').value,
     memory_top_k: parseInt(document.getElementById('cfg-topk').value),
     memory_threshold: parseFloat(document.getElementById('cfg-threshold').value),
+    // Doubao ASR
+    doubao_asr_app_id: document.getElementById('cfg-doubao-appid').value,
+    doubao_asr_access_key: document.getElementById('cfg-doubao-accesskey').value,
+    doubao_asr_flash_url: document.getElementById('cfg-doubao-flash-url').value,
+    doubao_asr_standard_url: document.getElementById('cfg-doubao-standard-url').value,
+    summary_prompt: document.getElementById('cfg-summary-prompt').value,
+    insight_prompt: document.getElementById('cfg-insight-prompt').value,
+    wiki_model: document.getElementById('cfg-wiki-model').value,
+    wiki_base_url: document.getElementById('cfg-wiki-base-url').value,
+    wiki_api_key: document.getElementById('cfg-wiki-api-key').value,
   };
   fetch('/admin/api/config', {method:'POST',headers:authHeaders(),body:JSON.stringify(body)})
     .then(r=>r.json()).then(d => {
-      if (d.ok) { const el = document.getElementById('cfg-saved'); el.style.display='inline'; setTimeout(()=>el.style.display='none',2000); }
+      if (d.ok) {
+        document.getElementById('cfg-saved').style.display='inline';
+        document.getElementById('cfg-wiki-saved').style.display='inline';
+        document.getElementById('cfg-asr-saved').style.display='inline';
+        document.getElementById('cfg-prompt-saved').style.display='inline';
+        setTimeout(()=>{
+          document.getElementById('cfg-saved').style.display='none';
+          document.getElementById('cfg-wiki-saved').style.display='none';
+          document.getElementById('cfg-asr-saved').style.display='none';
+          document.getElementById('cfg-prompt-saved').style.display='none';
+        }, 2000);
+      }
     });
 }
 
@@ -439,6 +656,215 @@ function searchMems() {
         </div>`
       ).join('') || '<p style="color:var(--text-dim)">无结果</p>';
     });
+}
+
+// ==================== Wiki RAG ====================
+let wikiCurrentTab = 'ingest';
+
+function switchWikiTab(tab) {
+  wikiCurrentTab = tab;
+  document.querySelectorAll('.wiki-tab-content').forEach(el => el.hidden = true);
+  const contentEl = document.getElementById('wiki-tab-content-' + tab);
+  if (contentEl) contentEl.hidden = false;
+  document.querySelectorAll('#wiki-tabs button').forEach(b => b.style.background = 'var(--surface)');
+  const btnEl = document.getElementById('wiki-tab-' + tab);
+  if (btnEl) btnEl.style.background = 'var(--accent)';
+}
+
+function refreshWikiStatus() {
+  fetch('/api/wiki/status').then(r=>r.json()).then(d => {
+    if (d.initialized) {
+      document.getElementById('wiki-status-text').innerHTML = '<span style="color:var(--accent2)">✅ 已就绪</span>';
+      document.getElementById('wiki-raw-count').textContent = d.raw_count;
+      document.getElementById('wiki-article-count').textContent = d.wiki_count;
+      document.getElementById('wiki-topic-count').textContent = (d.topics||[]).length;
+      document.getElementById('wiki-init-section').hidden = true;
+      document.getElementById('wiki-tabs').hidden = false;
+      switchWikiTab(wikiCurrentTab);
+      wikiRefreshList();
+      wikiLoadRawList();
+      if (d.recent_logs && d.recent_logs.length) {
+        document.getElementById('wiki-log-preview').textContent = d.recent_logs.join('\n');
+      }
+    } else {
+      document.getElementById('wiki-status-text').textContent = '未初始化';
+      document.getElementById('wiki-raw-count').textContent = '-';
+      document.getElementById('wiki-article-count').textContent = '-';
+      document.getElementById('wiki-topic-count').textContent = '-';
+      document.getElementById('wiki-init-section').hidden = false;
+      document.getElementById('wiki-tabs').hidden = true;
+      document.querySelectorAll('.wiki-tab-content').forEach(el => el.hidden = true);
+    }
+  }).catch(e => {
+    document.getElementById('wiki-status-text').textContent = '加载失败';
+  });
+}
+
+function wikiInit() {
+  fetch('/api/wiki/init', {method:'POST',headers:authHeaders(),body:'{}'})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) { toast('✅ Wiki 已初始化: ' + (d.created||[]).join(', ')); refreshWikiStatus(); }
+      else { toast('❌ 初始化失败'); }
+    });
+}
+
+function wikiIngest() {
+  const title = document.getElementById('wiki-ingest-title').value.trim();
+  const topic = document.getElementById('wiki-ingest-topic').value.trim() || 'general';
+  const source_url = document.getElementById('wiki-ingest-url').value.trim();
+  const content = document.getElementById('wiki-ingest-content').value.trim();
+  const statusEl = document.getElementById('wiki-ingest-status');
+
+  if (!title) { statusEl.textContent = '⚠️ 请输入标题'; return; }
+  if (!content) { statusEl.textContent = '⚠️ 请输入内容'; return; }
+
+  statusEl.textContent = '⏳ 正在调用 LLM 编译 wiki 页面...';
+  fetch('/api/wiki/ingest', {method:'POST',headers:authHeaders(),body:JSON.stringify({title,topic,source_url,content})})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) {
+        statusEl.textContent = '✅ 完成！新建 '+(d.articles_created||[]).length+' 篇，更新 '+(d.articles_updated||[]).length+' 篇 (编译耗时 '+(d.compile_time_s||0).toFixed(1)+'s)';
+        document.getElementById('wiki-ingest-content').value = '';
+        refreshWikiStatus();
+      } else {
+        statusEl.textContent = '❌ ' + (d.error||'未知错误');
+      }
+    }).catch(e => { statusEl.textContent = '❌ 请求失败: '+e.message; });
+}
+
+function wikiUploadFile() {
+  const fileInput = document.getElementById('wiki-upload-file');
+  const file = fileInput.files[0];
+  if (!file) return;
+  const topic = document.getElementById('wiki-upload-topic').value || 'general';
+  const statusEl = document.getElementById('wiki-upload-status');
+  statusEl.textContent = '⏳ 上传中...';
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('topic', topic);
+
+  fetch('/api/wiki/ingest/file', {method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:formData})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) {
+        statusEl.textContent = '✅ 完成！新建 '+(d.articles_created||[]).length+' 篇';
+        fileInput.value = '';
+        refreshWikiStatus();
+      } else {
+        statusEl.textContent = '❌ ' + (d.error||'未知错误');
+      }
+    }).catch(e => { statusEl.textContent = '❌ 请求失败: '+e.message; });
+}
+
+function wikiQuery() {
+  const q = document.getElementById('wiki-query-input').value.trim();
+  if (!q) return;
+  const genAnswer = document.getElementById('wiki-query-gen-answer').checked;
+  const useEmbedding = document.getElementById('wiki-query-embedding').checked;
+
+  fetch('/api/wiki/query', {method:'POST',headers:authHeaders(),body:JSON.stringify({query:q,top_k:5,generate_answer:genAnswer,use_embedding:useEmbedding})})
+    .then(r=>r.json()).then(d => {
+      // Results
+      document.getElementById('wiki-query-results').innerHTML = (d.results||[]).map(r =>
+        `<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="wikiViewArticle('${r.path}')">
+          <div style="display:flex;justify-content:space-between">
+            <strong>📄 ${r.title||r.filename}</strong>
+            <span class="badge badge-ok">score: ${(r.score||0).toFixed(2)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${r.topic} — ${r.snippet||''}</div>
+        </div>`
+      ).join('') || '<p style="color:var(--text-dim)">无结果</p>';
+
+      // Answer
+      if (d.answer) {
+        document.getElementById('wiki-query-answer').style.display = 'block';
+        document.getElementById('wiki-query-answer').innerHTML = '<strong>🤖 AI 回答:</strong><br>' + d.answer.replace(/\n/g,'<br>');
+      } else {
+        document.getElementById('wiki-query-answer').style.display = 'none';
+      }
+    });
+}
+
+function wikiRefreshList() {
+  const topic = document.getElementById('wiki-topic-filter').value;
+  const url = '/api/wiki/pages' + (topic ? '?topic='+encodeURIComponent(topic) : '');
+  fetch(url).then(r=>r.json()).then(d => {
+    // Update topic filter
+    const topics = [...new Set((d.articles||[]).map(a=>a.topic))];
+    const sel = document.getElementById('wiki-topic-filter');
+    const curVal = sel.value;
+    sel.innerHTML = '<option value="">全部主题</option>' + topics.map(t => '<option value="'+t+'">'+t+'</option>').join('');
+    sel.value = curVal;
+
+    document.getElementById('wiki-article-list').innerHTML = (d.count === 0)
+      ? '<p style="color:var(--text-dim)">暂无文章，请先执行 Ingest</p>'
+      : '<div class="table-wrap"><table><thead><tr><th>标题</th><th>主题</th><th>更新</th><th>操作</th></tr></thead><tbody>' +
+        (d.articles||[]).map(a =>
+          `<tr>
+            <td><a href="#" onclick="wikiViewArticle('${a.path}')" style="color:var(--accent);text-decoration:none">📄 ${a.title||a.filename}</a></td>
+            <td><span class="badge badge-ok">${a.topic}</span></td>
+            <td style="font-size:11px;color:var(--text-dim)">${a.updated||''}</td>
+            <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="wikiDeleteArticle('${a.path}')">🗑️</button></td>
+          </tr>`
+        ).join('') + '</tbody></table></div>';
+  });
+}
+
+function wikiViewArticle(path) {
+  fetch('/api/wiki/page?path='+encodeURIComponent(path)).then(r=>r.json()).then(d => {
+    document.getElementById('wiki-article-detail').style.display = 'block';
+    document.getElementById('wiki-article-detail').innerHTML =
+      `<div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <strong>📄 ${path}</strong>
+        <button class="btn" style="background:var(--bg);color:var(--text-dim);border:1px solid var(--border);padding:4px 10px;font-size:11px" onclick="document.getElementById('wiki-article-detail').style.display='none'">✕ 关闭</button>
+      </div>
+      <div style="background:var(--bg);padding:12px;border-radius:var(--radius);max-height:400px;overflow-y:auto;font-size:13px;line-height:1.7">${(d.content||'').replace(/\n/g,'<br>').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="#" style="color:var(--accent)">$1</a>')}</div>`;
+    document.getElementById('wiki-article-detail').scrollIntoView({behavior:'smooth'});
+  });
+}
+
+function wikiDeleteArticle(path) {
+  if (!confirm('确定删除 ' + path + ' ？')) return;
+  fetch('/api/wiki/page?path='+encodeURIComponent(path), {method:'DELETE',headers:authHeaders()})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) { toast('🗑️ 已删除'); wikiRefreshList(); refreshWikiStatus(); }
+    });
+}
+
+function wikiRebuildIndex() {
+  fetch('/api/wiki/rebuild-index', {method:'POST',headers:authHeaders(),body:'{}'})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) { toast('📋 索引已重建: ' + (d.articles||0) + ' 篇文章, ' + (d.topics||0) + ' 个主题'); wikiRefreshList(); }
+    });
+}
+
+function wikiLint() {
+  const heuristic = document.getElementById('wiki-lint-heuristic').checked;
+  const statusEl = document.getElementById('wiki-lint-status');
+  statusEl.textContent = '⏳ 检查中...';
+
+  fetch('/api/wiki/lint', {method:'POST',headers:authHeaders(),body:JSON.stringify({auto_fix:true,heuristic})})
+    .then(r=>r.json()).then(d => {
+      statusEl.textContent = '✅ 完成';
+      const det = d.deterministic || {};
+      document.getElementById('wiki-lint-fixed').innerHTML = (det.fixed||[]).length
+        ? '<h4 style="color:var(--accent2)">✅ 自动修复 (' + det.fixed.length + ')</h4>' + det.fixed.map(f => '<div style="font-size:12px;margin:2px 0">'+f+'</div>').join('')
+        : '<p style="color:var(--text-dim)">无自动修复项</p>';
+      document.getElementById('wiki-lint-reported').innerHTML = (det.reported||[]).length
+        ? '<h4 style="color:var(--warn)">⚠️ 待处理问题 (' + det.reported.length + ')</h4>' + det.reported.map(r => '<div style="font-size:12px;margin:2px 0">'+r+'</div>').join('')
+        : '';
+      document.getElementById('wiki-lint-heuristic-results').innerHTML = (d.heuristic||[]).length
+        ? '<h4 style="color:var(--accent)">💡 启发式发现 (' + d.heuristic.length + ')</h4>' + d.heuristic.map(h => '<div style="font-size:12px;margin:2px 0">'+h+'</div>').join('')
+        : '';
+      refreshWikiStatus();
+    }).catch(e => { statusEl.textContent = '❌ 失败: '+e.message; });
+}
+
+function wikiLoadRawList() {
+  fetch('/api/wiki/raw').then(r=>r.json()).then(d => {
+    document.getElementById('wiki-raw-list').innerHTML = (d.files||[]).length === 0
+      ? '暂无 raw 材料'
+      : (d.files||[]).map(f => `<div>📄 ${f.path} <span style="color:var(--text-dim)">(${f.topic})</span></div>`).join('');
+  });
 }
 
 // ==================== Billing ====================

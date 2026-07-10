@@ -1,241 +1,24 @@
-"""Vibry AI Core — ASR 语音识别引擎
+"""Vibry AI Core — ASR Engine (FunASR local + Doubao cloud) + LLM Summarization"""
 
-支持多种模式:
-- local: FunASR Paraformer 本地模型（离线，无需 API）
-- cloud / cloud_flash: Doubao 极速版 ASR
-- cloud_standard: Doubao 标准版 ASR（说话人分离 + 方言）
-
-音频格式: WAV, Opus/OGG, MP3, FLAC（自动检测 + ffmpeg 转换）
-"""
-
-import base64
-import json
-import logging
-import os
-import re
-import struct as _struct
-import subprocess
-import sys
-import tempfile
-import threading
-import time
-import types
-import urllib.request
-import urllib.error
-import uuid as _uuid
+import base64, json, logging, os, re, struct, sys, tempfile, threading, time, types, urllib.request, urllib.error, uuid as _uuid
 from typing import Optional
 
-from config import config
+from app.config import config
+from utils.audio import (
+    detect_audio_format, convert_to_wav, enhance_audio,
+    save_audio_wav, _clean_debug_dir, compress_for_asr,
+)
 
 log = logging.getLogger("vibry.asr")
 
-# ---- HuggingFace 镜像 ----
+# ---- HuggingFace mirror ----
 os.environ.setdefault("HF_ENDPOINT", config.asr.hf_endpoint)
 
-# ---- Monkeypatch: FunASR 不需要 editdistance ----
+# ---- Monkeypatch: FunASR doesn't need editdistance ----
 if "editdistance" not in sys.modules:
     _ed = types.ModuleType("editdistance")
     _ed.eval = lambda *a, **kw: 0
     sys.modules["editdistance"] = _ed
-
-# ---- 音频 magic bytes 检测 ----
-AUDIO_MAGIC = {
-    b"RIFF": "wav",
-    b"OggS": "opus",
-    b"\xff\xfb": "mp3",
-    b"\xff\xf3": "mp3",
-    b"\xff\xfa": "mp3",
-    b"ID3": "mp3",
-    b"fLaC": "flac",
-}
-
-
-def detect_audio_format(data: bytes) -> str:
-    """根据文件头检测音频格式"""
-    for magic, fmt in AUDIO_MAGIC.items():
-        if data[: len(magic)] == magic:
-            return fmt
-    if len(data) > 0:
-        toc = data[0]
-        if (toc & 0xFC) == 0xFC:
-            return "opus_raw"
-    return "wav"
-
-
-def _is_opus_data(data: bytes) -> bool:
-    """检测数据是否为裸 Opus 帧流（非 OGG 容器，非 WAV）
-
-    pnote 格式可能有 4 字节头 0x4b41XXXX，需要剥离后检测。
-    Opus TOC 字节: bit7-3=配置(0-31), bit2=立体声, bit1-0=帧数代码
-    有效配置范围: 0-19（SILK NB/WB/UWB + Hybrid + CELT + CELT-only）
-    """
-    if len(data) < 4:
-        return False
-    # RIFF = WAV, OggS = OGG 容器 → 不是裸 Opus
-    if data[:4] == b'RIFF' or data[:4] == b'OggS':
-        return False
-    # pnote 4 字节头 0x4b41XXXX → 剥掉后检查 TOC
-    check_data = data[4:] if data[:2] == b'KA' and len(data) > 4 else data
-    if len(check_data) < 1:
-        return False
-    toc = check_data[0]
-    config_bits = (toc >> 3) & 0x1F  # bits 7-3
-    # Opus spec: config 0-19 are valid
-    return 0 <= config_bits <= 19
-
-
-def convert_to_wav(input_data: bytes, source_fmt: str = None) -> bytes:
-    """ffmpeg 转换音频为 WAV (16kHz mono 16bit PCM)
-
-    自动检测格式：
-    - WAV (RIFF header) → ffmpeg 重采样
-    - 裸 Opus 帧流（含 pnote 4b41 头） → OGG 封装后 ffmpeg 解码
-    - 其他 → 尝试 ffmpeg 自动探测
-    """
-    ffmpeg = config.audio.ffmpeg_path if hasattr(config, 'audio') else "ffmpeg"
-
-    if source_fmt is None:
-        source_fmt = detect_audio_format(input_data)
-
-    # ★ 检测裸 Opus 帧流 → OGG 封装后 ffmpeg 解码
-    if _is_opus_data(input_data):
-        # pnote 录音卡在 Opus 数据前加 4 字节头 0x4b41XXXX，必须剥掉
-        if input_data[:2] == b'KA':
-            opus_data = input_data[4:]  # 剥掉 4 字节 4b41 头
-            log.info(f"   🎵 检测到 pnote Opus (4b41头+{len(input_data)}B)，剥头后{len(opus_data)}B")
-        else:
-            opus_data = input_data
-            log.info(f"   🎵 检测到裸 Opus 帧流 ({len(opus_data)} bytes)")
-
-        try:
-            from ogg_opus_muxer import raw_opus_to_ogg
-            ogg_data = raw_opus_to_ogg(opus_data, frame_size=40)
-
-            # 写临时 OGG 文件供 ffmpeg 解码
-            tmp_ogg = os.path.join(tempfile.gettempdir(), f"vibry_opus_{os.getpid()}.ogg")
-            with open(tmp_ogg, 'wb') as f:
-                f.write(ogg_data)
-
-            proc = subprocess.run(
-                [ffmpeg, '-y', '-i', tmp_ogg,
-                 '-ar', '16000', '-ac', '1', '-sample_fmt', 's16',
-                 '-f', 'wav', 'pipe:1'],
-                capture_output=True, timeout=60
-            )
-            os.unlink(tmp_ogg)
-
-            if proc.returncode == 0 and len(proc.stdout) > 44:
-                dur = (len(proc.stdout) - 44) / (16000 * 2)
-                log.info(f"   ✅ Opus→WAV 完成: {len(proc.stdout)} bytes, {dur:.1f}s")
-                return proc.stdout
-            else:
-                err = proc.stderr.decode('utf-8', errors='replace')[-300:]
-                log.warning(f"   ⚠️ OGG/Opus ffmpeg 解码失败: {err}")
-                return input_data
-        except Exception as e:
-            log.warning(f"   ⚠️ Opus 解码异常: {e}")
-            return input_data
-
-    # ★ 标准 WAV → ffmpeg 规范化
-    if source_fmt in ("wav", "opus_raw"):
-        try:
-            proc = subprocess.run(
-                [ffmpeg, '-y', '-i', 'pipe:0',
-                 '-ar', '16000', '-ac', '1', '-sample_fmt', 's16',
-                 '-f', 'wav', 'pipe:1'],
-                input=input_data, capture_output=True, timeout=60
-            )
-            if proc.returncode == 0 and len(proc.stdout) > 44:
-                return proc.stdout
-            else:
-                err = proc.stderr.decode('utf-8', errors='replace')[-300:]
-                log.warning(f"   ⚠️ ffmpeg 转换失败 (rc={proc.returncode}): {err}")
-                if input_data[:4] == b'RIFF':
-                    log.info(f"   ℹ️ WAV 头有效但 ffmpeg 失败，原样返回")
-                return input_data
-        except Exception as e:
-            log.warning(f"   ⚠️ ffmpeg 异常: {e}")
-            return input_data
-
-    # 其他格式 → ffmpeg 自动探测
-    try:
-        proc = subprocess.run(
-            [ffmpeg, "-y", "-f", source_fmt, "-i", "pipe:0",
-             "-ar", "16000", "-ac", "1", "-sample_fmt", "s16",
-             "-f", "wav", "pipe:1"],
-            input=input_data,
-            capture_output=True,
-            timeout=30,
-        )
-        if proc.returncode == 0 and len(proc.stdout) > 44:
-            log.info(f"   🔄 ffmpeg: {source_fmt} → WAV ({len(input_data)}→{len(proc.stdout)} bytes)")
-            return proc.stdout
-        else:
-            log.warning(f"   ⚠️ ffmpeg 转换失败: {proc.stderr.decode()[:200]}")
-            return input_data
-    except FileNotFoundError:
-        log.warning("   ⚠️ ffmpeg 未安装, 跳过格式转换")
-        return input_data
-    except Exception as e:
-        log.warning(f"   ⚠️ ffmpeg 异常: {e}")
-        return input_data
-
-
-def enhance_audio(input_data: bytes) -> bytes:
-    """ffmpeg 清晰化处理：降噪 + 去低频 + 响度归一化 → 高质量 WAV
-
-    滤镜链:
-      highpass=f=80   去 80Hz 以下低频隆隆声
-      afftdn=nr=12    频域降噪（去空调/风扇等稳态噪声）
-      loudnorm        EBU R128 响度归一化
-
-    用于生成播放用 WAV（比转写WAV质量更好）。
-    """
-    ffmpeg = config.audio.ffmpeg_path if hasattr(config, 'audio') else "ffmpeg"
-    afilters = "highpass=f=80,afftdn=nr=12,loudnorm=I=-16:TP=-1.5:LRA=11"
-
-    try:
-        proc = subprocess.run(
-            [ffmpeg, '-y', '-i', 'pipe:0',
-             '-af', afilters,
-             '-ar', '16000', '-ac', '1', '-sample_fmt', 's16',
-             '-f', 'wav', 'pipe:1'],
-            input=input_data, capture_output=True, timeout=90
-        )
-        if proc.returncode == 0 and len(proc.stdout) > 44:
-            log.info(f"   🎧 清晰化完成: WAV → WAV ({len(input_data)}→{len(proc.stdout)} bytes)")
-            return proc.stdout
-        else:
-            log.warning(f"   ⚠️ 清晰化失败, 降级原样保存")
-            return input_data
-    except Exception as e:
-        log.warning(f"   ⚠️ 清晰化异常: {e}")
-        return input_data
-
-
-def save_audio_wav(wav_bytes: bytes, rec_id: str) -> str:
-    """保存清晰化 WAV 到 audio 目录，返回相对路径"""
-    audio_dir = config.audio.audio_dir if hasattr(config, 'audio') else "audio"
-    filename = f"{rec_id}.wav"
-    filepath = os.path.join(audio_dir, filename)
-    with open(filepath, 'wb') as f:
-        f.write(wav_bytes)
-    return filename  # 相对路径，如 rec_20260101_120000.wav
-
-
-def _clean_debug_dir(keep: int = 10):
-    """自动清理 debug/ 目录，只保留最近 N 个文件"""
-    try:
-        debug_dir = config.audio.debug_dir if hasattr(config, 'audio') else "debug"
-        files = [os.path.join(debug_dir, f) for f in os.listdir(debug_dir)
-                 if f.endswith('.wav')]
-        files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        for f in files[keep:]:
-            os.unlink(f)
-            log.info(f"   🧹 清理旧文件: {os.path.basename(f)}")
-    except Exception:
-        pass
-
 
 # ===================================================================
 # FunASR Paraformer (lazy load)
@@ -585,7 +368,7 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
                 log.info(f"   🗣️ 说话人: {result.get('speakers', [])}")
                 # ★ 声纹识别：将 [发言人0] 替换为已注册声纹的真实姓名
                 try:
-                    from voiceprint import apply_voiceprint_to_transcript
+                    from services.voiceprint import apply_voiceprint_to_transcript
                     text = apply_voiceprint_to_transcript(text, utterances_data, audio_bytes)
                 except Exception as e:
                     log.warning(f"   ⚠️ 声纹识别跳过: {e}")

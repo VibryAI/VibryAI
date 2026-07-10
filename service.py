@@ -49,7 +49,7 @@ class VibryService(win32serviceutil.ServiceFramework):
     def _run(self):
         import uvicorn
         import threading
-        from config import config
+        from app.config import config
 
         # 重定向 stdout/stderr 到日志文件（Windows 服务无控制台）
         log_file = os.path.join(PROJECT_DIR, "server_output.log")
