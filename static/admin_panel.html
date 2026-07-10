@@ -87,9 +87,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .toast { position: fixed; top: 20px; right: 20px; background: var(--accent2); color: #000; padding: 12px 20px; border-radius: var(--radius); font-weight: 600; z-index: 999; animation: fade 3s forwards; }
 @keyframes fade { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
-/* Both hidden until boot decides */
-#login-page, #app { display: none; }
-#boot-loading { display: flex; align-items: center; justify-content: center; height: 100vh; color: var(--text-dim); font-size: 16px; }
+/* Hide login by default if JS enabled — boot() will decide */
+#login-page { display: none; }
+#app { display: none; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
@@ -136,9 +136,6 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <p style="margin-top:12px;text-align:center;font-size:13px"><a href="#" onclick="showLogin()" style="color:var(--accent);text-decoration:none" data-i18n="login.back_link">Back to login</a></p>
   </div>
 </div>
-
-<!-- Boot loading -->
-<div id="boot-loading">⏳ Loading...</div>
 
 <!-- App -->
 <div id="app">
@@ -491,9 +488,9 @@ function login() {
       else { document.getElementById('login-err').textContent = d.error || I18N.t('common.unknown_error'); }
     });
 }
-function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); document.getElementById('login-page').style.display='block'; document.getElementById('app').style.display='none'; document.getElementById('boot-loading').style.display='none'; }
+function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); document.getElementById('login-page').style.display='block'; document.getElementById('app').style.display='none'; }
 function authHeaders() { return {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}; }
-function showApp() { document.getElementById('login-page').style.display='none'; document.getElementById('boot-loading').style.display='none'; document.getElementById('app').style.display='flex'; refreshDashboard(); }
+function showApp() { document.getElementById('login-page').style.display='none'; document.getElementById('app').style.display='flex'; refreshDashboard(); }
 
 // ==================== Navigation ====================
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
@@ -1043,33 +1040,18 @@ function changePassword() {
 function toast(msg) { const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
 
 // ==================== Init ====================
-(async function boot() {
-  // Wait for i18n with 5s timeout
-  try {
-    await Promise.race([
-      I18N.ready,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('i18n timeout')), 5000))
-    ]);
-  } catch(e) { console.error('i18n init failed:', e); }
-
+// Wait for I18N (if available), then decide login vs app
+const i18nReady = (typeof I18N !== 'undefined' && I18N.ready) ? I18N.ready : Promise.resolve();
+i18nReady.catch(() => {}).finally(() => {
   if (!TOKEN) {
-    document.getElementById('boot-loading').style.display = 'none';
     document.getElementById('login-page').style.display = 'block';
     return;
   }
-  // Have token → verify with server (with timeout)
-  try {
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch('/admin/api/verify', {headers:authHeaders(), signal: ctrl.signal});
-    clearTimeout(timeout);
-    const d = await r.json();
-    if (d.ok) { showApp(); } else { logout(); }
-  } catch(e) {
-    console.error('Token verify failed:', e);
-    logout();
-  }
-})();
+  fetch('/admin/api/verify', {headers:authHeaders()})
+    .then(r => r.json())
+    .then(d => { if (d.ok) showApp(); else logout(); })
+    .catch(() => logout());
+});
 </script>
 </body>
 </html>
