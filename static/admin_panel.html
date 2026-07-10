@@ -1057,9 +1057,12 @@ function toast(msg) { const t = document.createElement('div'); t.className='toas
     document.getElementById('login-page').style.display = 'block';
     return;
   }
-  // Have token → verify with server
+  // Have token → verify with server (with timeout)
   try {
-    const r = await fetch('/admin/api/verify', {headers:authHeaders()});
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch('/admin/api/verify', {headers:authHeaders(), signal: ctrl.signal});
+    clearTimeout(timeout);
     const d = await r.json();
     if (d.ok) { showApp(); } else { logout(); }
   } catch(e) {
