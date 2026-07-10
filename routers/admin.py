@@ -274,11 +274,8 @@ async def admin_set_email(request: Request):
 @router.get("/admin/api/email-config")
 async def admin_get_email_config(request: Request):
     _require_admin(request)
-    return JSONResponse({
-        "provider": "agentmail",
-        "api_key_configured": bool(os.getenv("AGENTMAIL_API_KEY", "")),
-        "from_email": os.getenv("AGENTMAIL_FROM_EMAIL", "vibryai@agentmail.to"),
-    })
+    from services.email import get_email_status
+    return JSONResponse(get_email_status())
 
 
 @router.post("/admin/api/forgot-password")

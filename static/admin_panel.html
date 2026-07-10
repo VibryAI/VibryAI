@@ -989,8 +989,8 @@ function loadAccount() {
     document.getElementById('acct-email').value = d.email || '';
   });
   fetch('/admin/api/email-config', {headers:authHeaders()}).then(r=>r.json()).then(d => {
-    document.getElementById('smtp-info').innerHTML = d.api_key_configured
-      ? `<span style="color:var(--accent2)">${T('account.smtp_configured')}</span> — ${d.from_email} (AgentMail)`
+    document.getElementById('smtp-info').innerHTML = d.configured
+      ? `<span style="color:var(--accent2)">${T('account.smtp_configured')}</span> — ${d.desc} (${d.from_email})`
       : `<span style="color:var(--warn)">${T('account.smtp_not_configured')}</span>`;
   });
 }
