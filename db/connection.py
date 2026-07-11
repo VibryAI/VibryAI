@@ -9,7 +9,9 @@ import secrets
 import sqlite3, json, os, threading
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vibrycard.db")
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DATA_DIR = os.path.join(_ROOT, "data")
+DB_PATH = os.path.join(_DATA_DIR, "vibrycard.db")
 
 # 线程安全：每个线程使用独立连接
 _local = threading.local()
@@ -25,6 +27,7 @@ def get_conn() -> sqlite3.Connection:
 
 
 def init_db():
+    os.makedirs(_DATA_DIR, mode=0o755, exist_ok=True)
     conn = get_conn()
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS recordings (
@@ -117,6 +120,15 @@ def init_db():
             flash_url TEXT NOT NULL DEFAULT '',
             standard_url TEXT NOT NULL DEFAULT '',
             updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+
+        CREATE TABLE IF NOT EXISTS api_tokens (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            token_prefix TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+            last_used_at TEXT
         );
     """)
 

@@ -38,19 +38,30 @@ const I18N = (() => {
     return 'en';
   }
 
-  /** Load a translation JSON file */
+  /** Load a translation JSON file with timeout */
   async function loadLang(lang) {
     if (loadedLangs[lang]) return loadedLangs[lang];
     try {
-      const resp = await fetch(`/static/i18n/${lang}.json`);
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), 5000);
+      const resp = await fetch(`/static/i18n/${lang}.json`, { signal: ctrl.signal });
+      clearTimeout(timeout);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       loadedLangs[lang] = data;
       return data;
     } catch (e) {
       console.warn(`[i18n] Failed to load "${lang}.json":`, e.message);
-      // Fallback to en if loading another language fails
-      if (lang !== 'en') return loadLang('en');
+      // Fallback: use built-in data-i18n content as-is
+      if (lang !== 'en') {
+        try {
+          const ctrl2 = new AbortController();
+          const t2 = setTimeout(() => ctrl2.abort(), 3000);
+          const resp2 = await fetch(`/static/i18n/en.json`, { signal: ctrl2.signal });
+          clearTimeout(t2);
+          if (resp2.ok) { loadedLangs['en'] = await resp2.json(); return loadedLangs['en']; }
+        } catch (_) {}
+      }
       return {};
     }
   }

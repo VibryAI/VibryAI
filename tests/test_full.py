@@ -75,7 +75,8 @@ def test_db_migration():
     print("=" * 55)
 
     import sqlite3
-    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "vibrycard.db")
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(_root, "data", "vibrycard.db")
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
 

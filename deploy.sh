@@ -1,233 +1,677 @@
 #!/bin/bash
+# ============================================================
+# Vibry AI Core — Linux 一键部署 & 管理脚本
+# ============================================================
+# 用法:
+#   sudo bash deploy.sh              # 首次部署 (从 tar.gz 解压后运行)
+#   sudo bash deploy.sh --update     # 更新 + 重启 (git pull)
+#   sudo bash deploy.sh --start      # 启动服务
+#   sudo bash deploy.sh --stop       # 停止服务
+#   sudo bash deploy.sh --restart    # 重启服务
+#   sudo bash deploy.sh --status     # 查看状态
+#   sudo bash deploy.sh --logs [N]   # 查看日志
+#   sudo bash deploy.sh --uninstall  # 完全卸载
+#   sudo bash deploy.sh --nginx      # 生成 Nginx 反向代理配置
+# ============================================================
+
 set -e
 
-# ============================================================
-# Vibry AI Core — 一键部署脚本
-# 用法:
-#   bash deploy.sh              # 首次部署
-#   bash deploy.sh --update     # 更新已有部署
-#   bash deploy.sh --start      # 仅启动
-#   bash deploy.sh --stop       # 停止服务
-#   bash deploy.sh --status     # 查看状态
-# ============================================================
+# ---- 配置 (支持环境变量覆盖) ----
+APP_DIR="${VIBRY_HOME:-/opt/vibry-server}"
+APP_NAME="${VIBRY_SERVICE:-vibry-server}"
+VENV_DIR="${APP_DIR}/venv"
+SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
+NGINX_CONF="/etc/nginx/sites-available/${APP_NAME}"
+ENV_FILE="${APP_DIR}/.env"
+PID_FILE="${APP_DIR}/.pid"
+LOG_FILE="${APP_DIR}/server_output.log"
+PORT="${VIBRY_PORT:-9999}"
+DOMAIN="${VIBRY_DOMAIN:-}"
+USER="${VIBRY_USER:-vibry}"
+GROUP="${VIBRY_GROUP:-vibry}"
 
-APP_NAME="vibry-server"
-APP_DIR="/opt/vibry-server"
-VENV_DIR="$APP_DIR/venv"
-PORT=9999
-REPO_URL="${VIBRY_REPO:-https://github.com/VibryAI/VibryAI.git}"
-
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
+# ---- 颜色 ----
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
 log()  { echo -e "${GREEN}[Vibry]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 err()  { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+info() { echo -e "${CYAN}       $1${NC}"; }
 
-# ---- 检查依赖 ----
-check_deps() {
-    command -v python3 >/dev/null 2>&1 || err "请先安装 Python 3.10+"
-    command -v git >/dev/null 2>&1 || err "请先安装 Git"
-    command -v ffmpeg >/dev/null 2>&1 || warn "ffmpeg 未安装，转写功能需要它"
-    log "依赖检查通过"
+must_be_root() {
+    if [ "$(id -u)" -ne 0 ]; then
+        err "请用 sudo 运行此脚本"
+    fi
 }
 
-# ---- 创建目录 ----
-setup_dirs() {
+# ============================================================
+# 1. 系统依赖安装
+# ============================================================
+install_system_deps() {
+    log "检查 & 安装系统依赖..."
+
+    if command -v apt-get >/dev/null 2>&1; then
+        apt-get update -qq
+        apt-get install -y -qq python3 python3-venv python3-pip ffmpeg curl git nginx 2>&1 | tail -1
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y python3 python3-pip ffmpeg curl git nginx 2>&1 | tail -1
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y python3 python3-pip ffmpeg curl git nginx 2>&1 | tail -1
+    elif command -v apk >/dev/null 2>&1; then
+        apk add --no-cache python3 py3-pip py3-venv ffmpeg curl git nginx
+    else
+        warn "未识别包管理器，请手动安装: python3.10+, ffmpeg, nginx"
+    fi
+
+    # 验证关键依赖
+    command -v python3 >/dev/null 2>&1 || err "python3 未安装"
+    log "系统依赖 OK"
+}
+
+# ============================================================
+# 2. 创建专用用户 & 目录
+# ============================================================
+setup_user_and_dirs() {
+    log "创建运行用户 & 目录..."
+
+    # 创建用户
+    if ! id -u "$USER" >/dev/null 2>&1; then
+        useradd --system --no-create-home --shell /usr/sbin/nologin "$USER" 2>/dev/null || \
+        useradd --system --shell /sbin/nologin "$USER" 2>/dev/null || true
+        log "用户 $USER 已创建"
+    fi
+
+    # 创建目录
     mkdir -p "$APP_DIR"
+    mkdir -p "$APP_DIR/data"
     mkdir -p "$APP_DIR/audio"
     mkdir -p "$APP_DIR/debug"
     mkdir -p "$APP_DIR/voiceprints"
     mkdir -p "$APP_DIR/qdrant_data"
     mkdir -p "$APP_DIR/raw"
     mkdir -p "$APP_DIR/wiki"
+    mkdir -p "$APP_DIR/logs"
+
     log "目录结构已创建"
 }
 
-# ---- 克隆/更新代码 ----
+# ============================================================
+# 3. 部署代码 (从压缩包或 git)
+# ============================================================
 deploy_code() {
-    if [ -d "$APP_DIR/.git" ]; then
-        log "更新已有代码..."
-        cd "$APP_DIR"
-        git pull origin master
-    else
-        log "克隆仓库..."
-        git clone "$REPO_URL" "$APP_DIR"
-    fi
-}
+    local SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# ---- 虚拟环境 ----
-setup_venv() {
-    if [ ! -d "$VENV_DIR" ]; then
-        log "创建 Python 虚拟环境..."
-        python3 -m venv "$VENV_DIR"
-    fi
-    source "$VENV_DIR/bin/activate"
-    log "安装 Python 依赖..."
-    pip install --upgrade pip -q
-    pip install -r "$APP_DIR/requirements.txt" -q
-    # 声纹识别额外依赖
-    pip install numpy soundfile -q
-    pip install librosa 2>/dev/null || warn "librosa 未安装 (声纹 MFCC 将用 FFT fallback)"
-    log "依赖安装完成"
-}
-
-# ---- 配置 .env ----
-setup_env() {
-    if [ ! -f "$APP_DIR/.env" ]; then
-        if [ -f "$APP_DIR/.env.example" ]; then
-            cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-            warn ".env 已从模板创建，请编辑配置: $APP_DIR/.env"
-            echo ""
-            echo "  必填项:"
-            echo "    UPSTREAM_BASE_URL=https://ark.cn-beijing.volces.com/api/v3"
-            echo "    UPSTREAM_API_KEY=your-doubao-api-key"
-            echo "    DOUBAO_ASR_APP_ID=your-app-id"
-            echo "    DOUBAO_ASR_ACCESS_KEY=your-access-key"
-            echo "    ADMIN_PASSWORD=your-admin-password"
-            echo ""
-            echo "  Wiki 编译 (可选):"
-            echo "    WIKI_MODEL=deepseek-chat"
-            echo "    WIKI_BASE_URL=https://api.deepseek.com"
-            echo "    WIKI_API_KEY=your-deepseek-api-key"
-        else
-            err "缺少 .env 文件"
-        fi
-    else
-        log ".env 已存在，跳过"
-    fi
-}
-
-# ---- 启动服务 ----
-start_server() {
-    local pid=$(cat "$APP_DIR/.pid" 2>/dev/null || echo "")
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        warn "服务已在运行 (PID: $pid)"
+    # 判断：当前脚本目录就是 APP_DIR（已部署），还是需要复制
+    if [ "$SRC_DIR" = "$APP_DIR" ]; then
+        log "代码已在 $APP_DIR，跳过复制"
         return
     fi
 
-    cd "$APP_DIR"
+    # 检查是否是 git 仓库
+    if [ -d "$SRC_DIR/.git" ] && [ "$SRC_DIR" != "$APP_DIR" ]; then
+        log "从 Git 仓库部署..."
+        if [ -d "$APP_DIR/.git" ]; then
+            cd "$APP_DIR"
+            git pull origin "$(git branch --show-current)" 2>/dev/null || git pull origin main
+        else
+            cp -r "$SRC_DIR" "$APP_DIR"
+        fi
+        return
+    fi
+
+    # 从解压目录复制
+    if [ "$SRC_DIR" != "$APP_DIR" ]; then
+        log "从 $SRC_DIR 复制代码到 $APP_DIR ..."
+        rsync -a --delete \
+            --exclude='venv' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='*.db' \
+            --exclude='*.db-shm' \
+            --exclude='*.db-wal' \
+            --exclude='qdrant_data' \
+            --exclude='voiceprints' \
+            --exclude='.env' \
+            --exclude='*.log' \
+            --exclude='.pid' \
+            --exclude='release' \
+            --exclude='ffmpeg-win-*' \
+            --exclude='nssm.*' \
+            --exclude='*.bat' \
+            --exclude='service.py' \
+            --exclude='mem0' \
+            --exclude='*.zip' \
+            "$SRC_DIR"/ "$APP_DIR"/
+    fi
+
+    log "代码部署完成"
+}
+
+# ============================================================
+# 4. Python 虚拟环境 & 依赖
+# ============================================================
+setup_venv() {
+    log "设置 Python 虚拟环境..."
+
+    if [ ! -d "$VENV_DIR" ]; then
+        python3 -m venv "$VENV_DIR"
+    fi
+
     source "$VENV_DIR/bin/activate"
+    pip install --upgrade pip -q
 
-    log "启动 Vibry AI Core 服务..."
-    nohup python main.py > server_output.log 2>&1 &
-    echo $! > "$APP_DIR/.pid"
-    sleep 2
+    log "安装 Python 依赖 (可能需要几分钟)..."
+    pip install -r "$APP_DIR/requirements.txt" -q
 
-    pid=$(cat "$APP_DIR/.pid")
-    if kill -0 "$pid" 2>/dev/null; then
-        log "✅ 服务已启动"
-        log "   PID: $pid"
-        log "   端口: $PORT"
-        log "   日志: $APP_DIR/server_output.log"
-        log "   管理: http://localhost:$PORT/admin"
+    # 可选依赖
+    pip install numpy soundfile -q
+    pip install librosa 2>/dev/null && log "librosa OK" || warn "librosa 未安装 (声纹将用 FFT fallback)"
+
+    log "Python 依赖安装完成"
+}
+
+# ============================================================
+# 5. 配置 .env
+# ============================================================
+setup_env() {
+    log "配置 .env..."
+
+    if [ ! -f "$ENV_FILE" ]; then
+        if [ -f "$APP_DIR/.env.example" ]; then
+            cp "$APP_DIR/.env.example" "$ENV_FILE"
+        fi
+    fi
+
+    # 强制设置 Linux 关键项 (默认 127.0.0.1，Nginx 反代到本地)
+    sed -i "s/^SERVER_HOST=.*/SERVER_HOST=127.0.0.1/" "$ENV_FILE" 2>/dev/null || true
+    sed -i "s/^SERVER_PORT=.*/SERVER_PORT=${PORT}/" "$ENV_FILE" 2>/dev/null || true
+    sed -i "s/^FFMPEG_PATH=.*/FFMPEG_PATH=ffmpeg/" "$ENV_FILE" 2>/dev/null || true
+    sed -i "s/^LOG_LEVEL=.*/LOG_LEVEL=INFO/" "$ENV_FILE" 2>/dev/null || true
+
+    # 追加缺失的关键项
+    grep -q "^SERVER_HOST=" "$ENV_FILE" || echo "SERVER_HOST=127.0.0.1" >> "$ENV_FILE"
+    grep -q "^SERVER_PORT=" "$ENV_FILE" || echo "SERVER_PORT=${PORT}" >> "$ENV_FILE"
+    grep -q "^FFMPEG_PATH=" "$ENV_FILE" || echo "FFMPEG_PATH=ffmpeg" >> "$ENV_FILE"
+    grep -q "^MEM0_VECTOR_STORE=" "$ENV_FILE" || echo "MEM0_VECTOR_STORE=qdrant_local" >> "$ENV_FILE"
+    grep -q "^MEM0_QDRANT_PATH=" "$ENV_FILE" || echo "MEM0_QDRANT_PATH=./qdrant_data" >> "$ENV_FILE"
+
+    chmod 600 "$ENV_FILE"
+
+    warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    warn "  请编辑 .env 填入 API 密钥:"
+    warn "    nano $ENV_FILE"
+    warn ""
+    warn "  必填项:"
+    warn "    UPSTREAM_API_KEY     — 豆包/DeepSeek API Key"
+    warn "    DOUBAO_ASR_APP_ID    — 豆包 ASR App ID"
+    warn "    DOUBAO_ASR_ACCESS_KEY— 豆包 ASR Access Key"
+    warn "    ADMIN_PASSWORD       — 管理后台密码"
+    warn "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# ============================================================
+# 6. systemd 服务
+# ============================================================
+setup_systemd() {
+    log "配置 systemd 服务..."
+
+    cat > "$SERVICE_FILE" << SYSTEMD_EOF
+[Unit]
+Description=Vibry AI Core — Digital Prefrontal Cortex Memory Proxy + AI Backend
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${USER}
+Group=${GROUP}
+WorkingDirectory=${APP_DIR}
+Environment=PATH=${VENV_DIR}/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HF_HOME=${APP_DIR}/.cache/huggingface
+ExecStart=${VENV_DIR}/bin/python ${APP_DIR}/run.py
+ExecReload=/bin/kill -HUP \$MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=append:${LOG_FILE}
+StandardError=append:${LOG_FILE}
+
+[Install]
+WantedBy=multi-user.target
+SYSTEMD_EOF
+
+    # 创建缓存目录
+    mkdir -p "${APP_DIR}/.cache/huggingface"
+    chown -R "${USER}:${GROUP}" "$APP_DIR" 2>/dev/null || true
+
+    systemctl daemon-reload
+    systemctl enable "$APP_NAME" 2>/dev/null || true
+    log "systemd 服务已配置: $SERVICE_FILE"
+}
+
+# ============================================================
+# 7. Nginx 反向代理
+# ============================================================
+setup_nginx() {
+    local NGINX_DOMAIN="${1:-${DOMAIN}}"
+    if [ -z "$NGINX_DOMAIN" ]; then
+        if command -v curl >/dev/null 2>&1; then
+            NGINX_DOMAIN=$(curl -s ifconfig.me 2>/dev/null || echo "your-domain.com")
+        else
+            NGINX_DOMAIN="your-domain.com"
+        fi
+    fi
+
+    log "生成 Nginx 配置 (域名: $NGINX_DOMAIN)..."
+
+    cat > "${NGINX_CONF}.conf" << NGINX_EOF
+# Vibry AI Core — Nginx Reverse Proxy
+# 域名: ${NGINX_DOMAIN}
+# 后端: http://127.0.0.1:${PORT}
+
+server {
+    listen 80;
+    server_name ${NGINX_DOMAIN};
+
+    # 上传限制 (音频文件)
+    client_max_body_size 500M;
+
+    # 日志
+    access_log /var/log/nginx/vibry-access.log;
+    error_log  /var/log/nginx/vibry-error.log;
+
+    location / {
+        proxy_pass http://127.0.0.1:${PORT};
+        proxy_http_version 1.1;
+
+        # WebSocket / SSE 支持
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        # 流式响应 (SSE 纪要生成可能较慢)
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+
+    # 静态文件缓存
+    location /static/ {
+        proxy_pass http://127.0.0.1:${PORT}/static/;
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+NGINX_EOF
+
+    # 启用站点
+    if [ -d /etc/nginx/sites-enabled ]; then
+        ln -sf "${NGINX_CONF}.conf" "/etc/nginx/sites-enabled/${APP_NAME}.conf"
+        log "Nginx 站点已启用"
+    fi
+
+    # 测试并重载
+    if nginx -t 2>/dev/null; then
+        systemctl reload nginx 2>/dev/null || true
+        log "Nginx 配置已生效: ${NGINX_CONF}.conf"
+        echo ""
+        info "Nginx 已就绪，接下来配置 HTTPS:"
+        info "  sudo apt install certbot python3-certbot-nginx -y"
+        info "  sudo certbot --nginx -d ${NGINX_DOMAIN}"
     else
-        err "启动失败，查看日志: $APP_DIR/server_output.log"
+        warn "Nginx 配置测试未通过，请检查: ${NGINX_CONF}.conf"
     fi
 }
 
-# ---- 停止服务 ----
+# ============================================================
+# 8. 防火墙
+# ============================================================
+setup_firewall() {
+    log "配置防火墙..."
+
+    if command -v ufw >/dev/null 2>&1; then
+        ufw allow ${PORT}/tcp comment "Vibry AI Core" 2>/dev/null || true
+        ufw allow 80/tcp comment "Vibry Nginx HTTP" 2>/dev/null || true
+        ufw allow 443/tcp comment "Vibry Nginx HTTPS" 2>/dev/null || true
+        log "UFW 规则已添加"
+    elif command -v firewall-cmd >/dev/null 2>&1; then
+        firewall-cmd --permanent --add-port=${PORT}/tcp 2>/dev/null || true
+        firewall-cmd --permanent --add-service=http 2>/dev/null || true
+        firewall-cmd --permanent --add-service=https 2>/dev/null || true
+        firewall-cmd --reload 2>/dev/null || true
+        log "firewalld 规则已添加"
+    else
+        warn "未检测到防火墙，请手动开放端口 ${PORT}"
+    fi
+}
+
+# ============================================================
+# 9. 权限修复
+# ============================================================
+fix_permissions() {
+    log "修复文件权限..."
+    chown -R "${USER}:${GROUP}" "$APP_DIR" 2>/dev/null || true
+    chmod 600 "$ENV_FILE" 2>/dev/null || true
+    chmod +x "$APP_DIR"/deploy.sh 2>/dev/null || true
+    log "权限已修复"
+}
+
+# ============================================================
+# 10. 启动服务
+# ============================================================
+start_server() {
+    if systemctl is-active --quiet "$APP_NAME" 2>/dev/null; then
+        warn "服务已在运行 (systemd)"
+        return
+    fi
+
+    if [ -f "$PID_FILE" ]; then
+        local pid=$(cat "$PID_FILE")
+        if kill -0 "$pid" 2>/dev/null; then
+            warn "服务已在运行 (PID: $pid)"
+            return
+        fi
+        rm -f "$PID_FILE"
+    fi
+
+    # 优先用 systemd
+    if [ -f "$SERVICE_FILE" ]; then
+        systemctl start "$APP_NAME"
+        sleep 2
+        if systemctl is-active --quiet "$APP_NAME"; then
+            log "✅ 服务已启动 (systemd)"
+            systemctl status "$APP_NAME" --no-pager -l 2>/dev/null | head -5
+            return
+        else
+            err "systemd 启动失败，查看: journalctl -u $APP_NAME -n 50"
+        fi
+    fi
+
+    # nohup 备用
+    log "使用 nohup 模式启动..."
+    cd "$APP_DIR"
+    source "$VENV_DIR/bin/activate"
+    nohup python run.py > "$LOG_FILE" 2>&1 &
+    echo $! > "$PID_FILE"
+    sleep 2
+    if kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        log "✅ 服务已启动 (nohup, PID: $(cat "$PID_FILE"))"
+    else
+        err "启动失败，查看日志: $LOG_FILE"
+    fi
+}
+
+# ============================================================
+# 11. 停止服务
+# ============================================================
 stop_server() {
-    local pid=$(cat "$APP_DIR/.pid" 2>/dev/null || echo "")
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        kill "$pid" 2>/dev/null
-        sleep 1
-        kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
-        rm -f "$APP_DIR/.pid"
-        log "✅ 服务已停止 (PID: $pid)"
+    if systemctl is-active --quiet "$APP_NAME" 2>/dev/null; then
+        systemctl stop "$APP_NAME"
+        log "✅ 服务已停止 (systemd)"
+        return
+    fi
+
+    if [ -f "$PID_FILE" ]; then
+        local pid=$(cat "$PID_FILE")
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null
+            sleep 2
+            kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null
+            rm -f "$PID_FILE"
+            log "✅ 服务已停止 (PID: $pid)"
+            return
+        fi
+        rm -f "$PID_FILE"
+    fi
+
+    # 兜底：按端口杀
+    local pids=$(lsof -ti :${PORT} 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+        kill $pids 2>/dev/null
+        log "✅ 已停止端口 ${PORT} 上的进程"
     else
         warn "服务未在运行"
     fi
 }
 
-# ---- 查看状态 ----
+# ============================================================
+# 12. 查看状态
+# ============================================================
 show_status() {
-    local pid=$(cat "$APP_DIR/.pid" 2>/dev/null || echo "")
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        log "服务状态: ✅ 运行中"
-        echo "  PID: $pid"
-        echo "  端口: $PORT"
-        echo "  日志: $(du -h "$APP_DIR/server_output.log" 2>/dev/null | cut -f1)"
+    echo ""
+    echo -e "${GREEN}════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}  Vibry AI Core — 服务状态${NC}"
+    echo -e "${GREEN}════════════════════════════════════════════════${NC}"
 
-        if command -v curl >/dev/null 2>&1; then
-            echo ""
-            curl -s "http://localhost:$PORT/api/health" | python3 -m json.tool 2>/dev/null || true
-        fi
+    local running=false
+
+    if systemctl is-active --quiet "$APP_NAME" 2>/dev/null; then
+        echo -e "  状态: ${GREEN}✅ 运行中 (systemd)${NC}"
+        systemctl status "$APP_NAME" --no-pager -l 2>/dev/null | grep -E "Active:|Main PID:|Memory:" | sed 's/^/  /'
+        running=true
+    elif [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        echo -e "  状态: ${GREEN}✅ 运行中 (nohup, PID: $(cat "$PID_FILE"))${NC}"
+        running=true
     else
-        warn "服务状态: ❌ 未运行"
+        echo -e "  状态: ${RED}❌ 未运行${NC}"
     fi
+
+    if [ -f "$LOG_FILE" ]; then
+        echo -e "  日志: $(du -h "$LOG_FILE" 2>/dev/null | cut -f1) (${LOG_FILE})"
+    fi
+
+    # 版本信息
+    if [ -f "$APP_DIR/app/main.py" ]; then
+        local ver=$(grep 'version=' "$APP_DIR/app/main.py" 2>/dev/null | head -1 | grep -oP '"[0-9.]+"' | tr -d '"')
+        [ -n "$ver" ] && echo -e "  版本: ${ver}"
+    fi
+
+    if $running && command -v curl >/dev/null 2>&1; then
+        echo ""
+        echo -e "  ${CYAN}─ 健康检查 ──────────────────────────────${NC}"
+        curl -s --max-time 5 "http://127.0.0.1:${PORT}/api/health" | python3 -m json.tool 2>/dev/null || echo "  (无法连接)"
+    fi
+
+    if $running; then
+        echo ""
+        echo -e "  ${CYAN}─ 访问地址 ──────────────────────────────${NC}"
+        echo -e "  管理后台: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'SERVER_IP'):${PORT}/admin"
+        echo -e "  API 地址: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'SERVER_IP'):${PORT}/v1"
+    fi
+    echo ""
 }
 
-# ---- 查看日志 ----
+# ============================================================
+# 13. 查看日志
+# ============================================================
 show_logs() {
     local lines=${1:-50}
-    if [ -f "$APP_DIR/server_output.log" ]; then
-        tail -n "$lines" "$APP_DIR/server_output.log"
+
+    if systemctl is-active --quiet "$APP_NAME" 2>/dev/null; then
+        journalctl -u "$APP_NAME" -n "$lines" --no-pager
+        return
+    fi
+
+    if [ -f "$LOG_FILE" ]; then
+        tail -n "$lines" "$LOG_FILE"
     else
         warn "日志文件不存在"
     fi
 }
 
 # ============================================================
+# 14. 卸载
+# ============================================================
+uninstall() {
+    warn "这将删除 Vibry AI Core 的所有文件和配置!"
+    echo -n "确认卸载? 输入 yes 继续: "
+    read -r confirm
+    if [ "$confirm" != "yes" ]; then
+        log "已取消"
+        exit 0
+    fi
+
+    stop_server
+    systemctl disable "$APP_NAME" 2>/dev/null || true
+    rm -f "$SERVICE_FILE"
+    rm -f "${NGINX_CONF}.conf"
+    rm -f "/etc/nginx/sites-enabled/${APP_NAME}.conf"
+    systemctl daemon-reload 2>/dev/null || true
+
+    # 备份 .env 和数据库
+    if [ -f "$ENV_FILE" ] || [ -f "$APP_DIR/vibrycard.db" ]; then
+        BACKUP_DIR="/tmp/vibry-backup-$(date +%Y%m%d-%H%M%S)"
+        mkdir -p "$BACKUP_DIR"
+        cp "$ENV_FILE" "$BACKUP_DIR/" 2>/dev/null || true
+        cp "$APP_DIR"/*.db "$BACKUP_DIR/" 2>/dev/null || true
+        log "配置和数据库已备份到: $BACKUP_DIR"
+    fi
+
+    rm -rf "$APP_DIR"
+    log "Vibry AI Core 已卸载"
+}
+
+# ============================================================
+# 15. 完整首次部署
+# ============================================================
+full_deploy() {
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║     Vibry AI Core — Linux 一键部署               ║${NC}"
+    echo -e "${GREEN}║     Digital Prefrontal Cortex Memory Proxy       ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    must_be_root
+
+    install_system_deps
+    setup_user_and_dirs
+    deploy_code
+    setup_venv
+    setup_env
+    setup_systemd
+    setup_firewall
+    fix_permissions
+    start_server
+
+    # 如果设置了域名，自动配置 Nginx
+    if [ -n "$DOMAIN" ]; then
+        setup_nginx "$DOMAIN"
+    fi
+
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║  ✅ 部署完成！                                   ║${NC}"
+    echo -e "${GREEN}╠══════════════════════════════════════════════════╣${NC}"
+    echo -e "${GREEN}║                                                  ${NC}"
+    echo -e "${GREEN}║  安装路径: ${APP_DIR}${NC}"
+    if [ -n "$DOMAIN" ]; then
+    echo -e "${GREEN}║  域名:     https://${DOMAIN}${NC}"
+    fi
+    echo -e "${GREEN}║  管理后台: http://<服务器IP>:${PORT}/admin         ${NC}"
+    echo -e "${GREEN}║  API 地址: http://<服务器IP>:${PORT}/v1            ${NC}"
+    echo -e "${GREEN}║                                                  ${NC}"
+    echo -e "${GREEN}║  后续步骤:                                       ${NC}"
+    echo -e "${GREEN}║  1. 编辑配置: nano ${ENV_FILE}                    ${NC}"
+    echo -e "${GREEN}║  2. 重启服务: sudo bash ${APP_DIR}/deploy.sh --restart${NC}"
+    if [ -z "$DOMAIN" ]; then
+    echo -e "${GREEN}║  3. 配置域名: sudo bash ${APP_DIR}/deploy.sh --nginx your-domain.com${NC}"
+    fi
+    echo -e "${GREEN}║                                                  ${NC}"
+    echo -e "${GREEN}║  管理命令:                                       ${NC}"
+    echo -e "${GREEN}║    systemctl status ${APP_NAME}    # 查看状态      ${NC}"
+    echo -e "${GREEN}║    systemctl restart ${APP_NAME}   # 重启          ${NC}"
+    echo -e "${GREEN}║    journalctl -u ${APP_NAME} -f   # 实时日志       ${NC}"
+    echo -e "${GREEN}║                                                  ${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
+    echo ""
+}
+
+# ============================================================
 # 主入口
 # ============================================================
 
+# 如果脚本不在 APP_DIR（首次从解压目录运行），不需要 root 来查看帮助
 case "${1:-}" in
-    --update)
-        check_deps
-        setup_dirs
-        deploy_code
-        setup_venv
-        setup_env
-        stop_server
-        start_server
+    --help|-h)
+        echo "Vibry AI Core — 部署 & 管理脚本"
+        echo ""
+        echo "用法: sudo bash deploy.sh [选项]"
+        echo ""
+        echo "  无参数                  完整首次部署"
+        echo "  --update                更新代码 + 重启 (git pull)"
+        echo "  --start                 启动服务"
+        echo "  --stop                  停止服务"
+        echo "  --restart               重启服务"
+        echo "  --status                查看运行状态"
+        echo "  --logs [N]              查看最近 N 行日志 (默认50)"
+        echo "  --nginx [domain]        生成 Nginx 反向代理配置"
+        echo "  --uninstall             完全卸载 (会提示确认)"
+        echo ""
+        echo "环境变量:"
+        echo "  VIBRY_HOME=/opt/http/vibryai/server  自定义安装路径"
+        echo "  VIBRY_PORT=9999                      自定义端口"
+        echo "  VIBRY_DOMAIN=api.vibry.ai            自动配置 Nginx 域名"
+        echo "  VIBRY_USER=vibry                     运行用户"
+        echo ""
+        echo "示例 (自定义路径+域名):"
+        echo "  sudo VIBRY_HOME=/opt/http/vibryai/server VIBRY_DOMAIN=api.vibry.ai bash deploy.sh"
+        echo ""
+        echo "部署流程:"
+        echo "  1. 本地打包:   bash package.sh"
+        echo "  2. 上传:       scp release/vibry-server-*.tar.gz user@server:/tmp/"
+        echo "  3. 解压:       ssh user@server 'cd /tmp && tar -xzf vibry-server-*.tar.gz'"
+        echo "  4. 部署:       ssh user@server 'cd /tmp/vibry-server-* && sudo VIBRY_HOME=/opt/http/vibryai/server VIBRY_DOMAIN=api.vibry.ai bash deploy.sh'"
+        echo "  5. 编辑配置:   sudo nano /opt/http/vibryai/server/.env"
+        echo "  6. 重启生效:   sudo bash /opt/http/vibryai/server/deploy.sh --restart"
+        exit 0
         ;;
     --start)
         start_server
+        exit 0
         ;;
     --stop)
         stop_server
+        exit 0
         ;;
     --restart)
         stop_server
         sleep 1
         start_server
+        exit 0
         ;;
     --status)
         show_status
+        exit 0
         ;;
     --logs)
         show_logs "${2:-50}"
+        exit 0
         ;;
-    --help|-h)
-        echo "用法: bash deploy.sh [选项]"
-        echo ""
-        echo "  无参数       完整首次部署"
-        echo "  --update     更新代码 + 重启"
-        echo "  --start      启动服务"
-        echo "  --stop       停止服务"
-        echo "  --restart    重启服务"
-        echo "  --status     查看状态"
-        echo "  --logs [N]   查看最近 N 行日志 (默认50)"
-        echo ""
-        echo "环境变量:"
-        echo "  VIBRY_REPO   仓库地址 (默认 GitHub)"
+    --nginx)
+        setup_nginx "${2:-}"
+        exit 0
         ;;
-    *)
-        check_deps
-        setup_dirs
+    --uninstall)
+        uninstall
+        exit 0
+        ;;
+    --update)
+        must_be_root
+        stop_server
         deploy_code
         setup_venv
-        setup_env
+        fix_permissions
         start_server
-        log ""
-        log "================================================"
-        log "  部署完成！"
-        log "  管理后台: http://<服务器IP>:$PORT/admin"
-        log "  API 地址: http://<服务器IP>:$PORT/v1"
-        log "  首次登录请用管理员密码"
-        log "================================================"
+        log "更新完成"
+        exit 0
+        ;;
+    "")
+        full_deploy
+        ;;
+    *)
+        err "未知选项: $1 (用 --help 查看帮助)"
         ;;
 esac

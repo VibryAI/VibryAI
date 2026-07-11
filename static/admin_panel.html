@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="/static/favicon.png">
 <title>Vibry AI Core — Admin Console</title>
 <style>
 :root {
@@ -154,6 +155,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <a href="#" data-page="personality" data-i18n="nav.personality">Personality</a>
     <a href="#" data-page="memories" data-i18n="nav.memories">Memory Mgmt</a>
     <a href="#" data-page="wiki" data-i18n="nav.wiki">Wiki KB</a>
+    <a href="#" data-page="tokens" data-i18n="nav.tokens">API Tokens</a>
     <a href="#" data-page="billing" data-i18n="nav.billing">Billing</a>
     <a href="#" data-page="logs" data-i18n="nav.logs">Runtime Logs</a>
     <a href="#" data-page="account" data-i18n="nav.account">Account</a>
@@ -220,7 +222,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <input id="cfg-threshold" type="number" min="0" max="1" step="0.05" placeholder="0.35">
           <div class="hint" data-i18n="models.threshold_hint">Memories below this score are not injected, recommended 0.3-0.5</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_btn">Save Config</button>
+        <button class="btn btn-primary" onclick="saveConfig('chat')" data-i18n="models.save_btn">Save Config</button>
         <span id="cfg-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
@@ -243,7 +245,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <input id="cfg-wiki-api-key" placeholder="sk-..." type="password">
           <div class="hint" data-i18n="models.wiki_api_key_hint">DeepSeek API Key. Leave blank to reuse upstream API Key.</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_wiki_btn">Save Wiki Config</button>
+        <button class="btn btn-primary" onclick="saveConfig('wiki')" data-i18n="models.save_wiki_btn">Save Wiki Config</button>
         <span id="cfg-wiki-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
@@ -287,7 +289,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <label data-i18n="models.standard_url_label">Standard API URL</label>
           <input id="cfg-doubao-standard-url" placeholder="https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit">
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_asr_btn">Save ASR Config</button>
+        <button class="btn btn-primary" onclick="saveConfig('asr')" data-i18n="models.save_asr_btn">Save ASR Config</button>
         <span id="cfg-asr-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
@@ -306,7 +308,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <textarea id="cfg-insight-prompt" style="min-height:200px;max-width:100%;font-family:monospace;font-size:12px;line-height:1.4" data-i18n-placeholder="models.insight_prompt_label" placeholder="Insight Prompt..."></textarea>
           <div class="hint" data-i18n="models.insight_prompt_hint">Used for /api/insight, leave blank for default template</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig()" data-i18n="models.save_prompt_btn">Save Prompt</button>
+        <button class="btn btn-primary" onclick="saveConfig('prompt')" data-i18n="models.save_prompt_btn">Save Prompt</button>
         <span id="cfg-prompt-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
@@ -454,6 +456,31 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </details>
     </div>
 
+    <!-- API Tokens -->
+    <div id="page-tokens" class="page">
+      <h2 style="margin-bottom:8px" data-i18n="tokens.title">API Tokens</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:16px" data-i18n="tokens.desc">Create tokens for your apps and agents. Use as <code style="background:var(--bg);padding:2px 6px;border-radius:4px">Authorization: Bearer &lt;token&gt;</code></p>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;flex:1;min-width:200px">
+            <label data-i18n="tokens.name_label">Agent / App Name</label>
+            <input id="token-name" placeholder="e.g. Cursor, LobeChat, Claude Code" data-i18n-placeholder="tokens.name_placeholder" style="max-width:400px">
+          </div>
+          <button class="btn btn-primary" onclick="createToken()" data-i18n="tokens.create_btn">Create Token</button>
+        </div>
+        <div id="token-created" style="margin-top:12px;display:none;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+          <strong style="color:var(--accent2)" data-i18n="tokens.created_label">Token created! Copy it now — won't be shown again</strong>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+            <code id="token-full" style="background:var(--surface);padding:8px 12px;border-radius:var(--radius);word-break:break-all;font-size:13px"></code>
+            <button class="btn" style="background:var(--accent);color:#000;padding:8px 16px;font-size:12px" onclick="copyToken()" data-i18n="tokens.copy_btn">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="token-list"></div>
+    </div>
+
     <!-- Billing -->
     <div id="page-billing" class="page">
       <h2 style="margin-bottom:16px" data-i18n="billing.title">Billing Details</h2>
@@ -487,6 +514,49 @@ function login() {
     });
 }
 function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); document.getElementById('login-page').style.display='block'; document.getElementById('app').style.display='none'; }
+
+// ==================== API Tokens ====================
+function refreshTokens() {
+  const T = I18N.t.bind(I18N);
+  fetch('/admin/api/tokens', {headers:authHeaders()}).then(r=>r.json()).then(d => {
+    const tokens = d.tokens || [];
+    document.getElementById('token-list').innerHTML = tokens.length === 0
+      ? `<p style="color:var(--text-dim)">${T('tokens.empty')}</p>`
+      : '<div class="table-wrap"><table><thead><tr><th data-i18n="tokens.table.name">' + T('tokens.table.name') + '</th><th data-i18n="tokens.table.prefix">' + T('tokens.table.prefix') + '</th><th data-i18n="tokens.table.created">' + T('tokens.table.created') + '</th><th data-i18n="tokens.table.last_used">' + T('tokens.table.last_used') + '</th><th data-i18n="tokens.table.actions">' + T('tokens.table.actions') + '</th></tr></thead><tbody>' +
+        tokens.map(t => `<tr>
+          <td><strong>${t.user_id}</strong></td>
+          <td><code style="font-size:12px">${t.token_prefix}...</code></td>
+          <td style="font-size:12px;color:var(--text-dim)">${t.created_at||''}</td>
+          <td style="font-size:12px;color:var(--text-dim)">${t.last_used_at||'—'}</td>
+          <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="deleteToken('${t.id}')">🗑️</button></td>
+        </tr>`).join('') + '</tbody></table></div>';
+  });
+}
+
+function createToken() {
+  const name = document.getElementById('token-name').value.trim();
+  if (!name) return;
+  fetch('/admin/api/tokens', {method:'POST',headers:authHeaders(),body:JSON.stringify({user_id:name})})
+    .then(r=>r.json()).then(d => {
+      if (d.ok) {
+        document.getElementById('token-full').textContent = d.token;
+        document.getElementById('token-created').style.display = 'block';
+        document.getElementById('token-name').value = '';
+        refreshTokens();
+      }
+    });
+}
+
+function copyToken() {
+  const code = document.getElementById('token-full').textContent;
+  navigator.clipboard.writeText(code).then(() => toast(I18N.t('tokens.copied')));
+}
+
+function deleteToken(id) {
+  if (!confirm(I18N.t('tokens.delete_confirm'))) return;
+  fetch('/admin/api/tokens/' + id, {method:'DELETE',headers:authHeaders()})
+    .then(r=>r.json()).then(d => { if (d.ok) refreshTokens(); });
+}
 function authHeaders() { return {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}; }
 function showApp() { document.getElementById('login-page').style.display='none'; document.getElementById('app').style.display='flex'; refreshDashboard(); }
 
@@ -505,6 +575,7 @@ document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
     if (a.dataset.page === 'personality') loadPersonality();
     if (a.dataset.page === 'wiki') refreshWikiStatus();
     if (a.dataset.page === 'account') loadAccount();
+    if (a.dataset.page === 'tokens') refreshTokens();
     if (a.dataset.page === 'logs') refreshLogs();
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
   });
@@ -524,6 +595,7 @@ window.addEventListener('i18n:langChanged', () => {
   else if (pageId === 'page-models') loadConfig();
   else if (pageId === 'page-personality') loadPersonality();
   else if (pageId === 'page-account') loadAccount();
+  else if (pageId === 'page-tokens') refreshTokens();
   else if (pageId === 'page-logs') refreshLogs();
   else if (pageId === 'page-wiki') refreshWikiStatus();
   else if (pageId === 'page-memories') searchMems();
@@ -633,7 +705,7 @@ function loadConfig() {
     document.getElementById('cfg-wiki-api-key').value = d.wiki_api_key || '';
   });
 }
-function saveConfig() {
+function saveConfig(section) {
   const body = {
     upstream_model: document.getElementById('cfg-chat-model').value,
     embedding_model: document.getElementById('cfg-emb-model').value,
@@ -654,8 +726,14 @@ function saveConfig() {
   fetch('/admin/api/config', {method:'POST',headers:authHeaders(),body:JSON.stringify(body)})
     .then(r=>r.json()).then(d => {
       if (d.ok) {
-        const ids = ['cfg-saved','cfg-wiki-saved','cfg-asr-saved','cfg-prompt-saved'];
-        ids.forEach(id => { const el = document.getElementById(id); if(el) { el.style.display='inline'; setTimeout(()=>{ el.style.display='none'; },2000); } });
+        // Only show the indicator for the section that was saved
+        const map = {
+          'chat': 'cfg-saved', 'wiki': 'cfg-wiki-saved',
+          'asr': 'cfg-asr-saved', 'prompt': 'cfg-prompt-saved'
+        };
+        const id = section ? map[section] : 'cfg-saved';
+        const el = document.getElementById(id);
+        if (el) { el.style.display = 'inline'; setTimeout(() => el.style.display = 'none', 2000); }
       }
     });
 }
@@ -1038,18 +1116,34 @@ function changePassword() {
 function toast(msg) { const t = document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
 
 // ==================== Init ====================
-// Wait for I18N (if available), then decide login vs app
-const i18nReady = (typeof I18N !== 'undefined' && I18N.ready) ? I18N.ready : Promise.resolve();
-i18nReady.catch(() => {}).finally(() => {
+// Check token immediately — don't block on I18N
+(function initAuth() {
   if (!TOKEN) {
     document.getElementById('login-page').style.display = 'block';
     return;
   }
-  fetch('/admin/api/verify', {headers:authHeaders()})
+  // Verify token with timeout
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 5000);
+  fetch('/admin/api/verify', {headers:authHeaders(), signal: ctrl.signal})
     .then(r => r.json())
     .then(d => { if (d.ok) showApp(); else logout(); })
-    .catch(() => logout());
-});
+    .catch(() => logout())
+    .finally(() => clearTimeout(timeout));
+})();
+
+// I18N loads independently — refresh UI once ready
+if (typeof I18N !== 'undefined' && I18N.ready) {
+  I18N.ready.then(() => {
+    if (TOKEN) {
+      // Re-render active page content with translations
+      const activePage = document.querySelector('.page.active');
+      if (activePage) {
+        window.dispatchEvent(new CustomEvent('i18n:langChanged', { detail: { lang: I18N.currentLang } }));
+      }
+    }
+  }).catch(() => {});
+}
 </script>
 </body>
 </html>

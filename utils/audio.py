@@ -51,7 +51,8 @@ def convert_to_wav(input_data: bytes, source_fmt: str = None) -> bytes:
         except Exception as e:
             log.warning(f"Opus decode failed: {e}")
         return input_data
-    if source_fmt in ("wav", "opus_raw"):
+    if source_fmt in ("wav", "opus", "opus_raw"):
+        # 自动检测 (不用 -f): OGG/Opus 容器和 WAV 都兼容
         try:
             proc = subprocess.run([ffmpeg, '-y', '-i', 'pipe:0', '-ar', '16000', '-ac', '1', '-sample_fmt', 's16', '-f', 'wav', 'pipe:1'], input=input_data, capture_output=True, timeout=60)
             if proc.returncode == 0 and len(proc.stdout) > 44: return proc.stdout

@@ -29,6 +29,7 @@
     "personality": "🎭 ペルソナ",
     "memories": "🧩 メモリ管理",
     "wiki": "📚 Wiki ナレッジベース",
+    "tokens": "🔑 APIトークン",
     "billing": "💰 課金詳細",
     "logs": "📋 実行ログ",
     "account": "👤 アカウント",
@@ -286,5 +287,24 @@
     "confirm": "確認",
     "cancel": "キャンセル",
     "unknown_error": "不明なエラー"
+  },
+  "tokens": {
+    "title": "🔑 APIトークン管理",
+    "desc": "アプリとエージェント用のトークンを作成します。使用方法: <code>Authorization: Bearer &lt;token&gt;</code>",
+    "name_label": "エージェント / アプリ名",
+    "name_placeholder": "例: Cursor, LobeChat, Claude Code",
+    "create_btn": "トークンを作成",
+    "created_label": "✅ トークンが作成されました！今すぐコピーしてください — 再表示されません",
+    "copy_btn": "コピー",
+    "copied": "クリップボードにコピーしました",
+    "empty": "トークンがありません",
+    "table": {
+      "name": "名前",
+      "prefix": "トークンプレフィックス",
+      "created": "作成日",
+      "last_used": "最終使用",
+      "actions": "操作"
+    },
+    "delete_confirm": "このトークンを削除しますか？使用中のクライアントはすぐにアクセスできなくなります。"
   }
 }

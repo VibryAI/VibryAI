@@ -1,6 +1,6 @@
 """Vibry AI Core — Database Models (CRUD, Config, Stats)"""
 
-import json, os, secrets
+import json, os, secrets, sqlite3
 from datetime import datetime
 
 from db.connection import get_conn, DB_PATH
@@ -461,3 +461,69 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
             except (json.JSONDecodeError, TypeError):
                 d[field] = [] if field == "tags" else {}
     return d
+
+
+# ============================================================
+# API Token Management
+# ============================================================
+
+import hashlib
+
+def generate_token_id() -> str:
+    """Short random ID for token records."""
+    return secrets.token_hex(6)
+
+
+def generate_api_token() -> tuple[str, str, str]:
+    """Create a new API token. Returns (full_token, token_prefix, token_hash)."""
+    full = "vsk_" + secrets.token_hex(32)
+    prefix = full[:12]  # "vsk_xxxxxxxx"
+    h = hashlib.sha256(full.encode()).hexdigest()
+    return full, prefix, h
+
+
+def create_api_token(user_id: str) -> dict:
+    """Create and store a new API token. Returns {id, token, ...}."""
+    tid = generate_token_id()
+    full, prefix, hash_ = generate_api_token()
+    conn = get_conn()
+    conn.execute(
+        """INSERT OR REPLACE INTO api_tokens (id, user_id, token_hash, token_prefix, created_at)
+           VALUES (?, ?, ?, ?, datetime('now','localtime'))""",
+        (tid, user_id.strip(), hash_, prefix),
+    )
+    conn.commit()
+    return {"id": tid, "user_id": user_id.strip(), "token": full, "token_prefix": prefix}
+
+
+def list_api_tokens() -> list[dict]:
+    """List all tokens (never return full token)."""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT id, user_id, token_prefix, created_at, last_used_at FROM api_tokens ORDER BY created_at DESC"
+    ).fetchall()
+    return [{k: row[k] for k in row.keys()} for row in rows]
+
+
+def delete_api_token(tid: str) -> bool:
+    """Delete an API token by id."""
+    conn = get_conn()
+    conn.execute("DELETE FROM api_tokens WHERE id = ?", (tid,))
+    conn.commit()
+    return True
+
+
+def resolve_token(token: str) -> str | None:
+    """Look up an API token and return the mapped user_id, or None."""
+    h = hashlib.sha256(token.encode()).hexdigest()
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT user_id FROM api_tokens WHERE token_hash = ?", (h,)
+    ).fetchone()
+    if row:
+        conn.execute(
+            "UPDATE api_tokens SET last_used_at = datetime('now','localtime') WHERE token_hash = ?", (h,)
+        )
+        conn.commit()
+        return row["user_id"]
+    return None

@@ -78,21 +78,6 @@ async def admin_panel():
     raise HTTPException(status_code=404, detail="admin_panel.html not found")
 
 
-# ---- Static files (i18n, etc.) ----
-@router.get("/static/{file_path:path}")
-async def serve_static(file_path: str):
-    """Serve static files from the static/ directory"""
-    full_path = BASE_DIR / "static" / file_path
-    # Security: prevent directory traversal
-    try:
-        full_path.resolve().relative_to((BASE_DIR / "static").resolve())
-    except ValueError:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    if not full_path.exists() or not full_path.is_file():
-        raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(str(full_path))
-
-
 # ============================================================
 # Auth
 # ============================================================
@@ -355,3 +340,31 @@ async def admin_chat_history(request: Request, user_id: str = "admin", limit: in
     messages = db.get_chat_history(user_id, conversation_id=user_id, limit=limit)
     conversations = db.get_chat_conversations(user_id)
     return JSONResponse({"messages": messages, "conversations": conversations})
+
+
+# ============================================================
+# API Token Management
+# ============================================================
+
+@router.get("/admin/api/tokens")
+async def admin_list_tokens(request: Request):
+    _require_admin(request)
+    return JSONResponse({"tokens": db.list_api_tokens()})
+
+
+@router.post("/admin/api/tokens")
+async def admin_create_token(request: Request):
+    _require_admin(request)
+    body = await request.json()
+    user_id = body.get("user_id", "").strip()
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id required")
+    result = db.create_api_token(user_id)
+    return JSONResponse({"ok": True, **result})
+
+
+@router.delete("/admin/api/tokens/{tid}")
+async def admin_delete_token(request: Request, tid: str):
+    _require_admin(request)
+    db.delete_api_token(tid)
+    return JSONResponse({"ok": True})

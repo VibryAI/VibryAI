@@ -4,17 +4,14 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 import db
 from app.config import config
+from utils.auth import resolve_user_id
 
 log = logging.getLogger("vibry")
 router = APIRouter()
 
-def _get_user_id(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    return auth[7:].strip() if auth.startswith("Bearer ") else "anonymous"
-
 @router.get("/api/recordings")
 async def list_recordings(request: Request, status: str = None, limit: int = 50, offset: int = 0):
-    user_id = _get_user_id(request)
+    user_id = resolve_user_id(request)
     recordings = db.list_recordings(status=status, user_id=user_id, limit=limit, offset=offset)
     stats = db.get_stats(user_id=user_id)
     return JSONResponse({"recordings": recordings, "stats": stats})
@@ -57,5 +54,5 @@ async def serve_audio(request: Request, rec_id: str):
 
 @router.get("/api/stats")
 async def get_stats(request: Request):
-    user_id = _get_user_id(request)
+    user_id = resolve_user_id(request)
     return JSONResponse(db.get_stats(user_id=user_id))

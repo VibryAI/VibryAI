@@ -580,7 +580,7 @@ def _search_by_embedding(query: str, articles: list[dict], top_k: int = 5) -> li
     如果无法访问 embedding API，降级为关键词搜索。
     """
     try:
-        from asr_engine import call_llm
+        from services.asr import call_llm
 
         # 获取 query embedding
         messages = [{"role": "user", "content": query}]

@@ -101,12 +101,14 @@ async def voiceprint_discover_enroll(request: Request):
         except Exception as e: skipped.append({"speaker_id":sid,"name":name,"reason":str(e)})
     if not enrolled: return JSONResponse({"error":"enrollment failed","skipped_speakers":skipped}, status_code=500)
     lines = []
+    speaker_label = "\u53d1\u8a00\u4eba"
     for u in utterances:
         sid = (u.get("additions",{}) or {}).get("speaker","?")
-        if u.get("text","").strip(): lines.append(f"[Speaker {sid}] {u['text']}")
+        if u.get("text","").strip(): lines.append(f"[{speaker_label}{sid}] {u['text']}")
     updated_text = apply_voiceprint_to_transcript("\n".join(lines), utterances, wav_bytes)
     db.upsert_recording(recording_id, transcript=updated_text, transcript_chars=len(updated_text))
-    return JSONResponse({"ok":True,"updated_transcript":updated_text,"voiceprints_enrolled":enrolled,"skipped_speakers":skipped if skipped else None})
+    speaker_mapping = {sid: name for sid, name in names.items() if name in enrolled}
+    return JSONResponse({"ok":True,"updated_transcript":updated_text,"voiceprints_enrolled":enrolled,"speaker_mapping":speaker_mapping,"skipped_speakers":skipped if skipped else None})
 
 @router.get("/api/recording-status/{rec_id}")
 async def recording_status(rec_id: str):

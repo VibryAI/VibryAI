@@ -15,6 +15,7 @@ venv/
 *.db
 *.db-shm
 *.db-wal
+data/
 
 # Vector database (local data)
 qdrant_data/
@@ -29,6 +30,16 @@ nssm.exe
 # Submodule / external repo
 mem0/
 
+# 运行时音频/调试产物
+audio/
+debug/
+app/audio/
+app/debug/
+
+# 打包发布产物
+release/
+*.tar.gz
+
 # Logs
 *.log
 
@@ -37,3 +48,4 @@ nul
 Thumbs.db
 .DS_Store
 push.sh
+voiceprints/*.npy

@@ -1,11 +1,11 @@
 """Vibry AI Core — ASR Engine (FunASR local + Doubao cloud) + LLM Summarization"""
 
-import base64, json, logging, os, re, struct, sys, tempfile, threading, time, types, urllib.request, urllib.error, uuid as _uuid
+import base64, json, logging, os, re, struct, subprocess, sys, tempfile, threading, time, types, urllib.request, urllib.error, uuid as _uuid
 from typing import Optional
 
 from app.config import config
 from utils.audio import (
-    detect_audio_format, convert_to_wav, enhance_audio,
+    detect_audio_format, enhance_audio,
     save_audio_wav, _clean_debug_dir, compress_for_asr,
 )
 
@@ -50,15 +50,14 @@ def get_paraformer():
 # ===================================================================
 
 def transcribe_local(audio_bytes: bytes, audio_fmt: str = None) -> str:
-    """FunASR Paraformer 本地语音转文字"""
+    """FunASR Paraformer 本地语音转文字
+    原始字节直传，由 ASR 插件自行决定格式处理。
+    """
     import soundfile as sf
 
-    # 格式转换
-    if audio_fmt and audio_fmt != "wav":
-        audio_bytes = convert_to_wav(audio_bytes, audio_fmt)
-
     # 写临时文件（soundfile 需要文件路径）
-    tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    suffix = f".{audio_fmt}" if audio_fmt else ""
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
     tmp.write(audio_bytes)
     tmp_path = tmp.name
     tmp.close()
@@ -163,7 +162,7 @@ def call_cloud_asr_standard(audio_bytes: bytes) -> dict:
 
     # ---- Step 1: 提交任务 ----
     task_id = str(_uuid.uuid4())
-    audio_b64 = base64.b64encode(audio_bytes).decode('ascii')
+    audio_b64 = base64.b64encode(asr_audio).decode('ascii')
 
     headers = {
         "Content-Type": "application/json",
@@ -212,7 +211,7 @@ def call_cloud_asr_standard(audio_bytes: bytes) -> dict:
         return {"text": "", "error": f"提交异常: {e}"}
 
     # ---- Step 2: 轮询结果 ----
-    query_url = "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/query"
+    query_url = standard_url.replace("/submit", "/query") if standard_url.endswith("/submit") else "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/query"
     query_headers = {
         "Content-Type": "application/json",
         "X-Api-App-Key": app_id,
@@ -244,21 +243,21 @@ def call_cloud_asr_standard(audio_bytes: bytes) -> dict:
                 utterances = result.get('result', {}).get('utterances', []) if isinstance(result, dict) else []
 
                 # 提取说话人信息
+                speaker_label = "\u53d1\u8a00\u4eba"
                 speakers = {}
+                formatted_lines = []
                 for utt in utterances:
-                    spk = utt.get('speaker', 'unknown')
+                    additions = utt.get('additions', {}) or {}
+                    spk = str(additions.get('speaker', utt.get('speaker', '?')))
                     if spk not in speakers:
                         speakers[spk] = []
-                    speakers[spk].append(utt.get('text', ''))
+                    utt_text = utt.get('text', '')
+                    if utt_text.strip():
+                        speakers[spk].append(utt_text)
+                        formatted_lines.append(f"[{speaker_label}{spk}] {utt_text}")
 
                 # 如果有多说话人，格式化输出
-                if len(speakers) > 1:
-                    speaker_text = []
-                    for spk, texts in speakers.items():
-                        speaker_text.append(f"[{spk}]: {' '.join(texts)}")
-                    formatted_text = '\n'.join(speaker_text)
-                else:
-                    formatted_text = text
+                formatted_text = '\n'.join(formatted_lines) if formatted_lines else text
 
                 log.info(f"   ☁️ 豆包标准完成: {len(text)}字符, {len(utterances)}语音段, {len(speakers)}说话人 | {time.time()-t0:.1f}s")
                 return {
@@ -306,12 +305,8 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
     size_kb = len(audio_bytes) / 1024
     asr_mode = config.asr.mode
 
-    # 检测音频格式
+    # 检测音频格式（仅日志，不做转换；原始字节直传 ASR 后端）
     audio_fmt = detect_audio_format(audio_bytes)
-    if audio_fmt != "wav":
-        log.info(f"📦 检测到 {audio_fmt} 格式, 转换为 WAV...")
-        audio_bytes = convert_to_wav(audio_bytes, audio_fmt)
-
     log.info(f"🎤 ASR开始 [user={user_id}] | 音频{size_kb:.1f}KB | 格式={audio_fmt} | mode={asr_mode}")
 
     # ★ 去重缓存：已完成的录音直接返回缓存结果（移植自 VibryCard）
@@ -345,7 +340,7 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
         if sample_count > 0:
             max_amp = 0
             for i in range(44, min(44 + sample_count * 2, size_bytes - 1), 2):
-                v = abs(_struct.unpack('<h', audio_bytes[i:i+2])[0])
+                v = abs(struct.unpack('<h', audio_bytes[i:i+2])[0])
                 if v > max_amp:
                     max_amp = v
             audio_quality = f"max_amp={max_amp}" if max_amp > 500 else "⚠️疑似静音"
@@ -376,7 +371,7 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
             log.info(f"☁️ 使用豆包极速版 ASR")
             text = call_cloud_asr_flash(audio_bytes)
         else:
-            text = transcribe_local(audio_bytes, "wav")
+            text = transcribe_local(audio_bytes, audio_fmt)
 
         asr_time = time.time() - t0
         log.info(f"✅ ASR完成 | {asr_time:.1f}s | {len(text)}字符")
@@ -391,6 +386,7 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
         # ★ 存入数据库 + 清晰化保存WAV + 生成token
         audio_url = None
         audio_token_val = None
+        rec_id = None
         if title:
             rec_id = db.generate_id(title)
             # 保存原始 WAV（用于后续声纹切片，移植自 VibryCard）
@@ -431,7 +427,7 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
             )
             audio_url = f"/api/audio/{rec_id}"
 
-        return {"text": text, "audio_url": audio_url, "audio_token": audio_token_val, "error": None}
+        return {"text": text, "audio_url": audio_url, "audio_token": audio_token_val, "recording_id": rec_id, "error": None}
 
     except Exception as e:
         import traceback
@@ -463,13 +459,9 @@ def transcribe_voice(audio_bytes: bytes, title: str = "", user_id: str = "anonym
 
     size_kb = len(audio_bytes) / 1024
 
-    # 检测并转换音频格式
+    # 检测音频格式（仅日志，不做转换）
     audio_fmt = detect_audio_format(audio_bytes)
-    if audio_fmt != "wav":
-        log.info(f"📦 语音ASR: 检测到 {audio_fmt} 格式, 转换为 WAV...")
-        audio_bytes = convert_to_wav(audio_bytes, audio_fmt)
-
-    log.info(f"🎤 语音聊天ASR [user={user_id}] | {size_kb:.1f}KB | 极速版")
+    log.info(f"🎤 语音聊天ASR [user={user_id}] | {size_kb:.1f}KB | 格式={audio_fmt} | 极速版")
 
     t0 = time.time()
     try:

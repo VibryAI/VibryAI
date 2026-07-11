@@ -29,6 +29,7 @@
     "personality": "Personality",
     "memories": "Memory Mgmt",
     "wiki": "Wiki KB",
+    "tokens": "API Tokens",
     "billing": "Billing",
     "logs": "Runtime Logs",
     "account": "Account",
@@ -286,5 +287,24 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "unknown_error": "Unknown error"
+  },
+  "tokens": {
+    "title": "🔑 API Token Management",
+    "desc": "Create tokens for your apps and agents. Usage: <code>Authorization: Bearer &lt;token&gt;</code>",
+    "name_label": "Agent / App Name",
+    "name_placeholder": "e.g. Cursor, LobeChat, Claude Code",
+    "create_btn": "Create Token",
+    "created_label": "✅ Token created! Copy it now — it will not be shown again",
+    "copy_btn": "Copy",
+    "copied": "Copied to clipboard",
+    "empty": "No tokens yet",
+    "table": {
+      "name": "Name",
+      "prefix": "Token Prefix",
+      "created": "Created",
+      "last_used": "Last Used",
+      "actions": "Actions"
+    },
+    "delete_confirm": "Delete this token? Clients using it will lose access immediately."
   }
 }

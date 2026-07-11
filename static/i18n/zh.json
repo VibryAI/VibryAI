@@ -29,6 +29,7 @@
     "personality": "🎭 人格设定",
     "memories": "🧩 记忆管理",
     "wiki": "📚 Wiki 知识库",
+    "tokens": "🔑 API Token",
     "billing": "💰 计费明细",
     "logs": "📋 运行日志",
     "account": "👤 账户设置",
@@ -286,5 +287,24 @@
     "confirm": "确定",
     "cancel": "取消",
     "unknown_error": "未知错误"
+  },
+  "tokens": {
+    "title": "🔑 API Token 管理",
+    "desc": "为你的 APP 和 Agent 创建 Token。使用方式：<code>Authorization: Bearer &lt;token&gt;</code>",
+    "name_label": "Agent / APP 名称",
+    "name_placeholder": "例如：Cursor、LobeChat、Claude Code",
+    "create_btn": "生成 Token",
+    "created_label": "✅ Token 已生成！请立即复制，关闭后将无法再次查看",
+    "copy_btn": "复制",
+    "copied": "已复制到剪贴板",
+    "empty": "暂无 Token",
+    "table": {
+      "name": "名称",
+      "prefix": "Token 前缀",
+      "created": "创建时间",
+      "last_used": "最后使用",
+      "actions": "操作"
+    },
+    "delete_confirm": "确认删除此 Token？使用它的客户端将立即失效。"
   }
 }

@@ -9,14 +9,11 @@ from services.proxy import (
 )
 from services.memory import search_memories, format_memories_for_prompt
 from services.wiki import is_wiki_initialized, search_wiki
+from utils.auth import resolve_user_id
 import db
 
 log = logging.getLogger("vibry")
 router = APIRouter()
-
-def _get_user_id(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    return auth[7:].strip() if auth.startswith("Bearer ") else "anonymous"
 
 @router.get("/v1/models")
 async def list_models():
@@ -54,7 +51,7 @@ async def embeddings_proxy(request: Request):
 @router.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     t0 = time.time()
-    user_id = _get_user_id(request)
+    user_id = resolve_user_id(request)
     try:
         body = await request.json()
     except json.JSONDecodeError:

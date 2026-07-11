@@ -42,14 +42,16 @@ class AudioConfig:
     @property
     def audio_dir(self) -> str:
         if not self._audio_dir:
-            self._audio_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio")
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self._audio_dir = os.path.join(base_dir, "audio")
             os.makedirs(self._audio_dir, exist_ok=True)
         return self._audio_dir
 
     @property
     def debug_dir(self) -> str:
         if not self._debug_dir:
-            self._debug_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "debug")
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self._debug_dir = os.path.join(base_dir, "debug")
             os.makedirs(self._debug_dir, exist_ok=True)
         return self._debug_dir
 
