@@ -27,6 +27,12 @@ class AsrConfig:
     mode: str = os.getenv("ASR_MODE", "local")
     # Whisper 模型大小（备用，当前默认用 FunASR）
     whisper_size: str = os.getenv("WHISPER_SIZE", "small")
+    whisper_device: str = os.getenv("WHISPER_DEVICE", "cpu")
+    funasr_model: str = os.getenv("FUNASR_MODEL", "sensevoice")
+    funasr_device: str = os.getenv("FUNASR_DEVICE", "cpu")
+    funasr_server_url: str = os.getenv("FUNASR_SERVER_URL", "http://127.0.0.1:8008")
+    openai_audio_base_url: str = os.getenv("ASR_OPENAI_AUDIO_BASE_URL", "")
+    openai_audio_model: str = os.getenv("ASR_OPENAI_AUDIO_MODEL", "")
     # HuggingFace 镜像（国内加速）
     hf_endpoint: str = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")
 
@@ -167,6 +173,8 @@ class MemoryConfig:
     qdrant_path: str = os.getenv("MEM0_QDRANT_PATH", "./qdrant_data")
     top_k: int = int(os.getenv("MEMORY_TOP_K", "5"))
     threshold: float = float(os.getenv("MEMORY_THRESHOLD", "0.35"))
+    # Embedding 向量维度（必须与 embedding 模型输出一致）
+    embedding_dims: int = int(os.getenv("EMBEDDING_DIMS", "2048"))
 
 
 @dataclass
@@ -175,6 +183,10 @@ class ServerConfig:
     host: str = os.getenv("SERVER_HOST", "0.0.0.0")
     port: int = int(os.getenv("SERVER_PORT", "9999"))
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
+    # CORS 允许的源（逗号分隔，* = 允许所有）
+    cors_origins: list = field(default_factory=lambda: [
+        o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()
+    ])
 
 
 @dataclass

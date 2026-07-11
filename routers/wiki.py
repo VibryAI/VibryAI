@@ -83,8 +83,8 @@ async def api_wiki_get_page(path: str):
 
 @router.delete("/api/wiki/page")
 async def api_wiki_delete_page(request: Request, path: str):
-    from routers.admin import _check_admin
-    if not _check_admin(request): raise HTTPException(status_code=401, detail="Admin required")
+    from utils.auth import check_admin
+    if not check_admin(request): raise HTTPException(status_code=401, detail="Admin required")
     ok = delete_article(path)
     if not ok: raise HTTPException(status_code=404, detail=f"Article not found: {path}")
     return JSONResponse({"ok":True})

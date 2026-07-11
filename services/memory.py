@@ -49,6 +49,7 @@ def _init_engine():
         )
 
         # 构建 config — embedding_dims 确保 collection 用正确维度
+        dims = mem_cfg.embedding_dims
         mem0_config = MemoryConfig(
             llm={
                 "provider": "openai",
@@ -64,7 +65,7 @@ def _init_engine():
                     "model": llm_cfg.embedding_model,
                     "api_key": llm_cfg.api_key,
                     "openai_base_url": llm_cfg.base_url.rstrip("/") + "/",
-                    "embedding_dims": 2048,
+                    "embedding_dims": dims,
                 },
             },
             vector_store={
@@ -73,7 +74,7 @@ def _init_engine():
                     "collection_name": mem_cfg.collection,
                     "path": mem_cfg.qdrant_path,
                     "host": "localhost",
-                    "embedding_model_dims": 2048,
+                    "embedding_model_dims": dims,
                 },
             },
         )

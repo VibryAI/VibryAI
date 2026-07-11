@@ -59,6 +59,7 @@ async def chat_completions(request: Request):
     messages = body.get("messages", [])
     if not messages: raise HTTPException(status_code=400, detail="messages is required")
     is_stream = body.get("stream", False)
+    conversation_id = body.get("conversation_id", "default")
     user_msg, _ = extract_user_message(messages)
     memory_text, wiki_text = "", ""
     if user_msg:
@@ -83,7 +84,7 @@ async def chat_completions(request: Request):
     modified_messages = inject_memories_into_messages(messages, combined_context)
     upstream_payload = build_upstream_payload(modified_messages, body)
     if user_msg:
-        db.save_chat_message(user_id, "user", user_msg, conversation_id=user_id, model=upstream_payload.get("model",""))
+        db.save_chat_message(user_id, "user", user_msg, conversation_id=conversation_id, model=upstream_payload.get("model",""))
     if is_stream:
         async def sse_gen():
             async for chunk in stream_to_upstream(upstream_payload): yield chunk
@@ -92,5 +93,5 @@ async def chat_completions(request: Request):
         result = await proxy_non_streaming(upstream_payload)
         assistant_text = result.get("choices",[{}])[0].get("message",{}).get("content","")
         if assistant_text:
-            db.save_chat_message(user_id, "assistant", assistant_text, conversation_id=user_id, model=upstream_payload.get("model",""), tokens=result.get("usage",{}).get("total_tokens",0))
+            db.save_chat_message(user_id, "assistant", assistant_text, conversation_id=conversation_id, model=upstream_payload.get("model",""), tokens=result.get("usage",{}).get("total_tokens",0))
         return JSONResponse(content=result)

@@ -575,36 +575,32 @@ def _search_by_keywords(query: str, articles: list[dict]) -> list[dict]:
 
 
 def _search_by_embedding(query: str, articles: list[dict], top_k: int = 5) -> list[dict]:
-    """语义搜索（通过上游 embedding API）
+    """语义搜索（通过 VolcengineEmbedder 调用 multimodal embeddings API）
 
     如果无法访问 embedding API，降级为关键词搜索。
     """
     try:
-        from services.asr import call_llm
+        from services.embedder import VolcengineEmbedder
+        import math
+
+        llm_cfg = config.upstream
+        embedder = VolcengineEmbedder(
+            model=llm_cfg.embedding_model,
+            api_key=llm_cfg.api_key,
+            base_url=llm_cfg.base_url,
+        )
 
         # 获取 query embedding
-        messages = [{"role": "user", "content": query}]
-        result = call_llm(config.upstream.embedding_model, messages, max_time=30)
-
-        if "error" in result:
-            log.warning(f"⚠️ Embedding 不可用，降级为关键词搜索: {result['error']}")
-            return _search_by_keywords(query, articles)[:top_k]
-
-        # 解析 embedding 向量
-        emb_data = result.get("data", {})
-        if isinstance(emb_data, dict):
-            query_vec = emb_data.get("embedding", [])
-        elif isinstance(emb_data, list) and emb_data:
-            query_vec = emb_data[0].get("embedding", [])
-        else:
+        try:
+            query_vec = embedder.embed(query)
+        except Exception as emb_err:
+            log.warning(f"⚠️ Embedding 不可用，降级为关键词搜索: {emb_err}")
             return _search_by_keywords(query, articles)[:top_k]
 
         if not query_vec:
             return _search_by_keywords(query, articles)[:top_k]
 
         # 对每个文章获取 embedding 并计算余弦相似度
-        import math
-
         def cosine(a, b):
             dot = sum(x * y for x, y in zip(a, b))
             norm_a = math.sqrt(sum(x * x for x in a))
@@ -623,18 +619,9 @@ def _search_by_embedding(query: str, articles: list[dict], top_k: int = 5) -> li
             except Exception:
                 continue
 
-            # 获取文章 snippet embedding
-            emb_msgs = [{"role": "user", "content": snippet}]
-            emb_result = call_llm(config.upstream.embedding_model, emb_msgs, max_time=30)
-            if "error" in emb_result:
-                continue
-
-            emb_d = emb_result.get("data", {})
-            if isinstance(emb_d, dict):
-                art_vec = emb_d.get("embedding", [])
-            elif isinstance(emb_d, list) and emb_d:
-                art_vec = emb_d[0].get("embedding", [])
-            else:
+            try:
+                art_vec = embedder.embed(snippet)
+            except Exception:
                 continue
 
             if art_vec:

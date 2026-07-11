@@ -5,6 +5,7 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.config import config
+from utils.auth import check_admin, update_admin_signing_key
 import db
 
 log = logging.getLogger("vibry.admin")
@@ -15,31 +16,15 @@ _admin_signing_key = hashlib.sha256(os.getenv("ADMIN_PASSWORD", "vibry2024").enc
 
 
 def _make_admin_token() -> str:
+    from utils.auth import _admin_signing_key
     expiry = str(int(time.time()) + 86400)
     payload = f"admin.{expiry}"
     sig = hmac.new(_admin_signing_key, payload.encode(), hashlib.sha256).hexdigest()[:32]
     return f"{payload}.{sig}"
 
 
-def _verify_admin_token(token: str) -> bool:
-    try:
-        parts = token.split(".")
-        if len(parts) != 3:
-            return False
-        payload = f"{parts[0]}.{parts[1]}"
-        if time.time() > int(parts[1]):
-            return False
-        expected = hmac.new(_admin_signing_key, payload.encode(), hashlib.sha256).hexdigest()[:32]
-        return hmac.compare_digest(parts[2], expected)
-    except (ValueError, IndexError):
-        return False
-
-
-def _check_admin(request: Request) -> bool:
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return False
-    return _verify_admin_token(auth[7:])
+# Backward-compat aliases (internal references + routers/wiki.py)
+_check_admin = check_admin
 
 
 def _require_admin(request: Request):
@@ -63,6 +48,18 @@ def _get_admin_password_hash() -> str:
         pw_hash = _hash_password(env_pw)
         db.set_admin_password(pw_hash)
     return pw_hash
+
+
+# ============================================================
+# Favicon
+# ============================================================
+
+@router.get("/favicon.ico")
+async def favicon():
+    ico_path = BASE_DIR / "static" / "favicon.ico"
+    if ico_path.exists():
+        return FileResponse(str(ico_path), media_type="image/x-icon")
+    raise HTTPException(status_code=404)
 
 
 # ============================================================
@@ -256,8 +253,7 @@ async def admin_change_password(request: Request):
     if not _verify_password(old_pw, _get_admin_password_hash()):
         raise HTTPException(status_code=403, detail="Wrong old password")
     db.set_admin_password(_hash_password(new_pw))
-    global _admin_signing_key
-    _admin_signing_key = hashlib.sha256(new_pw.encode()).digest()
+    update_admin_signing_key(new_pw)
     return JSONResponse({"ok": True})
 
 
@@ -308,8 +304,7 @@ async def admin_reset_password(request: Request):
     if not db.verify_and_clear_code(code):
         raise HTTPException(status_code=403, detail="Invalid code")
     db.set_admin_password(_hash_password(new_pw))
-    global _admin_signing_key
-    _admin_signing_key = hashlib.sha256(new_pw.encode()).digest()
+    update_admin_signing_key(new_pw)
     return JSONResponse({"ok": True})
 
 
@@ -335,9 +330,10 @@ async def admin_set_personality(request: Request):
 
 
 @router.get("/admin/api/chat-history")
-async def admin_chat_history(request: Request, user_id: str = "admin", limit: int = 50):
+async def admin_chat_history(request: Request, user_id: str = "admin", conversation_id: str = None, limit: int = 50):
     _require_admin(request)
-    messages = db.get_chat_history(user_id, conversation_id=user_id, limit=limit)
+    # conversation_id 不传时返回该用户全部消息；传入时按会话过滤
+    messages = db.get_chat_history(user_id, conversation_id=conversation_id, limit=limit)
     conversations = db.get_chat_conversations(user_id)
     return JSONResponse({"messages": messages, "conversations": conversations})
 

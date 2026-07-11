@@ -8,16 +8,18 @@ router = APIRouter()
 @router.get("/api/health")
 async def health():
     from services.memory import get_mem0
+    from services.asr_providers import supported_provider_modes
     try:
         _ = get_mem0()
         mem0_status = "ok"
     except Exception as e:
         mem0_status = f"unavailable: {e}"
     return JSONResponse({
-        "status": "ok", "version": "0.2.0",
+        "status": "ok", "version": "0.3.0",
         "server": f"http://{config.server.host}:{config.server.port}",
         "upstream": config.upstream.model,
         "asr_mode": config.asr.mode,
+        "asr_providers": supported_provider_modes(),
         "mem0": mem0_status,
         "memory_config": {
             "top_k": config.memory.top_k, "threshold": config.memory.threshold,

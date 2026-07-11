@@ -11,7 +11,7 @@ MODEL_PRICES = {
     "doubao-seed-2-1-turbo-260628": {"prompt": 2.0, "completion": 6.0},
     "doubao-seed-2-1-pro-260628": {"prompt": 4.0, "completion": 12.0},
     "doubao-seed-2-0-mini-260428": {"prompt": 0.5, "completion": 1.5},
-    "doubao-embedding-vision-251215": {"prompt": 0.5, "completion": 0.0},
+    "doubao-embedding-text-240715": {"prompt": 0.5, "completion": 0.0},
     "default": {"prompt": 2.0, "completion": 6.0},
 }
 
@@ -85,15 +85,21 @@ def save_chat_message(
 
 def get_chat_history(
     user_id: str,
-    conversation_id: str = "default",
+    conversation_id: str = None,
     limit: int = 50,
 ) -> list[dict]:
-    """获取聊天历史"""
+    """获取聊天历史（conversation_id=None 时返回该用户全部会话消息）"""
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT * FROM chat_messages WHERE user_id=? AND conversation_id=? ORDER BY created_at DESC LIMIT ?",
-        (user_id, conversation_id, limit),
-    ).fetchall()
+    if conversation_id is not None:
+        rows = conn.execute(
+            "SELECT * FROM chat_messages WHERE user_id=? AND conversation_id=? ORDER BY created_at DESC LIMIT ?",
+            (user_id, conversation_id, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM chat_messages WHERE user_id=? ORDER BY created_at DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
     return [_row_to_dict(r) for r in reversed(rows)]
 
 
@@ -246,21 +252,22 @@ def get_wiki_llm_config() -> dict:
     """获取 Wiki 编译专用 LLM 配置（base_url + api_key + model）
 
     优先从 DB asr_config 读取，fallback 到 env vars，再 fallback 到 upstream config。
+    Fallback 时 base_url / api_key / model 三者保持一致（全部来自 upstream）。
     """
     try:
         asr = get_asr_config()
-        model = asr.get("wiki_model", "") or os.getenv("WIKI_MODEL", "deepseek-chat")
-        base_url = asr.get("wiki_base_url", "") or os.getenv("WIKI_BASE_URL", "https://api.deepseek.com")
+        model = asr.get("wiki_model", "") or os.getenv("WIKI_MODEL", "")
+        base_url = asr.get("wiki_base_url", "") or os.getenv("WIKI_BASE_URL", "")
         api_key = asr.get("wiki_api_key", "") or os.getenv("WIKI_API_KEY", "")
-        if api_key:
-            return {"model": model, "base_url": base_url, "api_key": api_key}
+        if api_key and base_url:
+            return {"model": model or "deepseek-chat", "base_url": base_url, "api_key": api_key}
     except Exception:
         pass
-    # Fallback: 用上游 Doubao 的 key + base_url
-    from config import config
+    # Fallback: 完整使用上游配置（三者一致，避免跨平台 Key/URL 不匹配）
+    from app.config import config
     return {
-        "model": "deepseek-chat",
-        "base_url": "https://api.deepseek.com",
+        "model": config.upstream.model,
+        "base_url": config.upstream.base_url,
         "api_key": config.upstream.api_key,
     }
 
