@@ -155,6 +155,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <a href="#" data-page="personality" data-i18n="nav.personality">Personality</a>
     <a href="#" data-page="memories" data-i18n="nav.memories">Memory Mgmt</a>
     <a href="#" data-page="wiki" data-i18n="nav.wiki">Wiki KB</a>
+    <a href="#" data-page="meetings" data-i18n="nav.meetings">Meetings</a>
     <a href="#" data-page="tokens" data-i18n="nav.tokens">API Tokens</a>
     <a href="#" data-page="billing" data-i18n="nav.billing">Billing</a>
     <a href="#" data-page="logs" data-i18n="nav.logs">Runtime Logs</a>
@@ -488,6 +489,80 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <div class="table-wrap"><table id="bill-table"><thead><tr><th data-i18n="billing.table_headers.time">Time</th><th data-i18n="billing.table_headers.user">User</th><th data-i18n="billing.table_headers.endpoint">Endpoint</th><th data-i18n="billing.table_headers.model">Model</th><th data-i18n="billing.table_headers.prompt_tokens">Prompt</th><th data-i18n="billing.table_headers.completion_tokens">Completion</th><th data-i18n="billing.table_headers.total_tokens">Total Tokens</th><th data-i18n="billing.table_headers.audio">Audio</th><th data-i18n="billing.table_headers.cost">Cost ¥</th></tr></thead><tbody></tbody></table></div>
     </div>
 
+    <!-- Meetings -->
+    <div id="page-meetings" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 data-i18n="meetings.title">Meeting Records</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="showCategoryModal()" data-i18n="meetings.manage_categories">Manage Categories</button>
+          <button class="btn btn-primary" onclick="showUploadModal()" data-i18n="meetings.upload_btn">Upload Audio</button>
+        </div>
+      </div>
+      <!-- Category filter tabs -->
+      <div id="meeting-categories" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+      <!-- Recordings table -->
+      <div class="table-wrap"><table id="meeting-table"><thead><tr>
+        <th data-i18n="meetings.headers.time">Time</th>
+        <th data-i18n="meetings.headers.title">Title</th>
+        <th data-i18n="meetings.headers.category">Category</th>
+        <th data-i18n="meetings.headers.duration">Duration</th>
+        <th data-i18n="meetings.headers.chars">Chars</th>
+        <th data-i18n="meetings.headers.status">Status</th>
+        <th data-i18n="meetings.headers.actions">Actions</th>
+      </tr></thead><tbody></tbody></table></div>
+      <!-- Inline audio player -->
+      <div id="meeting-player" style="display:none;margin-top:16px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <strong id="player-title"></strong>
+          <button class="btn" style="font-size:11px;padding:4px 8px" onclick="document.getElementById('meeting-player').style.display='none'">✕</button>
+        </div>
+        <audio id="player-audio" controls style="width:100%"></audio>
+        <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:var(--text-dim)" data-i18n="meetings.view_transcript">View Transcript</summary>
+          <div id="player-transcript" style="margin-top:8px;white-space:pre-wrap;font-size:13px;max-height:300px;overflow-y:auto;line-height:1.6"></div>
+        </details>
+      </div>
+    </div>
+
+    <!-- Upload Audio Modal -->
+    <div id="upload-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:200;justify-content:center;align-items:center">
+      <div style="background:var(--surface);border-radius:var(--radius);padding:24px;width:90%;max-width:480px">
+        <h3 style="margin-bottom:16px" data-i18n="meetings.upload_title">Upload Audio for Transcription</h3>
+        <div class="form-group">
+          <label data-i18n="meetings.audio_file">Audio File</label>
+          <input type="file" id="upload-audio-file" accept=".wav,.mp3,.ogg,.opus,.m4a,.flac" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+        </div>
+        <div class="form-group">
+          <label data-i18n="meetings.upload_title_label">Title</label>
+          <input id="upload-title" placeholder="Recording title" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+        </div>
+        <div class="form-group">
+          <label data-i18n="meetings.upload_category">Category</label>
+          <select id="upload-category" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)"></select>
+        </div>
+        <div id="upload-status" style="margin-top:8px;font-size:13px;color:var(--text-dim)"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+          <button class="btn" onclick="closeUploadModal()" data-i18n="meetings.cancel">Cancel</button>
+          <button class="btn btn-primary" id="upload-submit" onclick="doUploadAudio()" data-i18n="meetings.upload_submit">Upload & Transcribe</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Management Modal -->
+    <div id="category-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:200;justify-content:center;align-items:center">
+      <div style="background:var(--surface);border-radius:var(--radius);padding:24px;width:90%;max-width:460px">
+        <h3 style="margin-bottom:16px" data-i18n="meetings.category_title">Category Management</h3>
+        <div id="category-list" style="margin-bottom:16px"></div>
+        <div style="display:flex;gap:8px;padding:8px;background:var(--bg);border-radius:var(--radius);margin-bottom:8px">
+          <input id="cat-new-name" placeholder="New category name" style="flex:1;padding:6px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px">
+          <input id="cat-new-color" type="color" value="#6366f1" style="width:36px;height:32px;border:none;border-radius:4px;background:none;cursor:pointer">
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="addCategory()" data-i18n="meetings.add_category">Add</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn" onclick="document.getElementById('category-modal').style.display='none'" data-i18n="meetings.close">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Logs -->
     <div id="page-logs" class="page">
       <h2 style="margin-bottom:12px" data-i18n="logs.title">Runtime Logs</h2>
@@ -577,6 +652,7 @@ document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
     if (a.dataset.page === 'account') loadAccount();
     if (a.dataset.page === 'tokens') refreshTokens();
     if (a.dataset.page === 'logs') refreshLogs();
+    if (a.dataset.page === 'meetings') refreshMeetings();
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
   });
 });
@@ -974,6 +1050,173 @@ function wikiLoadRawList() {
       ? T('wiki.raw_empty')
       : (d.files||[]).map(f => `<div>📄 ${f.path} <span style="color:var(--text-dim)">(${f.topic})</span></div>`).join('');
   });
+}
+
+// ==================== Meetings ====================
+let _meetingCategories = [];
+let _meetingFilter = '';
+let _meetingAllRecordings = [];
+
+function refreshMeetings() {
+  fetch('/api/categories').then(r=>r.json()).then(d => {
+    _meetingCategories = d.categories || [];
+    renderMeetingCategories();
+    loadMeetingRecordings();
+  });
+}
+
+function renderMeetingCategories() {
+  const container = document.getElementById('meeting-categories');
+  const all = `<button class="btn" style="font-size:12px;padding:4px 12px;${_meetingFilter===''?'background:var(--accent);color:#000':'background:var(--bg)'}" onclick="filterMeetings('')">All</button>`;
+  const cats = _meetingCategories.map(c => {
+    const active = _meetingFilter === c.name;
+    return `<button class="btn" style="font-size:12px;padding:4px 12px;${active?'background:'+c.color+';color:#fff':'background:var(--bg);color:var(--text)'}" onclick="filterMeetings('${c.name.replace(/'/g,"\\'")}')">${c.name}</button>`;
+  }).join('');
+  container.innerHTML = all + cats;
+}
+
+function filterMeetings(cat) {
+  _meetingFilter = cat;
+  renderMeetingCategories();
+  renderMeetingTable();
+}
+
+function loadMeetingRecordings() {
+  const url = '/api/recordings?limit=200' + (_meetingFilter ? '&category=' + encodeURIComponent(_meetingFilter) : '');
+  fetch(url, {headers: authHeaders()}).then(r=>r.json()).then(d => {
+    _meetingAllRecordings = d.recordings || [];
+    renderMeetingTable();
+  });
+}
+
+function renderMeetingTable() {
+  const T = I18N.t.bind(I18N);
+  const rows = _meetingAllRecordings;
+  const catMap = {};
+  _meetingCategories.forEach(c => catMap[c.name] = c.color);
+  document.querySelector('#meeting-table tbody').innerHTML = rows.length === 0
+    ? `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:20px">${T('meetings.empty')}</td></tr>`
+    : rows.map(r => {
+        const dur = r.duration_sec > 0 ? Math.floor(r.duration_sec/60)+'m '+Math.floor(r.duration_sec%60)+'s' : '-';
+        const color = catMap[r.category] || '#6b7280';
+        return `<tr>
+          <td style="font-size:12px;white-space:nowrap">${(r.created_at||'').substring(5,16)}</td>
+          <td style="font-size:13px">${r.title || '-'}</td>
+          <td><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${color};color:#fff">${r.category||'未分类'}</span></td>
+          <td style="font-size:12px">${dur}</td>
+          <td style="font-size:12px">${r.transcript_chars||0}</td>
+          <td style="font-size:12px">${r.status||'-'}</td>
+          <td>
+            ${r.audio_path ? `<button class="btn" style="font-size:11px;padding:2px 8px;margin-right:4px" onclick="playRecording('${r.id}','${r.audio_token||''}','${(r.title||'').replace(/'/g,"\\'")}')" data-i18n="meetings.play">▶ Play</button>` : ''}
+            <button class="btn" style="font-size:11px;padding:2px 8px;color:var(--danger)" onclick="deleteRecording('${r.id}','${(r.title||'').replace(/'/g,"\\'")}')" data-i18n="meetings.delete">Delete</button>
+          </td>
+        </tr>`;
+      }).join('');
+}
+
+function playRecording(recId, token, title) {
+  const player = document.getElementById('meeting-player');
+  const audio = document.getElementById('player-audio');
+  document.getElementById('player-title').textContent = title;
+  audio.src = `/api/audio/${recId}?token=${token}`;
+  player.style.display = 'block';
+  audio.play();
+  // Load transcript
+  fetch(`/api/recordings/${recId}`, {headers: authHeaders()}).then(r=>r.json()).then(d => {
+    document.getElementById('player-transcript').textContent = d.transcript || '(empty)';
+  });
+}
+
+function deleteRecording(recId, title) {
+  if (!confirm(`${I18N.t('meetings.delete_confirm')} ${title}?`)) return;
+  fetch(`/api/recordings/${recId}`, {method:'DELETE', headers:authHeaders()}).then(r=>r.json()).then(() => {
+    loadMeetingRecordings();
+  });
+}
+
+function showUploadModal() {
+  document.getElementById('upload-modal').style.display = 'flex';
+  // Populate categories
+  const sel = document.getElementById('upload-category');
+  sel.innerHTML = _meetingCategories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+  document.getElementById('upload-status').textContent = '';
+}
+
+function closeUploadModal() {
+  document.getElementById('upload-modal').style.display = 'none';
+  document.getElementById('upload-audio-file').value = '';
+  document.getElementById('upload-title').value = '';
+}
+
+function doUploadAudio() {
+  const file = document.getElementById('upload-audio-file').files[0];
+  if (!file) { alert('Please select an audio file'); return; }
+  const title = document.getElementById('upload-title').value.trim() || file.name;
+  const category = document.getElementById('upload-category').value;
+  const statusEl = document.getElementById('upload-status');
+  const btn = document.getElementById('upload-submit');
+  statusEl.textContent = '⏳ Uploading & transcribing...';
+  btn.disabled = true;
+  const formData = new FormData();
+  formData.append('audio', file);
+  formData.append('title', title);
+  formData.append('category', category);
+  fetch('/admin/api/transcribe-upload', {method:'POST', headers:{'Authorization':'Bearer '+TOKEN}, body:formData})
+    .then(r => r.json()).then(d => {
+      btn.disabled = false;
+      if (d.error) {
+        statusEl.innerHTML = `❌ ${d.error}`;
+      } else {
+        statusEl.innerHTML = `✅ ${I18N.t('meetings.upload_success')} (${(d.text||'').length} chars)`;
+        setTimeout(() => { closeUploadModal(); loadMeetingRecordings(); }, 1500);
+      }
+    }).catch(e => { btn.disabled = false; statusEl.textContent = '❌ ' + e.message; });
+}
+
+function showCategoryModal() {
+  document.getElementById('category-modal').style.display = 'flex';
+  loadCategoryList();
+}
+
+function loadCategoryList() {
+  const container = document.getElementById('category-list');
+  container.innerHTML = _meetingCategories.map(c => {
+    const isDefault = c.name === '未分类';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <input type="color" value="${c.color}" onchange="updateCatColor(${c.id}, this.value)" style="width:28px;height:28px;border:none;border-radius:4px;background:none;cursor:pointer" ${isDefault?'disabled':''}>
+      <input value="${c.name}" onchange="updateCatName(${c.id}, this.value)" style="flex:1;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px" ${isDefault?'disabled':''}>
+      ${isDefault ? '<span style="font-size:11px;color:var(--text-dim)">default</span>' : `<button class="btn" style="font-size:11px;padding:2px 8px;color:var(--danger)" onclick="removeCategory(${c.id}, '${c.name.replace(/'/g,"\\'")}')">✕</button>`}
+    </div>`;
+  }).join('');
+}
+
+function addCategory() {
+  const name = document.getElementById('cat-new-name').value.trim();
+  if (!name) return;
+  const color = document.getElementById('cat-new-color').value;
+  fetch('/admin/api/categories', {method:'POST', headers:{...authHeaders(), 'Content-Type':'application/json'}, body:JSON.stringify({name, color})})
+    .then(r => r.json()).then(() => {
+      document.getElementById('cat-new-name').value = '';
+      refreshMeetings();
+      loadCategoryList();
+    });
+}
+
+function updateCatName(id, name) {
+  fetch(`/admin/api/categories/${id}`, {method:'PUT', headers:{...authHeaders(), 'Content-Type':'application/json'}, body:JSON.stringify({name})});
+}
+
+function updateCatColor(id, color) {
+  fetch(`/admin/api/categories/${id}`, {method:'PUT', headers:{...authHeaders(), 'Content-Type':'application/json'}, body:JSON.stringify({color})});
+  refreshMeetings();
+}
+
+function removeCategory(id, name) {
+  if (!confirm(`${I18N.t('meetings.delete_category_confirm')} "${name}"?`)) return;
+  fetch(`/admin/api/categories/${id}`, {method:'DELETE', headers:authHeaders()})
+    .then(r => { if (!r.ok) return r.json().then(d => { throw new Error(d.detail || 'Failed'); }); return r.json(); })
+    .then(() => { refreshMeetings(); loadCategoryList(); })
+    .catch(e => alert(e.message));
 }
 
 // ==================== Billing ====================

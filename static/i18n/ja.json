@@ -29,6 +29,7 @@
     "personality": "🎭 ペルソナ",
     "memories": "🧩 メモリ管理",
     "wiki": "📚 Wiki ナレッジベース",
+    "meetings": "🎤 会議記録",
     "tokens": "🔑 APIトークン",
     "billing": "💰 課金詳細",
     "logs": "📋 実行ログ",
@@ -260,6 +261,37 @@
       "audio": "音声時間",
       "cost": "費用 ¥"
     }
+  },
+
+  "meetings": {
+    "title": "🎤 会議記録",
+    "manage_categories": "カテゴリ管理",
+    "upload_btn": "アップロード",
+    "empty": "録音記録がありません",
+    "headers": {
+      "time": "時刻",
+      "title": "タイトル",
+      "category": "カテゴリ",
+      "duration": "時間",
+      "chars": "文字数",
+      "status": "ステータス",
+      "actions": "操作"
+    },
+    "play": "▶ 再生",
+    "delete": "削除",
+    "delete_confirm": "削除",
+    "view_transcript": "文字起こしを表示",
+    "upload_title": "音声アップロード文字起こし",
+    "audio_file": "音声ファイル",
+    "upload_title_label": "タイトル",
+    "upload_category": "カテゴリ",
+    "upload_submit": "アップロードして文字起こし",
+    "upload_success": "文字起こし完了",
+    "cancel": "キャンセル",
+    "category_title": "カテゴリ管理",
+    "add_category": "追加",
+    "close": "閉じる",
+    "delete_category_confirm": "カテゴリを削除"
   },
 
   "logs": {

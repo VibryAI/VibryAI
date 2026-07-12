@@ -29,6 +29,7 @@
     "personality": "🎭 人格设定",
     "memories": "🧩 记忆管理",
     "wiki": "📚 Wiki 知识库",
+    "meetings": "🎤 会议记录",
     "tokens": "🔑 API Token",
     "billing": "💰 计费明细",
     "logs": "📋 运行日志",
@@ -260,6 +261,37 @@
       "audio": "语音时长",
       "cost": "费用 ¥"
     }
+  },
+
+  "meetings": {
+    "title": "🎤 会议记录",
+    "manage_categories": "管理分类",
+    "upload_btn": "上传转写",
+    "empty": "暂无录音记录",
+    "headers": {
+      "time": "时间",
+      "title": "标题",
+      "category": "分类",
+      "duration": "时长",
+      "chars": "字数",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "play": "▶ 播放",
+    "delete": "删除",
+    "delete_confirm": "确定删除",
+    "view_transcript": "查看转写文本",
+    "upload_title": "上传音频转写",
+    "audio_file": "音频文件",
+    "upload_title_label": "标题",
+    "upload_category": "分类",
+    "upload_submit": "上传并转写",
+    "upload_success": "转写成功",
+    "cancel": "取消",
+    "category_title": "分类管理",
+    "add_category": "添加",
+    "close": "关闭",
+    "delete_category_confirm": "删除分类"
   },
 
   "logs": {

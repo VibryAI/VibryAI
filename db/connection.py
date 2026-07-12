@@ -130,7 +130,25 @@ def init_db():
             created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
             last_used_at TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            color TEXT DEFAULT '#6366f1',
+            sort_order INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
     """)
+
+    # ---- 初始化默认分类 ----
+    cur = conn.execute("SELECT COUNT(*) as c FROM categories")
+    if cur.fetchone()["c"] == 0:
+        for i, name in enumerate(["未分类", "会议", "通话", "备忘"]):
+            conn.execute(
+                "INSERT INTO categories (name, color, sort_order) VALUES (?, ?, ?)",
+                (name, ["#6b7280", "#6366f1", "#10b981", "#f59e0b"][i], i),
+            )
+        print("  [init] 插入默认分类")
 
     # ---- 兼容性迁移：为旧表添加新列 ----
     cur = conn.execute("PRAGMA table_info(recordings)")

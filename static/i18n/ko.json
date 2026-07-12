@@ -29,6 +29,7 @@
     "personality": "🎭 페르소나",
     "memories": "🧩 메모리 관리",
     "wiki": "📚 Wiki 지식 베이스",
+    "meetings": "🎤 회의 기록",
     "tokens": "🔑 API 토큰",
     "billing": "💰 과금 내역",
     "logs": "📋 실행 로그",
@@ -260,6 +261,37 @@
       "audio": "음성 시간",
       "cost": "비용 ¥"
     }
+  },
+
+  "meetings": {
+    "title": "🎤 회의 기록",
+    "manage_categories": "카테고리 관리",
+    "upload_btn": "업로드",
+    "empty": "녹음 기록이 없습니다",
+    "headers": {
+      "time": "시간",
+      "title": "제목",
+      "category": "카테고리",
+      "duration": "시간",
+      "chars": "글자 수",
+      "status": "상태",
+      "actions": "작업"
+    },
+    "play": "▶ 재생",
+    "delete": "삭제",
+    "delete_confirm": "삭제",
+    "view_transcript": "전사 보기",
+    "upload_title": "음성 업로드 전사",
+    "audio_file": "음성 파일",
+    "upload_title_label": "제목",
+    "upload_category": "카테고리",
+    "upload_submit": "업로드 및 전사",
+    "upload_success": "전사 완료",
+    "cancel": "취소",
+    "category_title": "카테고리 관리",
+    "add_category": "추가",
+    "close": "닫기",
+    "delete_category_confirm": "카테고리 삭제"
   },
 
   "logs": {

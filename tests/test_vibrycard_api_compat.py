@@ -1,38 +1,43 @@
 #!/usr/bin/env python3
-"""VibryCard -> VibryServer API compatibility checks.
+"""Vibry mobile API contract checks.
 
 This test intentionally avoids real ASR/LLM calls. It verifies that the
-VibryCard Flask API surface is present on VibryServer and smoke-tests the
-response shapes consumed by the Flutter app.
+mobile-facing VibryServer API surface is present and smoke-tests the response
+shapes consumed by the Flutter app.
 """
 
 from __future__ import annotations
 
 import base64
 import json
-import re
 import sys
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKSPACE = ROOT.parent
 sys.path.insert(0, str(ROOT))
 
 
-def _flask_routes() -> dict[str, set[str]]:
-    source = (WORKSPACE / "VibryCard" / "server" / "server.py").read_text(encoding="utf-8")
-    routes: dict[str, set[str]] = {}
-    pattern = re.compile(r'@app\.route\("([^"]+)"(?:,\s*methods=\[([^\]]+)\])?\)')
-    for path, methods_raw in pattern.findall(source):
-        fastapi_path = re.sub(r"<([^>]+)>", r"{\1}", path)
-        if methods_raw:
-            methods = {m.strip().strip('"\'') for m in methods_raw.split(",")}
-        else:
-            methods = {"GET"}
-        routes.setdefault(fastapi_path, set()).update(methods)
-    return routes
+REQUIRED_MOBILE_API_ROUTES: dict[str, set[str]] = {
+    "/api/health": {"GET"},
+    "/api/asr-mode": {"GET", "POST"},
+    "/api/transcribe": {"POST"},
+    "/api/transcribe/voice": {"POST"},
+    "/api/summarize": {"POST"},
+    "/api/insight": {"POST"},
+    "/api/recordings": {"GET"},
+    "/api/recordings/{rec_id}": {"GET", "DELETE"},
+    "/api/recordings/{rec_id}/tags": {"PATCH"},
+    "/api/audio/{rec_id}": {"GET"},
+    "/api/stats": {"GET"},
+    "/api/recording-status/{rec_id}": {"GET"},
+    "/api/voiceprint/enroll": {"POST"},
+    "/api/voiceprint/list": {"GET"},
+    "/api/voiceprint/{name}": {"DELETE"},
+    "/api/voiceprint/discover": {"POST"},
+    "/api/voiceprint/discover/enroll": {"POST"},
+}
 
 
 def _fastapi_routes() -> dict[str, set[str]]:
@@ -46,18 +51,17 @@ def _fastapi_routes() -> dict[str, set[str]]:
     return routes
 
 
-def assert_route_compatibility() -> tuple[int, int]:
-    flask = _flask_routes()
+def assert_route_contract() -> tuple[int, int]:
     fastapi = _fastapi_routes()
     missing: list[str] = []
-    for path, methods in flask.items():
+    for path, methods in REQUIRED_MOBILE_API_ROUTES.items():
         available = fastapi.get(path, set())
         for method in methods:
             if method not in available:
                 missing.append(f"{method} {path}")
     if missing:
-        raise AssertionError("Missing VibryCard API routes on VibryServer: " + ", ".join(missing))
-    return sum(len(v) for v in flask.values()), len(fastapi)
+        raise AssertionError("Missing mobile API routes on VibryServer: " + ", ".join(missing))
+    return sum(len(v) for v in REQUIRED_MOBILE_API_ROUTES.values()), len(fastapi)
 
 
 def smoke_test_response_shapes() -> None:
@@ -68,7 +72,7 @@ def smoke_test_response_shapes() -> None:
     from app.config import config
     from app.main import app
 
-    def fake_transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") -> dict:
+    def fake_transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous", category: str = "") -> dict:
         return {
             "text": "hello from fake asr",
             "audio_url": "/api/audio/rec_20260711_120000",
@@ -166,9 +170,9 @@ def smoke_test_response_shapes() -> None:
 
 
 def main() -> None:
-    vibrycard_count, vibryserver_count = assert_route_compatibility()
+    required_count, vibryserver_count = assert_route_contract()
     smoke_test_response_shapes()
-    print(f"API route compatibility: {vibrycard_count}/{vibrycard_count} VibryCard routes present")
+    print(f"Mobile API route contract: {required_count}/{required_count} required routes present")
     print(f"VibryServer total exposed HTTP methods: {vibryserver_count}")
     print("Response shape smoke tests: passed")
 

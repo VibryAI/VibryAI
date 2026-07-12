@@ -43,13 +43,14 @@ if "editdistance" not in sys.modules:
 # 统一转写接口
 # ===================================================================
 
-def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") -> dict:
+def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous", category: str = "") -> dict:
     """Provider-based transcription entrypoint.
 
     Args:
         audio_bytes: Raw audio data (WAV/Opus/MP3 etc.)
         title: Recording title (used for DB record ID + cache key)
         user_id: User identifier for multi-tenant isolation
+        category: Optional category for the recording (e.g. "会议", "通话")
 
     Returns:
         {"text", "audio_url", "audio_token", "recording_id",
@@ -133,6 +134,7 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
                 transcript=text,
                 transcript_chars=len(text),
                 status="transcribing",
+                category=category or "未分类",
                 audio_path=audio_rel_path,
                 audio_token=audio_token_val,
                 utterances_json=json.dumps(utterances_data, ensure_ascii=False) if utterances_data else "",
@@ -156,6 +158,9 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
                 audio_seconds=audio_dur,
                 duration_ms=int(asr_time * 1000),
             )
+            # ★ 更新录音时长（upsert_recording 已写入基础信息，这里补 duration_sec）
+            if audio_dur > 0:
+                db.upsert_recording(rec_id, duration_sec=round(audio_dur, 1))
             audio_url = f"/api/audio/{rec_id}"
 
         return {

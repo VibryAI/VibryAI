@@ -34,21 +34,23 @@ async def api_transcribe(request: Request):
     global _asr_queue; _asr_queue += 1
     qpos = _asr_queue; user_id = resolve_user_id(request); t0 = time.time()
     content_type = request.headers.get("content-type","")
+    category = ""
     if "application/json" in content_type:
         data = await request.json()
         audio_b64 = data.get("audio_base64",""); title = data.get("title","")
+        category = data.get("category","")
         if not audio_b64: _asr_queue -= 1; raise HTTPException(status_code=400, detail="missing audio_base64")
         audio_bytes = base64.b64decode(audio_b64)
     elif "multipart" in content_type:
         form = await request.form(); audio_file = form.get("audio")
         if audio_file is None: _asr_queue -= 1; raise HTTPException(status_code=400, detail="missing audio")
-        audio_bytes = await audio_file.read(); title = form.get("title","")
+        audio_bytes = await audio_file.read(); title = form.get("title",""); category = form.get("category","")
     else: _asr_queue -= 1; raise HTTPException(status_code=400, detail="need JSON or multipart")
     size_kb = len(audio_bytes)/1024
     async with _asr_lock:
         _asr_queue -= 1
         from services.asr import transcribe
-        result = await asyncio.to_thread(transcribe, audio_bytes, title, user_id)
+        result = await asyncio.to_thread(transcribe, audio_bytes, title, user_id, category)
     elapsed = (time.time()-t0)*1000
     if result.get("error"):
         status = 422 if "未识别" in str(result.get("error","")) else 500
@@ -131,3 +133,29 @@ async def api_insight(request: Request):
         try: parsed = __import__('json').loads(match.group() if match else raw)
         except: parsed = {"core_insight":"","analysis":{"opportunity":"","risk":""},"action_suggestions":[]}
     return JSONResponse(parsed)
+
+@router.post("/admin/api/transcribe-upload")
+async def admin_transcribe_upload(request: Request):
+    """后台上传音频文件转写"""
+    from utils.auth import check_admin
+    if not check_admin(request): raise HTTPException(status_code=401, detail="Admin required")
+    global _asr_queue; _asr_queue += 1
+    form = await request.form()
+    audio_file = form.get("audio")
+    if audio_file is None: _asr_queue -= 1; raise HTTPException(status_code=400, detail="missing audio file")
+    audio_bytes = await audio_file.read()
+    title = form.get("title","") or getattr(audio_file, "filename", "") or "upload"
+    category = form.get("category", "")
+    async with _asr_lock:
+        _asr_queue -= 1
+        from services.asr import transcribe
+        result = await asyncio.to_thread(transcribe, audio_bytes, title, "admin", category)
+    if result.get("error"):
+        return JSONResponse(result, status_code=500)
+    return JSONResponse({
+        "text": result["text"],
+        "recording_id": result.get("recording_id"),
+        "audio_url": result.get("audio_url"),
+        "audio_token": result.get("audio_token"),
+        "provider": result.get("provider"),
+    })

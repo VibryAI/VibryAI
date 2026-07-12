@@ -1,7 +1,7 @@
 """Vibry AI Core — Database Layer"""
 from db.connection import get_conn, init_db, DB_PATH
 from db.models import (
-    MODEL_PRICES, log_usage, get_usage_summary, get_usage_by_user, get_usage_recent,
+    MODEL_PRICES, ASR_PRICES, log_usage, get_usage_summary, get_usage_by_user, get_usage_recent,
     save_chat_message, get_chat_history, get_chat_conversations,
     DEFAULT_PERSONALITY, get_personality, set_personality,
     get_admin, set_admin_email, set_admin_password,
@@ -14,4 +14,5 @@ from db.models import (
     get_stats,
     _row_to_dict,
     create_api_token, list_api_tokens, delete_api_token, resolve_token,
+    list_categories, create_category, update_category, delete_category,
 )

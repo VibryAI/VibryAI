@@ -29,6 +29,7 @@
     "personality": "Personality",
     "memories": "Memory Mgmt",
     "wiki": "Wiki KB",
+    "meetings": "Meetings",
     "tokens": "API Tokens",
     "billing": "Billing",
     "logs": "Runtime Logs",
@@ -260,6 +261,37 @@
       "audio": "Audio",
       "cost": "Cost ¥"
     }
+  },
+
+  "meetings": {
+    "title": "Meeting Records",
+    "manage_categories": "Manage Categories",
+    "upload_btn": "Upload Audio",
+    "empty": "No recordings yet",
+    "headers": {
+      "time": "Time",
+      "title": "Title",
+      "category": "Category",
+      "duration": "Duration",
+      "chars": "Chars",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "play": "▶ Play",
+    "delete": "Delete",
+    "delete_confirm": "Delete",
+    "view_transcript": "View Transcript",
+    "upload_title": "Upload Audio for Transcription",
+    "audio_file": "Audio File",
+    "upload_title_label": "Title",
+    "upload_category": "Category",
+    "upload_submit": "Upload & Transcribe",
+    "upload_success": "Transcription complete",
+    "cancel": "Cancel",
+    "category_title": "Category Management",
+    "add_category": "Add",
+    "close": "Close",
+    "delete_category_confirm": "Delete category"
   },
 
   "logs": {

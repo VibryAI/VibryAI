@@ -393,6 +393,7 @@ def get_recording(rec_id: str) -> dict | None:
 def list_recordings(
     status: str = None,
     user_id: str = None,
+    category: str = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[dict]:
@@ -406,6 +407,9 @@ def list_recordings(
     if user_id:
         conditions.append("user_id=?")
         params.append(user_id)
+    if category:
+        conditions.append("category=?")
+        params.append(category)
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     params.extend([limit, offset])
@@ -580,3 +584,67 @@ def resolve_token(token: str) -> str | None:
         conn.commit()
         return row["user_id"]
     return None
+
+
+# ============================================================
+# Categories Management
+# ============================================================
+
+def list_categories() -> list[dict]:
+    """列出所有分类，按 sort_order 排序"""
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM categories ORDER BY sort_order, id"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def create_category(name: str, color: str = "#6366f1", sort_order: int = 0) -> dict:
+    """新建分类"""
+    conn = get_conn()
+    cur = conn.execute(
+        "INSERT INTO categories (name, color, sort_order) VALUES (?, ?, ?)",
+        (name.strip(), color, sort_order),
+    )
+    conn.commit()
+    return {"id": cur.lastrowid, "name": name.strip(), "color": color, "sort_order": sort_order}
+
+
+def update_category(cat_id: int, name: str = None, color: str = None, sort_order: int = None) -> bool:
+    """修改分类"""
+    conn = get_conn()
+    sets = []
+    params = []
+    if name is not None:
+        sets.append("name=?")
+        params.append(name.strip())
+    if color is not None:
+        sets.append("color=?")
+        params.append(color)
+    if sort_order is not None:
+        sets.append("sort_order=?")
+        params.append(sort_order)
+    if not sets:
+        return False
+    params.append(cat_id)
+    conn.execute(f"UPDATE categories SET {', '.join(sets)} WHERE id=?", params)
+    conn.commit()
+    return True
+
+
+def delete_category(cat_id: int) -> bool:
+    """删除分类，关联录音的 category 改为'未分类'"""
+    conn = get_conn()
+    # 先获取分类名
+    row = conn.execute("SELECT name FROM categories WHERE id=?", (cat_id,)).fetchone()
+    if not row:
+        return False
+    cat_name = row["name"]
+    # 不允许删除'未分类'
+    if cat_name == "未分类":
+        return False
+    # 关联录音改为'未分类'
+    conn.execute("UPDATE recordings SET category='未分类' WHERE category=?", (cat_name,))
+    conn.execute("DELETE FROM categories WHERE id=?", (cat_id,))
+    conn.commit()
+    return True
