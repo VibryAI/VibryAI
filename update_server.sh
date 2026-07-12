@@ -18,7 +18,7 @@ set -e
 
 # ---- 配置 (按需修改) ----
 REMOTE_HOST="${VIBRY_REMOTE:-root@api.vibry.ai}"
-REMOTE_DIR="${VIBRY_HOME:-/opt/vibry-server}"
+REMOTE_DIR="${VIBRY_HOME:-/opt/http/vibryai/server}"
 SERVICE_NAME="${VIBRY_SERVICE:-vibry-server}"
 
 # 解析命令行参数
