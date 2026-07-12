@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260711">
 <title>Vibry AI Core — Admin Console</title>
 <style>
 :root {
@@ -257,9 +257,9 @@ tr:hover td { background: rgba(255,255,255,.02); }
         <div class="form-group">
           <label data-i18n="models.asr_mode_label">File Transcription ASR Mode</label>
           <select id="cfg-asr-mode">
-            <option value="local" data-i18n="models.asr_mode_local">local · FunASR Local</option>
             <option value="cloud" data-i18n="models.asr_mode_cloud">cloud · Doubao Flash</option>
             <option value="cloud_standard" data-i18n="models.asr_mode_cloud_std">cloud_standard · Doubao Standard (speaker diarization)</option>
+            <option value="funasr_server" data-i18n="models.asr_mode_funasr_server">funasr_server · FunASR Service (port 8008)</option>
           </select>
           <div class="hint" data-i18n="models.asr_mode_hint">Used for /api/transcribe, audio file transcription. Recommended: Standard</div>
         </div>
@@ -267,7 +267,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <label data-i18n="models.voice_mode_label">Voice Chat ASR Mode</label>
           <select id="cfg-voice-mode">
             <option value="cloud" data-i18n="models.voice_mode_cloud">cloud · Doubao Flash (Recommended)</option>
-            <option value="local" data-i18n="models.voice_mode_local">local · FunASR Local</option>
+            <option value="funasr_server" data-i18n="models.voice_mode_funasr_server">funasr_server · FunASR Service (port 8008)</option>
           </select>
           <div class="hint" data-i18n="models.voice_mode_hint">Used for /api/transcribe/voice, real-time voice messages. Recommended: Flash</div>
         </div>
@@ -500,7 +500,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
   </div>
 </div>
 
-<script src="/static/i18n.js"></script>
+<script src="/static/i18n.js?v=20260711"></script>
 <script>
 // ==================== Auth ====================
 let TOKEN = localStorage.getItem('vibry_admin_token') || '';

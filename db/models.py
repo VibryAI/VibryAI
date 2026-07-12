@@ -196,7 +196,7 @@ def set_personality(prompt: str) -> bool:
 DEFAULT_ASR_CONFIG = {
     "app_id": os.getenv("DOUBAO_ASR_APP_ID", ""),
     "access_key": os.getenv("DOUBAO_ASR_ACCESS_KEY", ""),
-    "asr_mode": os.getenv("ASR_MODE", "local"),
+    "asr_mode": os.getenv("ASR_MODE", "cloud"),
     "voice_mode": os.getenv("ASR_VOICE_MODE", "cloud"),
     "flash_url": os.getenv("DOUBAO_ASR_FLASH_URL",
         "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"),
@@ -226,7 +226,7 @@ def get_asr_config() -> dict:
     return dict(DEFAULT_ASR_CONFIG)
 
 
-def set_asr_config(app_id: str = "", access_key: str = "", asr_mode: str = "local",
+def set_asr_config(app_id: str = "", access_key: str = "", asr_mode: str = "cloud",
                    voice_mode: str = "cloud",
                    flash_url: str = "", standard_url: str = "",
                    summary_prompt: str = "", insight_prompt: str = "",

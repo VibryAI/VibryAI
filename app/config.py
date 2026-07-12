@@ -22,12 +22,9 @@ class UpstreamConfig:
 @dataclass
 class AsrConfig:
     """ASR 语音识别配置"""
-    # "local" = FunASR Paraformer 本地模型, "cloud" = Doubao API 云端转写
-    # "cloud_flash" = 豆包极速版, "cloud_standard" = 豆包标准版（说话人分离）
-    mode: str = os.getenv("ASR_MODE", "local")
-    # Whisper 模型大小（备用，当前默认用 FunASR）
-    whisper_size: str = os.getenv("WHISPER_SIZE", "small")
-    whisper_device: str = os.getenv("WHISPER_DEVICE", "cpu")
+    # "cloud" = 豆包极速版, "cloud_standard" = 豆包标准版（说话人分离）
+    # "funasr_server" = 本地 FunASR 独立服务（8008 端口）
+    mode: str = os.getenv("ASR_MODE", "cloud")
     funasr_model: str = os.getenv("FUNASR_MODEL", "sensevoice")
     funasr_device: str = os.getenv("FUNASR_DEVICE", "cpu")
     funasr_server_url: str = os.getenv("FUNASR_SERVER_URL", "http://127.0.0.1:8008")
