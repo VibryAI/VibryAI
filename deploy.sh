@@ -297,8 +297,8 @@ server {
         proxy_send_timeout 600s;
     }
 
-    # 静态文件缓存
-    location /static/ {
+    # 静态文件缓存 (^~ 确保优先级高于正则 location, 避免 .js/.css 被截走 404)
+    location ^~ /static/ {
         proxy_pass http://127.0.0.1:${PORT}/static/;
         expires 7d;
         add_header Cache-Control "public, immutable";
