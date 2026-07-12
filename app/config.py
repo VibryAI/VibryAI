@@ -7,15 +7,82 @@ load_dotenv()
 
 
 @dataclass
+class ChatConfig:
+    """Chat / LLM 模型配置（对话、摘要等）
+
+    优先级: DB > CHAT_* env > UPSTREAM_* env > 默认值
+    """
+    base_url: str = os.getenv("CHAT_BASE_URL") or os.getenv("UPSTREAM_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+    api_key: str = os.getenv("CHAT_API_KEY") or os.getenv("UPSTREAM_API_KEY", "")
+    model: str = os.getenv("CHAT_MODEL") or os.getenv("UPSTREAM_MODEL", "doubao-seed-2-1-turbo-260628")
+    timeout: int = 120
+
+    def reload_from_db(self):
+        """从 DB 加载（覆盖 env vars）"""
+        try:
+            import db
+            cfg = db.get_model_config()
+            if cfg.get("chat_base_url"):
+                self.base_url = cfg["chat_base_url"]
+            if cfg.get("chat_api_key"):
+                self.api_key = cfg["chat_api_key"]
+            if cfg.get("chat_model"):
+                self.model = cfg["chat_model"]
+        except Exception:
+            pass
+
+
+@dataclass
+class EmbeddingConfig:
+    """Embedding 模型配置（向量化、语义检索）
+
+    优先级: DB > EMBEDDING_* env > UPSTREAM_* env > 默认值
+    """
+    base_url: str = os.getenv("EMBEDDING_BASE_URL") or os.getenv("UPSTREAM_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+    api_key: str = os.getenv("EMBEDDING_API_KEY") or os.getenv("UPSTREAM_API_KEY", "")
+    model: str = os.getenv("EMBEDDING_MODEL") or os.getenv("UPSTREAM_EMBEDDING_MODEL", "doubao-embedding-text-240715")
+    timeout: int = 120
+
+    def reload_from_db(self):
+        """从 DB 加载（覆盖 env vars）"""
+        try:
+            import db
+            cfg = db.get_model_config()
+            if cfg.get("embedding_base_url"):
+                self.base_url = cfg["embedding_base_url"]
+            if cfg.get("embedding_api_key"):
+                self.api_key = cfg["embedding_api_key"]
+            if cfg.get("embedding_model"):
+                self.model = cfg["embedding_model"]
+        except Exception:
+            pass
+
+
+# 兼容旧代码的别名
+@dataclass
 class UpstreamConfig:
-    """上游 LLM API 配置"""
-    base_url: str = os.getenv("UPSTREAM_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
-    api_key: str = os.getenv("UPSTREAM_API_KEY", "")
-    model: str = os.getenv("UPSTREAM_MODEL", "doubao-seed-2-1-turbo-260628")
-    # ASR 专用模型（云端模式）
+    """[已废弃] 上游 LLM API 配置 — 请使用 ChatConfig / EmbeddingConfig"""
+    @property
+    def base_url(self) -> str:
+        from app.config import config
+        return config.chat.base_url
+
+    @property
+    def api_key(self) -> str:
+        from app.config import config
+        return config.chat.api_key
+
+    @property
+    def model(self) -> str:
+        from app.config import config
+        return config.chat.model
+
+    @property
+    def embedding_model(self) -> str:
+        from app.config import config
+        return config.embedding.model
+
     cloud_asr_model: str = os.getenv("CLOUD_ASR_MODEL", "doubao-seed-2-0-mini-260428")
-    # embedding 模型（用于 Mem0 向量化）
-    embedding_model: str = os.getenv("UPSTREAM_EMBEDDING_MODEL", "doubao-embedding-text-240715")
     timeout: int = 120
 
 
@@ -121,6 +188,11 @@ class SummaryConfig:
     default_tags: str = os.getenv("USER_DEFAULT_TAGS", "会议纪要,行动项,决策记录")
 
     @property
+    def effective_model(self) -> str:
+        """实际使用的模型: SUMMARY_MODEL or chat model"""
+        return self.model or config.chat.model
+
+    @property
     def tags_list(self) -> list[str]:
         return [t.strip() for t in self.default_tags.split(",") if t.strip()]
 
@@ -189,7 +261,9 @@ class ServerConfig:
 @dataclass
 class AppConfig:
     """聚合配置"""
-    upstream: UpstreamConfig = field(default_factory=UpstreamConfig)
+    chat: ChatConfig = field(default_factory=ChatConfig)
+    embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
+    upstream: UpstreamConfig = field(default_factory=UpstreamConfig)  # 兼容旧代码
     asr: AsrConfig = field(default_factory=AsrConfig)
     audio: AudioConfig = field(default_factory=AudioConfig)
     doubao_asr: DoubaoAsrConfig = field(default_factory=DoubaoAsrConfig)

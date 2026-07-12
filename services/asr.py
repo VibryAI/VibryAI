@@ -244,13 +244,13 @@ def call_llm(model: str, messages: list[dict], max_time: int = 180) -> dict:
     注意: 此函数调用 /chat/completions 端点，用于生成文本。
     不要用于获取 embedding 向量——请使用 services.embedder.VolcengineEmbedder。
     """
-    llm_cfg = config.upstream
-    url = f"{llm_cfg.base_url}/chat/completions"
+    chat_cfg = config.chat
+    url = f"{chat_cfg.base_url.rstrip('/')}/chat/completions"
     payload = {"model": model, "messages": messages}
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json; charset=utf-8")
-    req.add_header("Authorization", f"Bearer {llm_cfg.api_key}")
+    req.add_header("Authorization", f"Bearer {chat_cfg.api_key}")
     try:
         with urllib.request.urlopen(req, timeout=max_time) as resp:
             return json.loads(resp.read().decode("utf-8"))
@@ -305,9 +305,8 @@ def summarize(
     import db
 
     sum_cfg = config.summary
-    llm_cfg = config.upstream
 
-    model = sum_cfg.model or llm_cfg.model
+    model = sum_cfg.effective_model
     char_count = len(transcript)
 
     log.info(f"🧠 纪要开始 [user={user_id}] | 标题:{title} | {char_count}字符 | model={model}")

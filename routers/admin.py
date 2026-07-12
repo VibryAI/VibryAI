@@ -129,9 +129,18 @@ async def admin_stats(request: Request):
 async def admin_get_config(request: Request):
     _require_admin(request)
     asr_cfg = db.get_asr_config()
+    model_cfg = db.get_model_config()
     return JSONResponse({
-        "upstream_model": config.upstream.model,
-        "embedding_model": config.upstream.embedding_model,
+        # Chat model
+        "chat_model": model_cfg.get("chat_model") or config.chat.model,
+        "chat_base_url": model_cfg.get("chat_base_url") or config.chat.base_url,
+        "chat_api_key": model_cfg.get("chat_api_key") or config.chat.api_key,
+        # Embedding model
+        "embedding_model": model_cfg.get("embedding_model") or config.embedding.model,
+        "embedding_base_url": model_cfg.get("embedding_base_url") or config.embedding.base_url,
+        "embedding_api_key": model_cfg.get("embedding_api_key") or config.embedding.api_key,
+        # Legacy keys (backward compat for old UI)
+        "upstream_model": model_cfg.get("chat_model") or config.chat.model,
         "asr_mode": config.asr.mode,
         "memory_top_k": config.memory.top_k,
         "memory_threshold": config.memory.threshold,
@@ -155,10 +164,65 @@ async def admin_set_config(request: Request):
     body = await request.json()
     changes = []
 
-    for key, field in [("upstream_model", "model"), ("embedding_model", "embedding_model")]:
-        if key in body:
-            setattr(config.upstream, field, body[key])
-            changes.append(key)
+    # ---- Chat model config ----
+    chat_fields = {"chat_model": "chat_model", "chat_base_url": "chat_base_url", "chat_api_key": "chat_api_key"}
+    chat_db = {}
+    for jk, dk in chat_fields.items():
+        if jk in body:
+            val = body[jk]
+            chat_db[dk] = val
+            changes.append(jk)
+    if chat_db:
+        # 更新 in-memory config
+        if chat_db.get("chat_model"):
+            config.chat.model = chat_db["chat_model"]
+        if chat_db.get("chat_base_url"):
+            config.chat.base_url = chat_db["chat_base_url"]
+        if chat_db.get("chat_api_key"):
+            config.chat.api_key = chat_db["chat_api_key"]
+
+    # ---- Embedding model config ----
+    emb_fields = {"embedding_model": "embedding_model", "embedding_base_url": "embedding_base_url", "embedding_api_key": "embedding_api_key"}
+    emb_db = {}
+    for jk, dk in emb_fields.items():
+        if jk in body:
+            val = body[jk]
+            emb_db[dk] = val
+            changes.append(jk)
+    if emb_db:
+        if emb_db.get("embedding_model"):
+            config.embedding.model = emb_db["embedding_model"]
+        if emb_db.get("embedding_base_url"):
+            config.embedding.base_url = emb_db["embedding_base_url"]
+        if emb_db.get("embedding_api_key"):
+            config.embedding.api_key = emb_db["embedding_api_key"]
+
+    # Persist chat + embedding to DB (merge with existing values)
+    if chat_db or emb_db:
+        existing = db.get_model_config()
+        db.set_model_config(
+            chat_model=chat_db.get("chat_model", existing.get("chat_model", "")),
+            chat_base_url=chat_db.get("chat_base_url", existing.get("chat_base_url", "")),
+            chat_api_key=chat_db.get("chat_api_key", existing.get("chat_api_key", "")),
+            embedding_model=emb_db.get("embedding_model", existing.get("embedding_model", "")),
+            embedding_base_url=emb_db.get("embedding_base_url", existing.get("embedding_base_url", "")),
+            embedding_api_key=emb_db.get("embedding_api_key", existing.get("embedding_api_key", "")),
+        )
+
+    # ---- Legacy: upstream_model / embedding_model (backward compat) ----
+    if "upstream_model" in body:
+        config.chat.model = body["upstream_model"]
+        existing = db.get_model_config()
+        db.set_model_config(
+            chat_model=body["upstream_model"],
+            chat_base_url=existing.get("chat_base_url", ""),
+            chat_api_key=existing.get("chat_api_key", ""),
+            embedding_model=existing.get("embedding_model", ""),
+            embedding_base_url=existing.get("embedding_base_url", ""),
+            embedding_api_key=existing.get("embedding_api_key", ""),
+        )
+        changes.append("upstream_model→chat_model")
+
     for key, field in [("asr_mode", "mode")]:
         if key in body:
             setattr(config.asr, field, body[key])

@@ -294,6 +294,50 @@ def set_asr_config(app_id: str = "", access_key: str = "", asr_mode: str = "clou
     return True
 
 
+# ---- Model Config (Chat + Embedding) ----
+
+DEFAULT_MODEL_CONFIG = {
+    "chat_model": os.getenv("CHAT_MODEL", ""),
+    "chat_base_url": os.getenv("CHAT_BASE_URL", ""),
+    "chat_api_key": os.getenv("CHAT_API_KEY", ""),
+    "embedding_model": os.getenv("EMBEDDING_MODEL", ""),
+    "embedding_base_url": os.getenv("EMBEDDING_BASE_URL", ""),
+    "embedding_api_key": os.getenv("EMBEDDING_API_KEY", ""),
+}
+
+
+def get_model_config() -> dict:
+    """获取 Chat/Embedding 模型配置（DB 优先，env vars 兜底）"""
+    conn = get_conn()
+    row = conn.execute("SELECT * FROM model_config WHERE id=1").fetchone()
+    if row:
+        result = dict(row)
+        result.pop("id", None)
+        result.pop("updated_at", None)
+        return result
+    set_model_config(**DEFAULT_MODEL_CONFIG)
+    return dict(DEFAULT_MODEL_CONFIG)
+
+
+def set_model_config(
+    chat_model: str = "", chat_base_url: str = "", chat_api_key: str = "",
+    embedding_model: str = "", embedding_base_url: str = "", embedding_api_key: str = "",
+) -> bool:
+    """更新 Chat/Embedding 模型配置到数据库"""
+    conn = get_conn()
+    conn.execute(
+        """INSERT OR REPLACE INTO model_config
+           (id, chat_model, chat_base_url, chat_api_key,
+            embedding_model, embedding_base_url, embedding_api_key,
+            updated_at)
+           VALUES (1, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))""",
+        (chat_model, chat_base_url, chat_api_key,
+         embedding_model, embedding_base_url, embedding_api_key),
+    )
+    conn.commit()
+    return True
+
+
 def get_wiki_llm_config() -> dict:
     """获取 Wiki 编译专用 LLM 配置（base_url + api_key + model）
 
@@ -309,12 +353,12 @@ def get_wiki_llm_config() -> dict:
             return {"model": model or "deepseek-chat", "base_url": base_url, "api_key": api_key}
     except Exception:
         pass
-    # Fallback: 完整使用上游配置（三者一致，避免跨平台 Key/URL 不匹配）
+    # Fallback: 使用 Chat 模型配置（三者一致，避免跨平台 Key/URL 不匹配）
     from app.config import config
     return {
-        "model": config.upstream.model,
-        "base_url": config.upstream.base_url,
-        "api_key": config.upstream.api_key,
+        "model": config.chat.model,
+        "base_url": config.chat.base_url,
+        "api_key": config.chat.api_key,
     }
 
 

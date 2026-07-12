@@ -44,9 +44,14 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Load Chat / Embedding model config from DB
+    config.chat.reload_from_db()
+    config.embedding.reload_from_db()
+
     log.info("=" * 55)
     log.info("Vibry AI Core — Digital Prefrontal Cortex Memory Proxy + AI Backend")
-    log.info(f"   Upstream: {config.upstream.model}")
+    log.info(f"   Chat:    {config.chat.model} @ {config.chat.base_url}")
+    log.info(f"   Embed:   {config.embedding.model} @ {config.embedding.base_url}")
     log.info(f"   ASR mode: {config.asr.mode}")
     log.info(f"   Voice ASR: {config.doubao_asr.voice_mode}")
     log.info(f"   Memory: Mem0 ({config.memory.vector_store})")

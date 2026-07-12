@@ -7,6 +7,7 @@ from db.models import (
     get_admin, set_admin_email, set_admin_password,
     set_verification_code, verify_and_clear_code,
     DEFAULT_ASR_CONFIG, get_asr_config, set_asr_config, get_wiki_llm_config,
+    DEFAULT_MODEL_CONFIG, get_model_config, set_model_config,
     generate_id, generate_token, get_audio_info,
     upsert_recording, get_recording, list_recordings,
     delete_recording, update_tags,

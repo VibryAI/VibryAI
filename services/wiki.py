@@ -40,8 +40,8 @@ def _call_wiki_llm(model: str, messages: list[dict], max_time: int = 300) -> dic
         base_url = wiki_cfg["base_url"]
         api_key = wiki_cfg["api_key"]
     except Exception:
-        base_url = config.upstream.base_url
-        api_key = config.upstream.api_key
+        base_url = config.chat.base_url
+        api_key = config.chat.api_key
 
     url = f"{base_url.rstrip('/')}/chat/completions"
     payload = {"model": model, "messages": messages}
@@ -583,11 +583,11 @@ def _search_by_embedding(query: str, articles: list[dict], top_k: int = 5) -> li
         from services.embedder import VolcengineEmbedder
         import math
 
-        llm_cfg = config.upstream
+        emb_cfg = config.embedding
         embedder = VolcengineEmbedder(
-            model=llm_cfg.embedding_model,
-            api_key=llm_cfg.api_key,
-            base_url=llm_cfg.base_url,
+            model=emb_cfg.model,
+            api_key=emb_cfg.api_key,
+            base_url=emb_cfg.base_url,
         )
 
         # 获取 query embedding
@@ -793,7 +793,7 @@ def ingest(content: str, title: str, topic: str = "general",
             wiki_cfg = db.get_wiki_llm_config()
             model = wiki_cfg["model"]
         except Exception:
-            model = config.upstream.model
+            model = config.chat.model
 
     # Step 1: 保存 raw 材料
     raw_result = save_raw(content, title, topic, source_url, published_date)
@@ -973,7 +973,7 @@ def query(query_text: str, top_k: int = 5, use_embedding: bool = False,
     answer = ""
     if generate_answer and results:
         if model is None:
-            model = config.upstream.model
+            model = config.chat.model
 
         # 构建引用上下文
         contexts = []
@@ -1199,7 +1199,7 @@ def _heuristic_lint(model: str = None) -> list[str]:
             wiki_cfg = db.get_wiki_llm_config()
             model = wiki_cfg["model"]
         except Exception:
-            model = config.upstream.model
+            model = config.chat.model
 
     all_articles = list_articles()
     if not all_articles:

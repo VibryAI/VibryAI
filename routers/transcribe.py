@@ -117,7 +117,7 @@ async def api_insight(request: Request):
         _summary_queue -= 1
         messages = [{"role":"system","content":insight_prompt},{"role":"user","content":f"Recording: {title}\n\nTranscript:\n{transcript}\n\nContext: {context}"}]
         from services.asr import call_llm
-        model = config.summary.model or config.upstream.model
+        model = config.summary.effective_model
         result = await asyncio.to_thread(call_llm, model, messages, 180)
         if "error" in result: return JSONResponse({"error": str(result["error"])}, status_code=500)
         # ★ 计费：LLM 按 token 计费

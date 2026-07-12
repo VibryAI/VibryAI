@@ -34,18 +34,19 @@ def _init_engine():
         from mem0.configs.base import MemoryConfig
         from services.embedder import VolcengineEmbedder
 
-        llm_cfg = config.upstream
+        chat_cfg = config.chat
+        emb_cfg = config.embedding
         mem_cfg = config.memory
 
         log.info("🧠 初始化 Mem0 语义记忆引擎...")
-        log.info(f"   Embedding: {llm_cfg.embedding_model} (直连火山引擎)")
+        log.info(f"   Embedding: {emb_cfg.model} (直连)")
         log.info(f"   向量库: Qdrant 本地 ({mem_cfg.qdrant_path})")
 
-        # 自定义 embedder — 直接调火山引擎 multimodal API
+        # 自定义 embedder — 直接调 embedding API
         embedder = VolcengineEmbedder(
-            model=llm_cfg.embedding_model,
-            api_key=llm_cfg.api_key,
-            base_url=llm_cfg.base_url,
+            model=emb_cfg.model,
+            api_key=emb_cfg.api_key,
+            base_url=emb_cfg.base_url,
         )
 
         # 构建 config — embedding_dims 确保 collection 用正确维度
@@ -54,17 +55,17 @@ def _init_engine():
             llm={
                 "provider": "openai",
                 "config": {
-                    "model": llm_cfg.model,
-                    "api_key": llm_cfg.api_key,
-                    "openai_base_url": llm_cfg.base_url.rstrip("/") + "/",
+                    "model": chat_cfg.model,
+                    "api_key": chat_cfg.api_key,
+                    "openai_base_url": chat_cfg.base_url.rstrip("/") + "/",
                 },
             },
             embedder={
                 "provider": "openai",
                 "config": {
-                    "model": llm_cfg.embedding_model,
-                    "api_key": llm_cfg.api_key,
-                    "openai_base_url": llm_cfg.base_url.rstrip("/") + "/",
+                    "model": emb_cfg.model,
+                    "api_key": emb_cfg.api_key,
+                    "openai_base_url": emb_cfg.base_url.rstrip("/") + "/",
                     "embedding_dims": dims,
                 },
             },

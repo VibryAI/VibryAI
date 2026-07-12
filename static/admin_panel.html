@@ -201,17 +201,47 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <h2 style="margin-bottom:16px" data-i18n="models.title">Model Configuration</h2>
 
       <details open style="margin-bottom:16px">
-        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.chat_section">Chat Model Config</summary>
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.chat_section_title">Chat Model Config</summary>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.chat_section_desc">Used for conversations, summaries, and insights. Supports any OpenAI-compatible API.</p>
         <div class="card" style="margin-top:8px">
         <div class="form-group">
           <label data-i18n="models.chat_model_label">Chat Model</label>
           <input id="cfg-chat-model" placeholder="doubao-seed-2-1-turbo-260628">
-          <div class="hint" data-i18n="models.chat_model_hint">Recommended: doubao-seed-2-1-turbo-260628 (fast) | doubao-seed-2-1-pro-260628 (powerful)</div>
+          <div class="hint" data-i18n="models.chat_model_hint">Default from .env / DB config</div>
         </div>
+        <div class="form-group">
+          <label data-i18n="models.chat_base_url_label">API Base URL</label>
+          <input id="cfg-chat-base-url" placeholder="https://ark.cn-beijing.volces.com/api/v3">
+          <div class="hint" data-i18n="models.chat_base_url_hint">OpenAI-compatible endpoint</div>
+        </div>
+        <div class="form-group">
+          <label data-i18n="models.chat_api_key_label">API Key</label>
+          <input id="cfg-chat-api-key" placeholder="your-api-key" type="password">
+          <div class="hint" data-i18n="models.chat_api_key_hint">Leave blank to keep current key</div>
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig('chat')" data-i18n="models.save_chat_btn">Save Chat Config</button>
+        <span id="cfg-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
+      </div>
+      </details>
+
+      <details open style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.emb_section_title">Embedding Model Config</summary>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.emb_section_desc">Used for memory vectorization and semantic search. Supports any OpenAI-compatible embedding API.</p>
+        <div class="card" style="margin-top:8px">
         <div class="form-group">
           <label data-i18n="models.emb_model_label">Embedding Model</label>
           <input id="cfg-emb-model" placeholder="doubao-embedding-vision-251215">
-          <div class="hint" data-i18n="models.emb_model_hint">Recommended: doubao-embedding-vision-251215 (2048d multimodal)</div>
+          <div class="hint" data-i18n="models.emb_model_hint">Default from .env / DB config</div>
+        </div>
+        <div class="form-group">
+          <label data-i18n="models.emb_base_url_label">API Base URL</label>
+          <input id="cfg-emb-base-url" placeholder="https://ark.cn-beijing.volces.com/api/v3">
+          <div class="hint" data-i18n="models.emb_base_url_hint">OpenAI-compatible endpoint (multimodal embeddings supported)</div>
+        </div>
+        <div class="form-group">
+          <label data-i18n="models.emb_api_key_label">API Key</label>
+          <input id="cfg-emb-api-key" placeholder="your-api-key" type="password">
+          <div class="hint" data-i18n="models.emb_api_key_hint">Leave blank to keep current key</div>
         </div>
         <div class="form-group">
           <label data-i18n="models.topk_label">Memory Retrieval Count (top_k)</label>
@@ -223,8 +253,8 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <input id="cfg-threshold" type="number" min="0" max="1" step="0.05" placeholder="0.35">
           <div class="hint" data-i18n="models.threshold_hint">Memories below this score are not injected, recommended 0.3-0.5</div>
         </div>
-        <button class="btn btn-primary" onclick="saveConfig('chat')" data-i18n="models.save_btn">Save Config</button>
-        <span id="cfg-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
+        <button class="btn btn-primary" onclick="saveConfig('embedding')" data-i18n="models.save_emb_btn">Save Embedding Config</button>
+        <span id="cfg-emb-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
 
@@ -767,18 +797,29 @@ function sendChat() {
 // ==================== Config ====================
 function loadConfig() {
   fetch('/admin/api/config', {headers:authHeaders()}).then(r=>r.json()).then(d => {
-    document.getElementById('cfg-chat-model').value = d.upstream_model || '';
+    // Chat model
+    document.getElementById('cfg-chat-model').value = d.chat_model || '';
+    document.getElementById('cfg-chat-base-url').value = d.chat_base_url || '';
+    document.getElementById('cfg-chat-api-key').value = d.chat_api_key || '';
+    // Embedding model
     document.getElementById('cfg-emb-model').value = d.embedding_model || '';
-    document.getElementById('cfg-asr-mode').value = d.asr_mode || 'local';
+    document.getElementById('cfg-emb-base-url').value = d.embedding_base_url || '';
+    document.getElementById('cfg-emb-api-key').value = d.embedding_api_key || '';
+    // ASR
+    document.getElementById('cfg-asr-mode').value = d.asr_mode || 'cloud';
     document.getElementById('cfg-voice-mode').value = d.asr_voice_mode || 'cloud';
+    // Memory
     document.getElementById('cfg-topk').value = d.memory_top_k || 5;
     document.getElementById('cfg-threshold').value = d.memory_threshold || 0.35;
+    // Doubao ASR
     document.getElementById('cfg-doubao-appid').value = d.doubao_asr_app_id || '';
     document.getElementById('cfg-doubao-accesskey').value = d.doubao_asr_access_key || '';
     document.getElementById('cfg-doubao-flash-url').value = d.doubao_asr_flash_url || '';
     document.getElementById('cfg-doubao-standard-url').value = d.doubao_asr_standard_url || '';
+    // Prompts
     document.getElementById('cfg-summary-prompt').value = d.summary_prompt || '';
     document.getElementById('cfg-insight-prompt').value = d.insight_prompt || '';
+    // Wiki
     document.getElementById('cfg-wiki-model').value = d.wiki_model || '';
     document.getElementById('cfg-wiki-base-url').value = d.wiki_base_url || '';
     document.getElementById('cfg-wiki-api-key').value = d.wiki_api_key || '';
@@ -786,8 +827,15 @@ function loadConfig() {
 }
 function saveConfig(section) {
   const body = {
-    upstream_model: document.getElementById('cfg-chat-model').value,
+    // Chat model
+    chat_model: document.getElementById('cfg-chat-model').value,
+    chat_base_url: document.getElementById('cfg-chat-base-url').value,
+    chat_api_key: document.getElementById('cfg-chat-api-key').value,
+    // Embedding model
     embedding_model: document.getElementById('cfg-emb-model').value,
+    embedding_base_url: document.getElementById('cfg-emb-base-url').value,
+    embedding_api_key: document.getElementById('cfg-emb-api-key').value,
+    // ASR
     asr_mode: document.getElementById('cfg-asr-mode').value,
     asr_voice_mode: document.getElementById('cfg-voice-mode').value,
     memory_top_k: parseInt(document.getElementById('cfg-topk').value),
@@ -805,9 +853,8 @@ function saveConfig(section) {
   fetch('/admin/api/config', {method:'POST',headers:authHeaders(),body:JSON.stringify(body)})
     .then(r=>r.json()).then(d => {
       if (d.ok) {
-        // Only show the indicator for the section that was saved
         const map = {
-          'chat': 'cfg-saved', 'wiki': 'cfg-wiki-saved',
+          'chat': 'cfg-saved', 'embedding': 'cfg-emb-saved', 'wiki': 'cfg-wiki-saved',
           'asr': 'cfg-asr-saved', 'prompt': 'cfg-prompt-saved'
         };
         const id = section ? map[section] : 'cfg-saved';

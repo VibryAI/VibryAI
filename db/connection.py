@@ -122,6 +122,17 @@ def init_db():
             updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
         );
 
+        CREATE TABLE IF NOT EXISTS model_config (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            chat_model TEXT NOT NULL DEFAULT '',
+            chat_base_url TEXT NOT NULL DEFAULT '',
+            chat_api_key TEXT NOT NULL DEFAULT '',
+            embedding_model TEXT NOT NULL DEFAULT '',
+            embedding_base_url TEXT NOT NULL DEFAULT '',
+            embedding_api_key TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
+
         CREATE TABLE IF NOT EXISTS api_tokens (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,

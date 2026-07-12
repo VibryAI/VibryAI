@@ -17,7 +17,8 @@ async def health():
     return JSONResponse({
         "status": "ok", "version": "0.3.0",
         "server": f"http://{config.server.host}:{config.server.port}",
-        "upstream": config.upstream.model,
+        "chat_model": config.chat.model,
+        "embedding_model": config.embedding.model,
         "asr_mode": config.asr.mode,
         "asr_providers": supported_provider_modes(),
         "mem0": mem0_status,

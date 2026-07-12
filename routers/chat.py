@@ -18,15 +18,15 @@ router = APIRouter()
 @router.get("/v1/models")
 async def list_models():
     return {"object": "list", "data": [
-        {"id": config.upstream.model, "object": "model", "created": 0, "owned_by": "vibry-ai"},
-        {"id": config.upstream.embedding_model, "object": "model", "created": 0, "owned_by": "vibry-ai"},
+        {"id": config.chat.model, "object": "model", "created": 0, "owned_by": "vibry-ai"},
+        {"id": config.embedding.model, "object": "model", "created": 0, "owned_by": "vibry-ai"},
     ]}
 
 @router.post("/v1/embeddings")
 async def embeddings_proxy(request: Request):
     import httpx
     body = await request.json()
-    model = body.get("model", config.upstream.embedding_model)
+    model = body.get("model", config.embedding.model)
     raw_input = body.get("input", "")
     if isinstance(raw_input, str):
         multimodal_input = [{"type": "text", "text": raw_input}]
@@ -37,8 +37,8 @@ async def embeddings_proxy(request: Request):
     upstream_payload = {"model": model, "input": multimodal_input}
     if "encoding_format" in body: upstream_payload["encoding_format"] = body["encoding_format"]
     if "dimensions" in body: upstream_payload["dimensions"] = body["dimensions"]
-    multimodal_url = f"{config.upstream.base_url.rstrip('/')}/embeddings/multimodal"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {config.upstream.api_key}"}
+    multimodal_url = f"{config.embedding.base_url.rstrip('/')}/embeddings/multimodal"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {config.embedding.api_key}"}
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(multimodal_url, json=upstream_payload, headers=headers)
     if resp.status_code != 200:

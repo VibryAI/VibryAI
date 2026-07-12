@@ -31,7 +31,7 @@ def get_http_client() -> httpx.AsyncClient:
     global _http_client
     if _http_client is None:
         _http_client = httpx.AsyncClient(
-            timeout=httpx.Timeout(config.upstream.timeout),
+            timeout=httpx.Timeout(config.chat.timeout),
             limits=httpx.Limits(max_keepalive_connections=10, max_connections=50),
         )
     return _http_client
@@ -113,10 +113,10 @@ def build_upstream_payload(
     保留原始请求中的 model, temperature, max_tokens 等参数，
     但用配置中的 model 覆盖（如果配置了的话）。
     """
-    upstream = config.upstream
+    chat = config.chat
 
     payload = {
-        "model": upstream.model or original_payload.get("model", "gpt-3.5-turbo"),
+        "model": chat.model or original_payload.get("model", "gpt-3.5-turbo"),
         "messages": modified_messages,
     }
 
@@ -137,18 +137,18 @@ async def stream_to_upstream(
     payload: dict,
 ) -> AsyncGenerator[bytes, None]:
     """流式请求上游 LLM，yield 原始 bytes chunks"""
-    upstream = config.upstream
-    url = f"{upstream.base_url.rstrip('/')}/chat/completions"
+    chat = config.chat
+    url = f"{chat.base_url.rstrip('/')}/chat/completions"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {upstream.api_key}",
+        "Authorization": f"Bearer {chat.api_key}",
     }
 
     client = get_http_client()
     t0 = time.time()
     total_bytes = 0
 
-    log.info(f"🔄 代理请求 → {upstream.model} | stream=True | messages={len(payload['messages'])}条")
+    log.info(f"🔄 代理请求 → {chat.model} | stream=True | messages={len(payload['messages'])}条")
 
     try:
         async with client.stream("POST", url, json=payload, headers=headers) as resp:
@@ -175,7 +175,7 @@ async def stream_to_upstream(
         log.info(f"✅ 流式完成 | {total_bytes} bytes | {elapsed:.0f}ms")
 
     except httpx.TimeoutException:
-        log.error(f"⏰ 上游超时 ({config.upstream.timeout}s)")
+        log.error(f"⏰ 上游超时 ({config.chat.timeout}s)")
         yield f"data: {json.dumps({'error': {'message': 'Upstream timeout', 'type': 'timeout'}})}\n\n".encode()
         yield b"data: [DONE]\n\n"
     except Exception as e:
@@ -186,17 +186,17 @@ async def stream_to_upstream(
 
 async def proxy_non_streaming(payload: dict) -> dict:
     """非流式代理请求"""
-    upstream = config.upstream
-    url = f"{upstream.base_url.rstrip('/')}/chat/completions"
+    chat = config.chat
+    url = f"{chat.base_url.rstrip('/')}/chat/completions"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {upstream.api_key}",
+        "Authorization": f"Bearer {chat.api_key}",
     }
 
     client = get_http_client()
     t0 = time.time()
 
-    log.info(f"🔄 非流式请求 → {upstream.model} | messages={len(payload['messages'])}条")
+    log.info(f"🔄 非流式请求 → {chat.model} | messages={len(payload['messages'])}条")
 
     resp = await client.post(url, json=payload, headers=headers)
     elapsed = (time.time() - t0) * 1000
