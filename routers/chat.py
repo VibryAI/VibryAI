@@ -93,5 +93,14 @@ async def chat_completions(request: Request):
         result = await proxy_non_streaming(upstream_payload)
         assistant_text = result.get("choices",[{}])[0].get("message",{}).get("content","")
         if assistant_text:
-            db.save_chat_message(user_id, "assistant", assistant_text, conversation_id=conversation_id, model=upstream_payload.get("model",""), tokens=result.get("usage",{}).get("total_tokens",0))
+            usage = result.get("usage", {})
+            db.save_chat_message(user_id, "assistant", assistant_text, conversation_id=conversation_id, model=upstream_payload.get("model",""), tokens=usage.get("total_tokens",0))
+            # ★ 计费：LLM 按 token 计费
+            db.log_usage(
+                user_id=user_id, endpoint="/v1/chat/completions",
+                model=upstream_payload.get("model",""),
+                prompt_tokens=usage.get("prompt_tokens",0),
+                completion_tokens=usage.get("completion_tokens",0),
+                total_tokens=usage.get("total_tokens",0),
+            )
         return JSONResponse(content=result)

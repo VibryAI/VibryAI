@@ -6,13 +6,21 @@ from datetime import datetime
 from db.connection import get_conn, DB_PATH
 
 
-# 模型定价 (RMB per 1M tokens)
+# 模型定价 (RMB per 1M tokens) — 用于 chat/summarize/insight 等 LLM 接口
 MODEL_PRICES = {
     "doubao-seed-2-1-turbo-260628": {"prompt": 2.0, "completion": 6.0},
     "doubao-seed-2-1-pro-260628": {"prompt": 4.0, "completion": 12.0},
     "doubao-seed-2-0-mini-260428": {"prompt": 0.5, "completion": 1.5},
     "doubao-embedding-text-240715": {"prompt": 0.5, "completion": 0.0},
     "default": {"prompt": 2.0, "completion": 6.0},
+}
+
+# ASR 按时长计费 (RMB per 分钟) — 用于 transcribe/voice 等语音转写接口
+ASR_PRICES = {
+    "doubao_flash": 0.10,       # 豆包极速版
+    "doubao_standard": 0.30,    # 豆包标准版（说话人分离）
+    "funasr_server": 0.0,       # 本地 FunASR 服务，不计费
+    "default": 0.10,
 }
 
 
@@ -24,41 +32,79 @@ def log_usage(
     completion_tokens: int = 0,
     total_tokens: int = 0,
     duration_ms: int = 0,
+    audio_seconds: float = 0,
 ) -> int:
-    """记录 API 调用用量"""
-    prices = MODEL_PRICES.get(model, MODEL_PRICES["default"])
-    cost = (prompt_tokens * prices["prompt"] + completion_tokens * prices["completion"]) / 1_000_000
+    """记录 API 调用用量
+
+    两种计费模式（互斥）:
+    - Token 计费 (chat/summarize/insight): prompt_tokens × token价格 + completion_tokens × token价格
+    - 时长计费 (transcribe/voice): audio_seconds / 60 × ASR价格
+    """
+    if audio_seconds > 0:
+        # ASR 时长计费
+        asr_price = ASR_PRICES.get(model, ASR_PRICES["default"])
+        cost = audio_seconds / 60 * asr_price
+    else:
+        # LLM token 计费
+        prices = MODEL_PRICES.get(model, MODEL_PRICES["default"])
+        cost = (prompt_tokens * prices["prompt"] + completion_tokens * prices["completion"]) / 1_000_000
 
     conn = get_conn()
     cur = conn.execute(
-        """INSERT INTO usage_log (user_id, endpoint, model, prompt_tokens, completion_tokens, total_tokens, duration_ms, cost_rmb)
-           VALUES (?,?,?,?,?,?,?,?)""",
-        (user_id, endpoint, model, prompt_tokens, completion_tokens, total_tokens, duration_ms, round(cost, 6)),
+        """INSERT INTO usage_log (user_id, endpoint, model, prompt_tokens, completion_tokens, total_tokens, duration_ms, audio_seconds, cost_rmb)
+           VALUES (?,?,?,?,?,?,?,?,?)""",
+        (user_id, endpoint, model, prompt_tokens, completion_tokens, total_tokens, duration_ms, audio_seconds, round(cost, 6)),
     )
     conn.commit()
     return cur.lastrowid
 
 
 def get_usage_summary(user_id: str = None) -> dict:
-    """获取用量摘要"""
+    """获取用量摘要（区分 token 计费和时长计费）"""
     conn = get_conn()
     if user_id:
         row = conn.execute(
-            "SELECT COALESCE(SUM(total_tokens),0) as tokens, COALESCE(SUM(cost_rmb),0) as cost, COUNT(*) as calls FROM usage_log WHERE user_id=?",
+            """SELECT
+                COALESCE(SUM(total_tokens),0) as tokens,
+                COALESCE(SUM(cost_rmb),0) as cost,
+                COUNT(*) as calls,
+                COALESCE(SUM(audio_seconds),0) as audio_sec,
+                COALESCE(SUM(CASE WHEN audio_seconds > 0 THEN cost_rmb ELSE 0 END),0) as audio_cost,
+                COALESCE(SUM(CASE WHEN audio_seconds = 0 THEN cost_rmb ELSE 0 END),0) as token_cost
+               FROM usage_log WHERE user_id=?""",
             (user_id,),
         ).fetchone()
     else:
         row = conn.execute(
-            "SELECT COALESCE(SUM(total_tokens),0) as tokens, COALESCE(SUM(cost_rmb),0) as cost, COUNT(*) as calls FROM usage_log"
+            """SELECT
+                COALESCE(SUM(total_tokens),0) as tokens,
+                COALESCE(SUM(cost_rmb),0) as cost,
+                COUNT(*) as calls,
+                COALESCE(SUM(audio_seconds),0) as audio_sec,
+                COALESCE(SUM(CASE WHEN audio_seconds > 0 THEN cost_rmb ELSE 0 END),0) as audio_cost,
+                COALESCE(SUM(CASE WHEN audio_seconds = 0 THEN cost_rmb ELSE 0 END),0) as token_cost
+               FROM usage_log"""
         ).fetchone()
-    return {"total_tokens": row["tokens"], "total_cost_rmb": round(row["cost"], 4), "total_calls": row["calls"]}
+    return {
+        "total_tokens": row["tokens"],
+        "total_cost_rmb": round(row["cost"], 4),
+        "total_calls": row["calls"],
+        "total_audio_seconds": round(row["audio_sec"], 1),
+        "token_cost_rmb": round(row["token_cost"], 4),
+        "audio_cost_rmb": round(row["audio_cost"], 4),
+    }
 
 
 def get_usage_by_user() -> list[dict]:
-    """按用户分组的用量"""
+    """按用户分组的用量（含时长维度）"""
     conn = get_conn()
     rows = conn.execute(
-        "SELECT user_id, SUM(total_tokens) as tokens, SUM(cost_rmb) as cost, COUNT(*) as calls FROM usage_log GROUP BY user_id ORDER BY cost DESC"
+        """SELECT user_id,
+            SUM(total_tokens) as tokens,
+            SUM(cost_rmb) as cost,
+            COUNT(*) as calls,
+            COALESCE(SUM(audio_seconds),0) as audio_sec
+           FROM usage_log GROUP BY user_id ORDER BY cost DESC"""
     ).fetchall()
     return [dict(r) for r in rows]
 

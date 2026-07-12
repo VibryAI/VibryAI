@@ -23,7 +23,7 @@ import urllib.request
 from app.config import config
 from utils.audio import (
     detect_audio_format, enhance_audio,
-    save_audio_wav, _clean_debug_dir,
+    save_audio_wav, _clean_debug_dir, get_audio_duration_seconds,
 )
 from services.asr_providers import get_asr_provider
 
@@ -147,6 +147,15 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous") 
                 output_chars=len(text),
                 duration_ms=int(asr_time * 1000),
             )
+            # ★ 计费：ASR 按音频时长计费
+            audio_dur = get_audio_duration_seconds(audio_bytes)
+            db.log_usage(
+                user_id=user_id,
+                endpoint="/api/transcribe",
+                model=result.provider,
+                audio_seconds=audio_dur,
+                duration_ms=int(asr_time * 1000),
+            )
             audio_url = f"/api/audio/{rec_id}"
 
         return {
@@ -188,6 +197,7 @@ def transcribe_voice(audio_bytes: bytes, title: str = "", user_id: str = "anonym
     audio_fmt = detect_audio_format(audio_bytes)
     mode = getattr(config.doubao_asr, "voice_mode", "doubao_flash") or "doubao_flash"
     t0 = time.time()
+    import db  # lazy import to avoid circular
     try:
         provider = get_asr_provider(mode)
         result = provider.transcribe(audio_bytes, audio_fmt=audio_fmt)
@@ -195,6 +205,15 @@ def transcribe_voice(audio_bytes: bytes, title: str = "", user_id: str = "anonym
         log.info("voice ASR done provider=%s chars=%d time=%.1fs", result.provider, len(text), time.time() - t0)
         if not text:
             return {"text": "", "audio_url": None, "audio_token": None, "error": "No valid speech recognized"}
+        # ★ 计费：ASR 按音频时长计费
+        audio_dur = get_audio_duration_seconds(audio_bytes)
+        db.log_usage(
+            user_id=user_id,
+            endpoint="/api/transcribe/voice",
+            model=result.provider,
+            audio_seconds=audio_dur,
+            duration_ms=int((time.time() - t0) * 1000),
+        )
         return {
             "text": text,
             "audio_url": None,
@@ -333,6 +352,17 @@ def summarize(
         user_id=user_id,
         input_size=char_count,
         output_chars=len(json.dumps(parsed, ensure_ascii=False)),
+        duration_ms=int(api_time * 1000),
+    )
+    # ★ 计费：LLM 按 token 计费
+    usage = result.get("usage", {})
+    db.log_usage(
+        user_id=user_id,
+        endpoint="/api/summarize",
+        model=model,
+        prompt_tokens=usage.get("prompt_tokens", 0),
+        completion_tokens=usage.get("completion_tokens", 0),
+        total_tokens=usage.get("total_tokens", 0),
         duration_ms=int(api_time * 1000),
     )
 

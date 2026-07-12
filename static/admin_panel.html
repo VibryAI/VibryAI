@@ -170,7 +170,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <h3 style="margin:20px 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="dashboard.user_usage_title">Usage by User</h3>
       <div class="table-wrap"><table id="dash-users"><thead><tr><th data-i18n="dashboard.user_usage_headers.user">User</th><th data-i18n="dashboard.user_usage_headers.calls">Calls</th><th data-i18n="dashboard.user_usage_headers.tokens">Token Usage</th><th data-i18n="dashboard.user_usage_headers.cost">Cost (¥)</th></tr></thead><tbody></tbody></table></div>
       <h3 style="margin:20px 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="dashboard.recent_title">Recent Calls</h3>
-      <div class="table-wrap"><table id="dash-recent"><thead><tr><th data-i18n="dashboard.recent_headers.time">Time</th><th data-i18n="dashboard.recent_headers.user">User</th><th data-i18n="dashboard.recent_headers.endpoint">Endpoint</th><th data-i18n="dashboard.recent_headers.model">Model</th><th data-i18n="dashboard.recent_headers.tokens">Tokens</th><th data-i18n="dashboard.recent_headers.duration">Duration</th><th data-i18n="dashboard.recent_headers.cost">Cost</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="dash-recent"><thead><tr><th data-i18n="dashboard.recent_headers.time">Time</th><th data-i18n="dashboard.recent_headers.user">User</th><th data-i18n="dashboard.recent_headers.endpoint">Endpoint</th><th data-i18n="dashboard.recent_headers.model">Model</th><th data-i18n="dashboard.recent_headers.tokens">Tokens</th><th data-i18n="dashboard.recent_headers.audio">Audio</th><th data-i18n="dashboard.recent_headers.cost">Cost</th></tr></thead><tbody></tbody></table></div>
     </div>
 
     <!-- Chat -->
@@ -485,7 +485,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
     <div id="page-billing" class="page">
       <h2 style="margin-bottom:16px" data-i18n="billing.title">Billing Details</h2>
       <div class="cards" id="bill-cards"></div>
-      <div class="table-wrap"><table id="bill-table"><thead><tr><th data-i18n="billing.table_headers.time">Time</th><th data-i18n="billing.table_headers.user">User</th><th data-i18n="billing.table_headers.endpoint">Endpoint</th><th data-i18n="billing.table_headers.model">Model</th><th data-i18n="billing.table_headers.prompt_tokens">Prompt</th><th data-i18n="billing.table_headers.completion_tokens">Completion</th><th data-i18n="billing.table_headers.total_tokens">Total Tokens</th><th data-i18n="billing.table_headers.duration">Duration</th><th data-i18n="billing.table_headers.cost">Cost ¥</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="bill-table"><thead><tr><th data-i18n="billing.table_headers.time">Time</th><th data-i18n="billing.table_headers.user">User</th><th data-i18n="billing.table_headers.endpoint">Endpoint</th><th data-i18n="billing.table_headers.model">Model</th><th data-i18n="billing.table_headers.prompt_tokens">Prompt</th><th data-i18n="billing.table_headers.completion_tokens">Completion</th><th data-i18n="billing.table_headers.total_tokens">Total Tokens</th><th data-i18n="billing.table_headers.audio">Audio</th><th data-i18n="billing.table_headers.cost">Cost ¥</th></tr></thead><tbody></tbody></table></div>
     </div>
 
     <!-- Logs -->
@@ -610,14 +610,17 @@ function refreshDashboard() {
        <div class="card"><div class="label">${T('dashboard.cards.memories')}</div><div class="value">${d.memories_count ?? '-'}</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.api_calls')}</div><div class="value">${d.total_calls}</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.tokens')}</div><div class="value">${(d.total_tokens/1000).toFixed(0)}k</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.audio')}</div><div class="value">${(d.total_audio_seconds||0).toFixed(0)}s</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.cost')}</div><div class="value" style="color:var(--warn)">¥${d.total_cost.toFixed(3)}</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.token_cost')}</div><div class="value" style="font-size:16px">¥${(d.token_cost||0).toFixed(3)}</div></div>
+       <div class="card"><div class="label">${T('dashboard.cards.audio_cost')}</div><div class="value" style="font-size:16px">¥${(d.audio_cost||0).toFixed(3)}</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.status')}</div><div class="value" style="color:var(--accent2)">${T('dashboard.status_online')}</div></div>`;
 
     const tbu = document.querySelector('#dash-users tbody');
     tbu.innerHTML = (d.usage_by_user||[]).map(u => `<tr><td>${u.user_id}</td><td>${u.calls}</td><td>${(u.tokens/1000).toFixed(0)}k</td><td>¥${(u.cost||0).toFixed(4)}</td></tr>`).join('');
 
     const tbr = document.querySelector('#dash-recent tbody');
-    tbr.innerHTML = (d.recent_usage||[]).slice(0,20).map(u => `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.total_tokens}</td><td>${u.duration_ms}ms</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`).join('');
+    tbr.innerHTML = (d.recent_usage||[]).slice(0,20).map(u => `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.total_tokens || '-'}</td><td>${(u.audio_seconds||0)>0 ? (u.audio_seconds).toFixed(1)+'s' : '-'}</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`).join('');
   });
 }
 
@@ -980,9 +983,12 @@ function refreshBilling() {
     document.getElementById('bill-cards').innerHTML =
       `<div class="card"><div class="label">${T('billing.summary_cards.total_calls')}</div><div class="value">${d.summary.total_calls}</div></div>
        <div class="card"><div class="label">${T('billing.summary_cards.total_tokens')}</div><div class="value">${(d.summary.total_tokens/1000).toFixed(0)}k</div></div>
-       <div class="card"><div class="label">${T('billing.summary_cards.total_cost')}</div><div class="value" style="color:var(--warn)">¥${d.summary.total_cost_rmb.toFixed(4)}</div></div>`;
+       <div class="card"><div class="label">${T('billing.summary_cards.total_audio')}</div><div class="value">${(d.summary.total_audio_seconds||0).toFixed(0)}s</div></div>
+       <div class="card"><div class="label">${T('billing.summary_cards.total_cost')}</div><div class="value" style="color:var(--warn)">¥${d.summary.total_cost_rmb.toFixed(4)}</div></div>
+       <div class="card"><div class="label">${T('billing.summary_cards.token_cost')}</div><div class="value" style="font-size:16px">¥${(d.summary.token_cost_rmb||0).toFixed(4)}</div></div>
+       <div class="card"><div class="label">${T('billing.summary_cards.audio_cost')}</div><div class="value" style="font-size:16px">¥${(d.summary.audio_cost_rmb||0).toFixed(4)}</div></div>`;
     document.querySelector('#bill-table tbody').innerHTML = (d.recent||[]).map(u =>
-      `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.prompt_tokens}</td><td>${u.completion_tokens}</td><td>${u.total_tokens}</td><td>${u.duration_ms}ms</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`
+      `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.prompt_tokens || '-'}</td><td>${u.completion_tokens || '-'}</td><td>${u.total_tokens || '-'}</td><td>${(u.audio_seconds||0)>0 ? (u.audio_seconds).toFixed(1)+'s' : '-'}</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`
     ).join('');
   });
 }

@@ -16,13 +16,15 @@ _summary_queue = 0
 
 @router.get("/api/asr-mode")
 async def get_asr_mode():
-    return JSONResponse({"asr_mode": config.asr.mode})
+    from services.asr_providers import supported_provider_modes
+    return JSONResponse({"asr_mode": config.asr.mode, "providers": supported_provider_modes()})
 
 @router.post("/api/asr-mode")
 async def set_asr_mode(request: Request):
     data = await request.json()
     mode = data.get("mode", config.asr.mode)
-    if mode in ("local", "cloud", "cloud_flash", "cloud_standard"):
+    from services.asr_providers import supported_provider_modes
+    if mode in supported_provider_modes():
         config.asr.mode = mode
         log.info(f"ASR mode switched: {mode}")
     return JSONResponse({"asr_mode": config.asr.mode})
@@ -116,6 +118,14 @@ async def api_insight(request: Request):
         model = config.summary.model or config.upstream.model
         result = await asyncio.to_thread(call_llm, model, messages, 180)
         if "error" in result: return JSONResponse({"error": str(result["error"])}, status_code=500)
+        # ★ 计费：LLM 按 token 计费
+        usage = result.get("usage", {})
+        db.log_usage(
+            user_id=user_id, endpoint="/api/insight", model=model,
+            prompt_tokens=usage.get("prompt_tokens",0),
+            completion_tokens=usage.get("completion_tokens",0),
+            total_tokens=usage.get("total_tokens",0),
+        )
         raw = result.get("choices",[{}])[0].get("message",{}).get("content","")
         match = re.search(r'\{[\s\S]*\}', raw)
         try: parsed = __import__('json').loads(match.group() if match else raw)

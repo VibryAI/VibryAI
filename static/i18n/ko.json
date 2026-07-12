@@ -43,7 +43,10 @@
       "memories": "메모리 수",
       "api_calls": "API 호출",
       "tokens": "토큰 사용량",
+      "audio": "음성 시간",
       "cost": "누적 비용",
+      "token_cost": "토큰 비용",
+      "audio_cost": "음성 비용",
       "status": "서비스 상태"
     },
     "status_online": "● Online",
@@ -61,7 +64,7 @@
       "endpoint": "엔드포인트",
       "model": "모델",
       "tokens": "토큰",
-      "duration": "소요 시간",
+      "audio": "음성 시간",
       "cost": "비용"
     }
   },
@@ -241,7 +244,10 @@
     "summary_cards": {
       "total_calls": "총 호출",
       "total_tokens": "총 토큰",
-      "total_cost": "총 비용"
+      "total_audio": "음성 시간",
+      "total_cost": "총 비용",
+      "token_cost": "토큰 비용",
+      "audio_cost": "음성 비용"
     },
     "table_headers": {
       "time": "시간",
@@ -251,7 +257,7 @@
       "prompt_tokens": "Prompt",
       "completion_tokens": "Completion",
       "total_tokens": "총 토큰",
-      "duration": "소요 시간",
+      "audio": "음성 시간",
       "cost": "비용 ¥"
     }
   },

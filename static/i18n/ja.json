@@ -43,7 +43,10 @@
       "memories": "メモリ数",
       "api_calls": "API呼出",
       "tokens": "トークン使用量",
+      "audio": "音声時間",
       "cost": "累計費用",
+      "token_cost": "トークン費用",
+      "audio_cost": "音声費用",
       "status": "サービス状態"
     },
     "status_online": "● Online",
@@ -61,7 +64,7 @@
       "endpoint": "エンドポイント",
       "model": "モデル",
       "tokens": "トークン",
-      "duration": "所要時間",
+      "audio": "音声時間",
       "cost": "費用"
     }
   },
@@ -241,7 +244,10 @@
     "summary_cards": {
       "total_calls": "総呼出",
       "total_tokens": "総トークン",
-      "total_cost": "総費用"
+      "total_audio": "音声時間",
+      "total_cost": "総費用",
+      "token_cost": "トークン費用",
+      "audio_cost": "音声費用"
     },
     "table_headers": {
       "time": "時刻",
@@ -251,7 +257,7 @@
       "prompt_tokens": "Prompt",
       "completion_tokens": "Completion",
       "total_tokens": "総トークン",
-      "duration": "所要時間",
+      "audio": "音声時間",
       "cost": "費用 ¥"
     }
   },

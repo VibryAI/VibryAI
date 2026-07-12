@@ -113,6 +113,9 @@ async def admin_stats(request: Request):
         "recordings": stats["total"], "completed": stats["completed"],
         "failed": stats["failed"], "total_calls": usage["total_calls"],
         "total_tokens": usage["total_tokens"], "total_cost": usage["total_cost_rmb"],
+        "total_audio_seconds": usage["total_audio_seconds"],
+        "token_cost": usage["token_cost_rmb"],
+        "audio_cost": usage["audio_cost_rmb"],
         "usage_by_user": db.get_usage_by_user(), "recent_usage": db.get_usage_recent(50),
         "memories_count": "N/A",
     })

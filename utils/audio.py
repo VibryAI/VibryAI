@@ -1,6 +1,6 @@
 """Vibry AI Core — Audio processing utilities (format detection, conversion, enhancement)"""
 
-import io, os, sys, struct, subprocess, tempfile, logging
+import io, os, sys, struct, subprocess, tempfile, wave, logging
 
 log = logging.getLogger("vibry.audio")
 
@@ -99,3 +99,46 @@ def compress_for_asr(wav_bytes: bytes) -> tuple:
         if proc.returncode == 0 and len(proc.stdout) > 100: return (proc.stdout, 'ogg', 'opus')
     except: pass
     return (wav_bytes, 'wav', None)
+
+
+def get_audio_duration_seconds(audio_bytes: bytes) -> float:
+    """从音频字节计算时长（秒）
+
+    优先解析 WAV header 获取精确时长；
+    非 WAV 尝试用 ffmpeg 探测；
+    失败则返回 0。
+    """
+    if not audio_bytes or len(audio_bytes) < 44:
+        return 0.0
+
+    # WAV: 解析 RIFF header
+    if audio_bytes[:4] == b'RIFF':
+        try:
+            byte_rate = struct.unpack('<I', audio_bytes[28:32])[0]
+            # 查找 data chunk
+            idx = audio_bytes.find(b'data', 12)
+            if idx >= 0 and byte_rate > 0:
+                data_size = struct.unpack('<I', audio_bytes[idx+4:idx+8])[0]
+                return data_size / byte_rate
+        except (struct.error, IndexError):
+            pass
+
+    # 非 WAV: 用 ffmpeg 探测
+    from app.config import config
+    ffmpeg = config.audio.ffmpeg_path if hasattr(config, 'audio') else "ffmpeg"
+    try:
+        proc = subprocess.run(
+            [ffmpeg, '-i', 'pipe:0', '-f', 'null', '-'],
+            input=audio_bytes, capture_output=True, timeout=30,
+        )
+        # ffmpeg 输出 Duration: 00:00:01.23 到 stderr
+        stderr = proc.stderr.decode('utf-8', errors='replace')
+        import re
+        m = re.search(r'Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)', stderr)
+        if m:
+            h, mn, s = int(m.group(1)), int(m.group(2)), float(m.group(3))
+            return h * 3600 + mn * 60 + s
+    except Exception:
+        pass
+
+    return 0.0

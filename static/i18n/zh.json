@@ -43,7 +43,10 @@
       "memories": "记忆总数",
       "api_calls": "API 调用",
       "tokens": "Token 用量",
+      "audio": "语音时长",
       "cost": "累计费用",
+      "token_cost": "Token 费用",
+      "audio_cost": "语音费用",
       "status": "服务状态"
     },
     "status_online": "● Online",
@@ -61,7 +64,7 @@
       "endpoint": "端点",
       "model": "模型",
       "tokens": "Tokens",
-      "duration": "耗时",
+      "audio": "语音时长",
       "cost": "费用"
     }
   },
@@ -241,7 +244,10 @@
     "summary_cards": {
       "total_calls": "总调用",
       "total_tokens": "总 Token",
-      "total_cost": "总费用"
+      "total_audio": "语音时长",
+      "total_cost": "总费用",
+      "token_cost": "Token 费用",
+      "audio_cost": "语音费用"
     },
     "table_headers": {
       "time": "时间",
@@ -251,7 +257,7 @@
       "prompt_tokens": "Prompt",
       "completion_tokens": "Completion",
       "total_tokens": "总Tokens",
-      "duration": "耗时",
+      "audio": "语音时长",
       "cost": "费用 ¥"
     }
   },

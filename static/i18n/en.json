@@ -43,7 +43,10 @@
       "memories": "Memories",
       "api_calls": "API Calls",
       "tokens": "Token Usage",
+      "audio": "Audio Duration",
       "cost": "Total Cost",
+      "token_cost": "Token Cost",
+      "audio_cost": "Audio Cost",
       "status": "Service Status"
     },
     "status_online": "Online",
@@ -61,7 +64,7 @@
       "endpoint": "Endpoint",
       "model": "Model",
       "tokens": "Tokens",
-      "duration": "Duration",
+      "audio": "Audio",
       "cost": "Cost"
     }
   },
@@ -241,7 +244,10 @@
     "summary_cards": {
       "total_calls": "Total Calls",
       "total_tokens": "Total Tokens",
-      "total_cost": "Total Cost"
+      "total_audio": "Audio Duration",
+      "total_cost": "Total Cost",
+      "token_cost": "Token Cost",
+      "audio_cost": "Audio Cost"
     },
     "table_headers": {
       "time": "Time",
@@ -251,7 +257,7 @@
       "prompt_tokens": "Prompt",
       "completion_tokens": "Completion",
       "total_tokens": "Total Tokens",
-      "duration": "Duration",
+      "audio": "Audio",
       "cost": "Cost ¥"
     }
   },

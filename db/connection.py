@@ -163,6 +163,13 @@ def init_db():
             conn.execute(f"ALTER TABLE recordings ADD COLUMN {col} {decl}")
             print(f"  [migrate] recordings + {col}")
 
+    # 迁移 usage_log: 添加 audio_seconds 列 (ASR 时长计费)
+    cur = conn.execute("PRAGMA table_info(usage_log)")
+    usage_cols = {row[1] for row in cur.fetchall()}
+    if "audio_seconds" not in usage_cols:
+        conn.execute("ALTER TABLE usage_log ADD COLUMN audio_seconds REAL DEFAULT 0")
+        print("  [migrate] usage_log + audio_seconds")
+
     conn.commit()
 
 
