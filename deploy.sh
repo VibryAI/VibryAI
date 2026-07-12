@@ -17,7 +17,7 @@
 set -e
 
 # ---- 配置 (支持环境变量覆盖) ----
-APP_DIR="${VIBRY_HOME:-/opt/vibry-server}"
+APP_DIR="${VIBRY_HOME:-/opt/http/vibryai/server}"
 APP_NAME="${VIBRY_SERVICE:-vibry-server}"
 VENV_DIR="${APP_DIR}/venv"
 SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
