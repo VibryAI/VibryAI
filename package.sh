@@ -49,13 +49,10 @@ tar -czf "$PACKAGE_FILE" \
     --exclude='*.db' \
     --exclude='*.db-shm' \
     --exclude='*.db-wal' \
-    --exclude='qdrant_data' \
-    --exclude='voiceprints' \
+    --exclude='data' \
     --exclude='ffmpeg-win-x86_64-v7.1.exe' \
     --exclude='nssm.exe' \
     --exclude='nssm.zip' \
-    --exclude='mem0' \
-    --exclude='mem0.zip' \
     --exclude='*.log' \
     --exclude='nul' \
     --exclude='.env' \

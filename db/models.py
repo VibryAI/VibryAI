@@ -250,9 +250,6 @@ DEFAULT_ASR_CONFIG = {
         "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit"),
     "summary_prompt": os.getenv("SUMMARY_PROMPT", ""),
     "insight_prompt": os.getenv("INSIGHT_PROMPT", ""),
-    "wiki_model": os.getenv("WIKI_MODEL", "deepseek-chat"),
-    "wiki_base_url": os.getenv("WIKI_BASE_URL", "https://api.deepseek.com"),
-    "wiki_api_key": os.getenv("WIKI_API_KEY", ""),
 }
 
 
@@ -275,20 +272,16 @@ def get_asr_config() -> dict:
 def set_asr_config(app_id: str = "", access_key: str = "", asr_mode: str = "cloud",
                    voice_mode: str = "cloud",
                    flash_url: str = "", standard_url: str = "",
-                   summary_prompt: str = "", insight_prompt: str = "",
-                   wiki_model: str = "", wiki_base_url: str = "",
-                   wiki_api_key: str = "") -> bool:
+                   summary_prompt: str = "", insight_prompt: str = "") -> bool:
     """更新 ASR 配置到数据库"""
     conn = get_conn()
     conn.execute(
         """INSERT OR REPLACE INTO asr_config
            (id, app_id, access_key, asr_mode, voice_mode, flash_url, standard_url,
-            summary_prompt, insight_prompt,
-            wiki_model, wiki_base_url, wiki_api_key, updated_at)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))""",
+            summary_prompt, insight_prompt, updated_at)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))""",
         (app_id, access_key, asr_mode, voice_mode, flash_url, standard_url,
-         summary_prompt, insight_prompt,
-         wiki_model, wiki_base_url, wiki_api_key),
+         summary_prompt, insight_prompt),
     )
     conn.commit()
     return True
@@ -338,35 +331,17 @@ def set_model_config(
     return True
 
 
-def get_wiki_llm_config() -> dict:
-    """获取 Wiki 编译专用 LLM 配置（base_url + api_key + model）
-
-    优先从 DB asr_config 读取，fallback 到 env vars，再 fallback 到 upstream config。
-    Fallback 时 base_url / api_key / model 三者保持一致（全部来自 upstream）。
-    """
-    try:
-        asr = get_asr_config()
-        model = asr.get("wiki_model", "") or os.getenv("WIKI_MODEL", "")
-        base_url = asr.get("wiki_base_url", "") or os.getenv("WIKI_BASE_URL", "")
-        api_key = asr.get("wiki_api_key", "") or os.getenv("WIKI_API_KEY", "")
-        if api_key and base_url:
-            return {"model": model or "deepseek-chat", "base_url": base_url, "api_key": api_key}
-    except Exception:
-        pass
-    # Fallback: 使用 Chat 模型配置（三者一致，避免跨平台 Key/URL 不匹配）
-    from app.config import config
-    return {
-        "model": config.chat.model,
-        "base_url": config.chat.base_url,
-        "api_key": config.chat.api_key,
-    }
+def count_usage() -> int:
+    conn = get_conn()
+    return int(conn.execute("SELECT COUNT(*) AS count FROM usage_log").fetchone()["count"])
 
 
-def get_usage_recent(limit: int = 50) -> list[dict]:
+def get_usage_recent(limit: int = 50, offset: int = 0) -> list[dict]:
     """最近用量记录"""
     conn = get_conn()
     rows = conn.execute(
-        "SELECT * FROM usage_log ORDER BY created_at DESC LIMIT ?", (limit,)
+        "SELECT * FROM usage_log ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        (max(1, limit), max(0, offset)),
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -463,6 +438,27 @@ def list_recordings(
         params,
     ).fetchall()
     return [_row_to_dict(r) for r in rows]
+
+
+def count_recordings(
+    status: str = None, user_id: str = None, category: str = None,
+) -> int:
+    conn = get_conn()
+    conditions = []
+    params = []
+    if status:
+        conditions.append("status=?")
+        params.append(status)
+    if user_id:
+        conditions.append("user_id=?")
+        params.append(user_id)
+    if category:
+        conditions.append("category=?")
+        params.append(category)
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    return int(conn.execute(
+        f"SELECT COUNT(*) AS count FROM recordings {where}", params,
+    ).fetchone()["count"])
 
 
 def delete_recording(rec_id: str) -> bool:

@@ -2,8 +2,8 @@
 
 职责:
 1. 接收标准 OpenAI /v1/chat/completions 请求
-2. 提取 user message → 检索 Mem0 记忆
-3. 注入记忆到 system prompt
+2. 提取 user message → 编译认知上下文
+3. 注入上下文到 system prompt
 4. 转发到上游 LLM
 5. 流式回传 SSE chunks
 """
@@ -16,7 +16,6 @@ from typing import AsyncGenerator
 import httpx
 
 from app.config import config
-from services.memory import search_memories, format_memories_for_prompt
 
 log = logging.getLogger("vibry.proxy")
 
@@ -59,9 +58,9 @@ def extract_user_message(messages: list[dict]) -> tuple[str | None, int | None]:
     return None, None
 
 
-def inject_memories_into_messages(
+def inject_context_into_messages(
     messages: list[dict],
-    memory_text: str,
+    context_text: str,
 ) -> list[dict]:
     """将记忆注入到消息列表的 system prompt 中
 
@@ -72,12 +71,12 @@ def inject_memories_into_messages(
 
     Args:
         messages: 原始消息列表 (会被浅拷贝修改)
-        memory_text: 格式化后的记忆文本
+        context_text: 编译后的认知上下文
 
     Returns:
         修改后的消息列表
     """
-    if not memory_text:
+    if not context_text:
         return messages
 
     modified = [dict(m) for m in messages]  # 浅拷贝
@@ -92,10 +91,10 @@ def inject_memories_into_messages(
     if system_idx is not None:
         # 在现有 system content 前面插入记忆
         original = modified[system_idx].get("content", "")
-        modified[system_idx]["content"] = f"{memory_text}\n{original}"
+        modified[system_idx]["content"] = f"{context_text}\n{original}"
     else:
         # 新建 system 消息，插入到消息列表最前面
-        modified.insert(0, {"role": "system", "content": memory_text})
+        modified.insert(0, {"role": "system", "content": context_text})
 
     return modified
 

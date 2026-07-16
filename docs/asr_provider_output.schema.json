@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vibry.ai/schemas/asr-provider-output.schema.json",
+  "title": "Vibry ASR Provider Output",
+  "type": "object",
+  "required": ["provider", "model", "text", "language", "segments", "utterances", "speakers"],
+  "properties": {
+    "provider": {"type": "string"},
+    "model": {"type": "string"},
+    "text": {"type": "string"},
+    "language": {"type": "string"},
+    "duration_ms": {"type": ["integer", "null"], "minimum": 0},
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "start_ms", "end_ms", "text"],
+        "properties": {
+          "id": {"type": "integer", "minimum": 0},
+          "start_ms": {"type": "integer", "minimum": 0},
+          "end_ms": {"type": "integer", "minimum": 0},
+          "text": {"type": "string"},
+          "speaker": {"type": ["string", "null"]},
+          "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+          "words": {"type": "array", "items": {"type": "object"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "utterances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "start_time", "end_time", "additions"],
+        "properties": {
+          "text": {"type": "string"},
+          "start_time": {"type": "integer", "minimum": 0},
+          "end_time": {"type": "integer", "minimum": 0},
+          "speaker": {"type": ["string", "null"]},
+          "additions": {
+            "type": "object",
+            "properties": {
+              "speaker": {"type": ["string", "null"]}
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "speakers": {"type": "array", "items": {"type": "string"}},
+    "raw": {"type": "object"},
+    "error": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

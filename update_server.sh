@@ -19,7 +19,7 @@
 set -e
 
 # ---- 配置 ----
-REMOTE_HOST="${VIBRY_REMOTE:-root@api.vibry.ai}"
+REMOTE_HOST="${VIBRY_REMOTE:-root@163.7.8.8}"
 REMOTE_DIR="${VIBRY_HOME:-/opt/http/vibryai/server}"
 SERVICE_NAME="${VIBRY_SERVICE:-vibry-server}"
 PORT="${VIBRY_PORT:-9999}"
@@ -47,18 +47,11 @@ rsync -avz --delete \
     --exclude='*.db' \
     --exclude='*.db-shm' \
     --exclude='*.db-wal' \
-    --exclude='qdrant_data' \
-    --exclude='voiceprints' \
     --exclude='.env' \
     --exclude='*.log' \
     --exclude='.pid' \
     --exclude='.git' \
     --exclude='release' \
-    --exclude='debug' \
-    --exclude='audio' \
-    --exclude='raw' \
-    --exclude='wiki' \
-    --exclude='wiki-rag' \
     --exclude='.zcode' \
     --exclude='.claude' \
     --exclude='ffmpeg-win-*' \
@@ -66,7 +59,6 @@ rsync -avz --delete \
     --exclude='*.bat' \
     --exclude='update_server.sh' \
     --exclude='package.sh' \
-    --exclude='mem0' \
     --exclude='*.zip' \
     -e ssh \
     "$LOCAL_DIR/" "$REMOTE_HOST:$REMOTE_DIR/"
@@ -87,7 +79,7 @@ ssh "$REMOTE_HOST" "systemctl restart $SERVICE_NAME 2>/dev/null && \
     echo 'systemd 服务已重启' || \
     (cd $REMOTE_DIR && source venv/bin/activate && \
      pkill -f 'app.main:app' 2>/dev/null; sleep 1; \
-     nohup python run.py > server_output.log 2>&1 & \
+     mkdir -p data/logs && nohup python run.py > data/logs/server.log 2>&1 & \
      echo 'nohup 方式已重启')"
 sleep 3
 echo "✅ 服务已重启"
@@ -109,10 +101,10 @@ else
     echo "  排查命令:"
     echo "    ssh $REMOTE_HOST 'systemctl status $SERVICE_NAME'"
     echo "    ssh $REMOTE_HOST 'journalctl -u $SERVICE_NAME -n 30 --no-pager'"
-    echo "    ssh $REMOTE_HOST 'tail -30 $REMOTE_DIR/server_output.log'"
+    echo "    ssh $REMOTE_HOST 'tail -30 $REMOTE_DIR/data/logs/server.log'"
 fi
 
 echo ""
 echo "══════════════════════════════════════════════════"
-echo "  管理后台: https://api.vibry.ai/admin"
+echo "  管理后台: http://163.7.8.8/admin"
 echo "══════════════════════════════════════════════════"

@@ -68,7 +68,6 @@ def smoke_test_response_shapes() -> None:
     import db
     import routers.voiceprint as voiceprint_router
     import services.asr as asr_service
-    import services.memory as memory_service
     from app.config import config
     from app.main import app
 
@@ -101,7 +100,6 @@ def smoke_test_response_shapes() -> None:
     asr_service.transcribe = fake_transcribe
     asr_service.summarize = fake_summarize
     asr_service.call_llm = fake_call_llm
-    memory_service.get_mem0 = lambda: object()
 
     fake_utterances = [
         {"text": "first speaker", "start_time": 0, "end_time": 800, "additions": {"speaker": "1"}},
@@ -143,8 +141,19 @@ def smoke_test_response_shapes() -> None:
             payload = {"audio_base64": base64.b64encode(b"RIFF" + b"\0" * 2048).decode(), "title": "compat.wav"}
             transcribed = client.post("/api/transcribe", json=payload, headers=headers)
             assert transcribed.status_code == 200
-            for key in ("text", "audio_url", "audio_token", "recording_id"):
+            for key in ("text", "audio_url", "audio_token", "recording_id", "source_id", "cognition_job_id"):
                 assert key in transcribed.json(), f"missing {key} in /api/transcribe"
+            assert transcribed.json()["source_id"]
+
+            multipart = client.post(
+                "/api/transcribe",
+                data={"title": "compat-multipart.wav", "category": "meeting"},
+                files={"audio": ("compat-multipart.wav", b"RIFF" + b"\0" * 2048, "audio/wav")},
+                headers=headers,
+            )
+            assert multipart.status_code == 200
+            for key in ("text", "audio_url", "audio_token", "recording_id", "source_id", "cognition_job_id"):
+                assert key in multipart.json(), f"missing {key} in multipart /api/transcribe"
 
             summarized = client.post("/api/summarize", json={"transcript": "hello", "record_title": "compat"}, headers=headers)
             assert summarized.status_code == 200 and "current_intent" in summarized.json()

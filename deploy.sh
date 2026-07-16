@@ -24,9 +24,10 @@ SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
 NGINX_CONF="/etc/nginx/sites-available/${APP_NAME}"
 ENV_FILE="${APP_DIR}/.env"
 PID_FILE="${APP_DIR}/.pid"
-LOG_FILE="${APP_DIR}/server_output.log"
+LOG_FILE="${APP_DIR}/data/logs/server.log"
+BACKUP_DIR="${APP_DIR}/data/backups/deploy"
 PORT="${VIBRY_PORT:-9999}"
-DOMAIN="${VIBRY_DOMAIN:-}"
+DOMAIN="${VIBRY_DOMAIN:-163.7.8.8}"
 USER="${VIBRY_USER:-vibry}"
 GROUP="${VIBRY_GROUP:-vibry}"
 
@@ -51,13 +52,13 @@ install_system_deps() {
 
     if command -v apt-get >/dev/null 2>&1; then
         apt-get update -qq
-        apt-get install -y -qq python3 python3-venv python3-pip ffmpeg curl git nginx 2>&1 | tail -1
+        apt-get install -y -qq python3 python3-venv python3-pip ffmpeg curl git nginx rsync lsof 2>&1 | tail -1
     elif command -v yum >/dev/null 2>&1; then
-        yum install -y python3 python3-pip ffmpeg curl git nginx 2>&1 | tail -1
+        yum install -y python3 python3-pip ffmpeg curl git nginx rsync lsof 2>&1 | tail -1
     elif command -v dnf >/dev/null 2>&1; then
-        dnf install -y python3 python3-pip ffmpeg curl git nginx 2>&1 | tail -1
+        dnf install -y python3 python3-pip ffmpeg curl git nginx rsync lsof 2>&1 | tail -1
     elif command -v apk >/dev/null 2>&1; then
-        apk add --no-cache python3 py3-pip py3-venv ffmpeg curl git nginx
+        apk add --no-cache python3 py3-pip py3-venv ffmpeg curl git nginx rsync lsof
     else
         warn "未识别包管理器，请手动安装: python3.10+, ffmpeg, nginx"
     fi
@@ -73,29 +74,94 @@ install_system_deps() {
 setup_user_and_dirs() {
     log "创建运行用户 & 目录..."
 
-    # 创建用户
+    # 创建用户和运行组
+    if ! getent group "$GROUP" >/dev/null 2>&1; then
+        groupadd --system "$GROUP" 2>/dev/null || true
+    fi
     if ! id -u "$USER" >/dev/null 2>&1; then
-        useradd --system --no-create-home --shell /usr/sbin/nologin "$USER" 2>/dev/null || \
+        useradd --system --no-create-home --gid "$GROUP" --shell /usr/sbin/nologin "$USER" 2>/dev/null || \
         useradd --system --shell /sbin/nologin "$USER" 2>/dev/null || true
         log "用户 $USER 已创建"
     fi
 
     # 创建目录
     mkdir -p "$APP_DIR"
-    mkdir -p "$APP_DIR/data"
-    mkdir -p "$APP_DIR/audio"
-    mkdir -p "$APP_DIR/debug"
-    mkdir -p "$APP_DIR/voiceprints"
-    mkdir -p "$APP_DIR/qdrant_data"
-    mkdir -p "$APP_DIR/raw"
-    mkdir -p "$APP_DIR/wiki"
-    mkdir -p "$APP_DIR/logs"
+    mkdir -p "$APP_DIR/data/audio"
+    mkdir -p "$APP_DIR/data/debug"
+    mkdir -p "$APP_DIR/data/voiceprints"
+    mkdir -p "$APP_DIR/data/logs"
 
     log "目录结构已创建"
 }
 
 # ============================================================
-# 3. 部署代码 (从压缩包或 git)
+# 3. 运行数据备份与失败回滚
+# ============================================================
+CURRENT_BACKUP_DIR=""
+
+backup_runtime() {
+    if [ ! -f "$APP_DIR/run.py" ]; then
+        return 0
+    fi
+
+    local stamp
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    CURRENT_BACKUP_DIR="${BACKUP_DIR}/${stamp}"
+    mkdir -p "$CURRENT_BACKUP_DIR"
+
+    log "备份当前版本到 $CURRENT_BACKUP_DIR ..."
+    tar -C "$APP_DIR" -czf "$CURRENT_BACKUP_DIR/code.tar.gz" \
+        --exclude='./venv' \
+        --exclude='./data' \
+        --exclude='./.env' \
+        --exclude='./.cache' \
+        --exclude='./release' \
+        --exclude='./__pycache__' \
+        --exclude='*.pyc' \
+        .
+
+    cp "$ENV_FILE" "$CURRENT_BACKUP_DIR/.env" 2>/dev/null || true
+    if [ -f "$APP_DIR/data/vibrycard.db" ]; then
+        cp "$APP_DIR/data/vibrycard.db" "$CURRENT_BACKUP_DIR/vibrycard.db"
+    fi
+    log "数据库、配置和旧代码已备份"
+}
+
+rollback_runtime() {
+    if [ -z "$CURRENT_BACKUP_DIR" ] || [ ! -f "$CURRENT_BACKUP_DIR/code.tar.gz" ]; then
+        warn "没有可用的部署前备份，无法自动回滚"
+        return 1
+    fi
+
+    warn "部署检查失败，正在回滚到更新前版本..."
+    stop_server || true
+    local restore_dir
+    restore_dir="$(mktemp -d)"
+    tar -xzf "$CURRENT_BACKUP_DIR/code.tar.gz" -C "$restore_dir"
+    rsync -a --delete \
+        --exclude='venv' \
+        --exclude='data' \
+        --exclude='.env' \
+        --exclude='.cache' \
+        "$restore_dir"/ "$APP_DIR"/
+    rm -rf "$restore_dir"
+
+    if [ -f "$CURRENT_BACKUP_DIR/.env" ]; then
+        cp "$CURRENT_BACKUP_DIR/.env" "$ENV_FILE"
+    fi
+    if [ -f "$CURRENT_BACKUP_DIR/vibrycard.db" ]; then
+        rm -f "$APP_DIR/data/vibrycard.db-wal" "$APP_DIR/data/vibrycard.db-shm"
+        cp "$CURRENT_BACKUP_DIR/vibrycard.db" "$APP_DIR/data/vibrycard.db"
+    fi
+
+    setup_systemd
+    fix_permissions
+    start_server
+    log "已回滚到更新前版本"
+}
+
+# ============================================================
+# 4. 部署代码 (从压缩包或 git)
 # ============================================================
 deploy_code() {
     local SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -123,13 +189,12 @@ deploy_code() {
         log "从 $SRC_DIR 复制代码到 $APP_DIR ..."
         rsync -a --delete \
             --exclude='venv' \
+            --exclude='data' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             --exclude='*.db' \
             --exclude='*.db-shm' \
             --exclude='*.db-wal' \
-            --exclude='qdrant_data' \
-            --exclude='voiceprints' \
             --exclude='.env' \
             --exclude='*.log' \
             --exclude='.pid' \
@@ -138,7 +203,6 @@ deploy_code() {
             --exclude='nssm.*' \
             --exclude='*.bat' \
             --exclude='service.py' \
-            --exclude='mem0' \
             --exclude='*.zip' \
             "$SRC_DIR"/ "$APP_DIR"/
     fi
@@ -191,8 +255,6 @@ setup_env() {
     grep -q "^SERVER_HOST=" "$ENV_FILE" || echo "SERVER_HOST=127.0.0.1" >> "$ENV_FILE"
     grep -q "^SERVER_PORT=" "$ENV_FILE" || echo "SERVER_PORT=${PORT}" >> "$ENV_FILE"
     grep -q "^FFMPEG_PATH=" "$ENV_FILE" || echo "FFMPEG_PATH=ffmpeg" >> "$ENV_FILE"
-    grep -q "^MEM0_VECTOR_STORE=" "$ENV_FILE" || echo "MEM0_VECTOR_STORE=qdrant_local" >> "$ENV_FILE"
-    grep -q "^MEM0_QDRANT_PATH=" "$ENV_FILE" || echo "MEM0_QDRANT_PATH=./qdrant_data" >> "$ENV_FILE"
 
     chmod 600 "$ENV_FILE"
 
@@ -231,8 +293,9 @@ ExecStart=${VENV_DIR}/bin/python ${APP_DIR}/run.py
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=5
-StandardOutput=append:${LOG_FILE}
-StandardError=append:${LOG_FILE}
+# 应用自身写入 data/logs/server.log；systemd 只保留 journal，避免日志重复。
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -401,6 +464,53 @@ start_server() {
     else
         err "启动失败，查看日志: $LOG_FILE"
     fi
+}
+
+wait_for_health() {
+    local attempts="${1:-45}"
+    local body=""
+    log "等待健康检查: http://127.0.0.1:${PORT}/api/health"
+    for ((i=1; i<=attempts; i++)); do
+        body="$(curl -fsS --max-time 5 "http://127.0.0.1:${PORT}/api/health" 2>/dev/null || true)"
+        if [ -n "$body" ]; then
+            log "✅ 健康检查通过"
+            echo "$body"
+            return 0
+        fi
+        sleep 2
+    done
+    warn "健康检查超时"
+    return 1
+}
+
+update_release() {
+    must_be_root
+    local src_dir
+    src_dir="$(cd "$(dirname "$0")" && pwd)"
+    if [ "$src_dir" = "$APP_DIR" ]; then
+        err "--update 必须从新版本解压目录运行，不能在当前安装目录内原地更新"
+    fi
+
+    setup_user_and_dirs
+    stop_server
+    if ! backup_runtime; then
+        start_server || true
+        err "部署前备份失败，已取消更新"
+    fi
+
+    if ! deploy_code || ! setup_venv || ! setup_env || ! setup_systemd || ! fix_permissions; then
+        rollback_runtime || true
+        err "全量更新失败，已尝试回滚"
+    fi
+
+    if ! start_server || ! wait_for_health; then
+        rollback_runtime || true
+        err "新版本未通过健康检查，已回滚"
+    fi
+
+    setup_nginx "$DOMAIN"
+
+    log "全量更新完成，部署前备份: $CURRENT_BACKUP_DIR"
 }
 
 # ============================================================
@@ -601,7 +711,7 @@ case "${1:-}" in
         echo "用法: sudo bash deploy.sh [选项]"
         echo ""
         echo "  无参数                  完整首次部署"
-        echo "  --update                更新代码 + 重启 (git pull)"
+        echo "  --update                从新版本目录全量更新，保留数据并支持失败回滚"
         echo "  --start                 启动服务"
         echo "  --stop                  停止服务"
         echo "  --restart               重启服务"
@@ -613,17 +723,17 @@ case "${1:-}" in
         echo "环境变量:"
         echo "  VIBRY_HOME=/opt/http/vibryai/server  自定义安装路径"
         echo "  VIBRY_PORT=9999                      自定义端口"
-        echo "  VIBRY_DOMAIN=api.vibry.ai            自动配置 Nginx 域名"
+        echo "  VIBRY_DOMAIN=163.7.8.8               配置 Nginx 访问地址"
         echo "  VIBRY_USER=vibry                     运行用户"
         echo ""
-        echo "示例 (自定义路径+域名):"
-        echo "  sudo VIBRY_HOME=/opt/http/vibryai/server VIBRY_DOMAIN=api.vibry.ai bash deploy.sh"
+        echo "示例 (自定义路径+访问地址):"
+        echo "  sudo VIBRY_HOME=/opt/http/vibryai/server VIBRY_DOMAIN=163.7.8.8 bash deploy.sh"
         echo ""
         echo "部署流程:"
         echo "  1. 本地打包:   bash package.sh"
         echo "  2. 上传:       scp release/vibry-server-*.tar.gz user@server:/tmp/"
         echo "  3. 解压:       ssh user@server 'cd /tmp && tar -xzf vibry-server-*.tar.gz'"
-        echo "  4. 部署:       ssh user@server 'cd /tmp/vibry-server-* && sudo VIBRY_HOME=/opt/http/vibryai/server VIBRY_DOMAIN=api.vibry.ai bash deploy.sh'"
+        echo "  4. 部署:       ssh user@server 'cd /tmp/vibry-server-* && sudo VIBRY_HOME=/opt/http/vibryai/server VIBRY_DOMAIN=163.7.8.8 bash deploy.sh --update'"
         echo "  5. 编辑配置:   sudo nano /opt/http/vibryai/server/.env"
         echo "  6. 重启生效:   sudo bash /opt/http/vibryai/server/deploy.sh --restart"
         exit 0
@@ -659,13 +769,7 @@ case "${1:-}" in
         exit 0
         ;;
     --update)
-        must_be_root
-        stop_server
-        deploy_code
-        setup_venv
-        fix_permissions
-        start_server
-        log "更新完成"
+        update_release
         exit 0
         ;;
     "")

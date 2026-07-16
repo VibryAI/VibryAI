@@ -1,0 +1,9 @@
+{
+  "id": "vibrycard-audio",
+  "name": "VibryCard Audio Pipeline",
+  "version": "1.0.0",
+  "kind": "ingestion",
+  "capabilities": ["audio.upload", "audio.transcribe", "source.recording"],
+  "source_types": ["recording"],
+  "trust": "builtin"
+}

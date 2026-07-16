@@ -14,6 +14,34 @@ _summary_lock = asyncio.Lock()
 _asr_queue = 0
 _summary_queue = 0
 
+
+def _capture_transcript_source(result: dict, title: str, user_id: str, category: str = "") -> dict:
+    """Bridge successful ASR output into the Cognitive Core."""
+    transcript = (result.get("text") or "").strip()
+    if not transcript:
+        return result
+    try:
+        from cognition.store import create_source
+        source, job, _ = create_source(
+            user_id=user_id,
+            source_type="recording",
+            content=transcript,
+            origin="vibry_card",
+            title=title,
+            external_id=result.get("recording_id") or "",
+            derivation_type="transcript",
+            metadata={
+                "recording_id": result.get("recording_id", ""),
+                "audio_url": result.get("audio_url", ""),
+                "legacy_category": category,
+            },
+        )
+        result["source_id"] = source["id"]
+        result["cognition_job_id"] = job.get("id", "")
+    except Exception as exc:
+        log.warning("Cognitive source capture failed: %s", exc)
+    return result
+
 @router.get("/api/asr-mode")
 async def get_asr_mode():
     from services.asr_providers import supported_provider_modes
@@ -55,11 +83,14 @@ async def api_transcribe(request: Request):
     if result.get("error"):
         status = 422 if "未识别" in str(result.get("error","")) else 500
         return JSONResponse(result, status_code=status)
+    result = _capture_transcript_source(result, title, user_id, category)
     return JSONResponse({
         "text": result["text"],
         "audio_url": result.get("audio_url"),
         "audio_token": result.get("audio_token"),
         "recording_id": result.get("recording_id"),
+        "source_id": result.get("source_id"),
+        "cognition_job_id": result.get("cognition_job_id"),
     })
 
 @router.post("/api/transcribe/voice")
@@ -152,10 +183,13 @@ async def admin_transcribe_upload(request: Request):
         result = await asyncio.to_thread(transcribe, audio_bytes, title, "admin", category)
     if result.get("error"):
         return JSONResponse(result, status_code=500)
+    result = _capture_transcript_source(result, title, "admin", category)
     return JSONResponse({
         "text": result["text"],
         "recording_id": result.get("recording_id"),
         "audio_url": result.get("audio_url"),
         "audio_token": result.get("audio_token"),
         "provider": result.get("provider"),
+        "source_id": result.get("source_id"),
+        "cognition_job_id": result.get("cognition_job_id"),
     })

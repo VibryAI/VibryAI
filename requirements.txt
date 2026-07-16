@@ -1,28 +1,24 @@
-# Vibry AI Core — FastAPI Memory Proxy + AI 分析后端
+# Vibry AI Core - FastAPI cognitive gateway and AI analysis backend
 # 核心依赖
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 httpx>=0.28.0
-mem0ai>=0.1.0
 python-dotenv>=1.0.0
 python-multipart>=0.0.20
-
-# Mem0 本地存储依赖
-chromadb>=0.5.0
 
 # ASR 语音识别
 funasr>=1.2.0
 soundfile>=0.12.0
-# openai-whisper  # 备用：Whisper 本地 ASR
+# openai-whisper  # optional: enable ASR_MODE=whisper_local
 
 # 声纹识别 (VibryCard 移植)
 numpy>=2.0
+fastembed>=0.8.0
 # librosa  # 可选：MFCC 声纹提取，未安装则用 FFT fallback
 
 # 邮件服务
 agentmail>=0.5.0
 
 # 可选：生产环境扩展
-# qdrant-client>=1.12.0  # 切换为 Qdrant 向量库
 # redis>=5.0.0           # 缓存层
 # prometheus-client       # 监控

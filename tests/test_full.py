@@ -8,10 +8,17 @@
 
 import json, sys, time, os, urllib.request, urllib.error
 
+import pytest
+
 BASE = "http://127.0.0.1:9999"
 USER_ID = "test_full_suite"
 PASSED = 0
 FAILED = 0
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("VIBRY_LIVE_TESTS") != "1",
+    reason="requires a running VibryAI Server at http://127.0.0.1:9999; set VIBRY_LIVE_TESTS=1",
+)
 
 
 def api(method, path, body=None, expect_status=None):
@@ -60,7 +67,7 @@ def test_health():
         print(f"  ❌ 无法连接到 {BASE}，请确认服务已启动: python main.py")
         sys.exit(1)
     check("服务运行", r.get("status") == "ok", f"version={r.get('version')}")
-    check("Mem0 状态", r.get("mem0") == "ok", r.get("mem0"))
+    check("Cognition", r.get("cognition") == "ok", r.get("cognition"))
     check("ASR 模式", r.get("asr_mode") in ("local", "cloud", "cloud_standard"),
           r.get("asr_mode"))
     check("队列状态", "asr" in r.get("queue", {}), str(r.get("queue")))
@@ -105,7 +112,7 @@ def test_db_migration():
 # ===================================================================
 # 2. Wiki RAG
 # ===================================================================
-def test_wiki():
+def legacy_wiki_script():
     print("\n" + "=" * 55)
     print("2️⃣  Wiki RAG 知识库")
     print("=" * 55)
@@ -148,7 +155,7 @@ def test_wiki():
 # ===================================================================
 # 3. 记忆 (Mem0)
 # ===================================================================
-def test_memory():
+def legacy_memory_script():
     print("\n" + "=" * 55)
     print("3️⃣  Mem0 记忆引擎")
     print("=" * 55)
@@ -299,8 +306,6 @@ def main():
     tests = [
         ("服务连通性", test_health),
         ("DB 迁移验证", test_db_migration),
-        ("Wiki RAG", test_wiki),
-        ("Mem0 记忆", test_memory),
         ("Chat 代理", test_chat),
         ("ASR 配置", test_asr_config),
         ("声纹识别", test_voiceprint),

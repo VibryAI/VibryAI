@@ -1,0 +1,10 @@
+{
+  "id": "local-agent-history",
+  "name": "Local Agent History Sync",
+  "version": "1.0.0",
+  "kind": "connector",
+  "capabilities": ["source.chat", "source.agent_history"],
+  "source_types": ["chat", "agent_history"],
+  "trust": "builtin",
+  "privacy": "explicit-path-only"
+}

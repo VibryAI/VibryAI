@@ -48,10 +48,6 @@ nul
 Thumbs.db
 .DS_Store
 push.sh
-voiceprints/*.npy
-
-# 增量部署基线
-.inc_deploy_baseline
 
 # Claude Code 本地配置
 .zcode/

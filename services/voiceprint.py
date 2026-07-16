@@ -21,8 +21,8 @@ import soundfile as sf
 log = logging.getLogger("vibry.voiceprint")
 
 # ---- 声纹目录 ----
-VOICEPRINT_DIR = Path(__file__).parent.parent / "voiceprints"
-VOICEPRINT_DIR.mkdir(exist_ok=True)
+VOICEPRINT_DIR = Path(__file__).parent.parent / "data" / "voiceprints"
+VOICEPRINT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---- 依赖检测 ----
 try:

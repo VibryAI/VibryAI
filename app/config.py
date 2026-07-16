@@ -113,7 +113,7 @@ class AudioConfig:
     def audio_dir(self) -> str:
         if not self._audio_dir:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self._audio_dir = os.path.join(base_dir, "audio")
+            self._audio_dir = os.path.join(base_dir, "data", "audio")
             os.makedirs(self._audio_dir, exist_ok=True)
         return self._audio_dir
 
@@ -121,7 +121,7 @@ class AudioConfig:
     def debug_dir(self) -> str:
         if not self._debug_dir:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self._debug_dir = os.path.join(base_dir, "debug")
+            self._debug_dir = os.path.join(base_dir, "data", "debug")
             os.makedirs(self._debug_dir, exist_ok=True)
         return self._debug_dir
 
@@ -235,15 +235,10 @@ class SummaryConfig:
 
 
 @dataclass
-class MemoryConfig:
-    """Mem0 记忆引擎配置"""
-    collection: str = os.getenv("MEM0_COLLECTION", "vibry_memories")
-    vector_store: str = os.getenv("MEM0_VECTOR_STORE", "qdrant_local")
-    qdrant_path: str = os.getenv("MEM0_QDRANT_PATH", "./qdrant_data")
-    top_k: int = int(os.getenv("MEMORY_TOP_K", "5"))
-    threshold: float = float(os.getenv("MEMORY_THRESHOLD", "0.35"))
-    # Embedding 向量维度（必须与 embedding 模型输出一致）
-    embedding_dims: int = int(os.getenv("EMBEDDING_DIMS", "2048"))
+class CognitionConfig:
+    """Cognitive Core v2 processing and reflection settings."""
+    nightly_insight_time: str = os.getenv("COGNITION_NIGHTLY_INSIGHT_TIME", "02:30")
+    scheduler_enabled: bool = os.getenv("COGNITION_SCHEDULER_ENABLED", "true").lower() not in {"0", "false", "no"}
 
 
 @dataclass
@@ -269,7 +264,7 @@ class AppConfig:
     doubao_asr: DoubaoAsrConfig = field(default_factory=DoubaoAsrConfig)
     summary: SummaryConfig = field(default_factory=SummaryConfig)
     prompt: PromptConfig = field(default_factory=PromptConfig)
-    memory: MemoryConfig = field(default_factory=MemoryConfig)
+    cognition: CognitionConfig = field(default_factory=CognitionConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
 
 

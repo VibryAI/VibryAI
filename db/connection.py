@@ -169,16 +169,13 @@ def init_db():
             conn.execute(f"ALTER TABLE recordings ADD COLUMN {col} {decl}")
             print(f"  [migrate] recordings + {col}")
 
-    # 迁移 asr_config: 添加 voice_mode, prompt, wiki_model 列
+    # Migrate ASR configuration fields introduced by the current control plane.
     cur = conn.execute("PRAGMA table_info(asr_config)")
     asr_cols = {row[1] for row in cur.fetchall()}
     for col, decl in [
         ("voice_mode", "TEXT NOT NULL DEFAULT 'cloud'"),
         ("summary_prompt", "TEXT DEFAULT ''"),
         ("insight_prompt", "TEXT DEFAULT ''"),
-        ("wiki_model", "TEXT DEFAULT ''"),
-        ("wiki_base_url", "TEXT DEFAULT ''"),
-        ("wiki_api_key", "TEXT DEFAULT ''"),
     ]:
         if col not in asr_cols:
             conn.execute(f"ALTER TABLE asr_config ADD COLUMN {col} {decl}")
@@ -200,5 +197,10 @@ def init_db():
         print("  [migrate] usage_log + audio_seconds")
 
     conn.commit()
+
+    # Cognitive Core v2 uses the same primary database so evidence, projects
+    # and legacy recordings can be joined without cross-database drift.
+    from cognition.store import init_cognition_schema
+    init_cognition_schema(conn)
 
 

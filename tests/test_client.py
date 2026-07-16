@@ -11,13 +11,21 @@
 """
 
 import json
+import os
 import sys
 import time
 import urllib.request
 import urllib.error
 
+import pytest
+
 BASE = "http://localhost:9999"
 USER_ID = "test_user_vibry"
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("VIBRY_LIVE_TESTS") != "1",
+    reason="requires a running VibryAI Server at http://localhost:9999; set VIBRY_LIVE_TESTS=1",
+)
 
 
 def api(method: str, path: str, body: dict | None = None) -> dict:
@@ -47,7 +55,7 @@ def test_health():
     print("✅ 服务运行正常")
 
 
-def test_add_memory():
+def legacy_add_memory_script():
     print("\n" + "=" * 50)
     print("2️⃣  写入记忆到 Mem0")
     print("=" * 50)
@@ -69,7 +77,7 @@ def test_add_memory():
     print("✅ 记忆写入完成")
 
 
-def test_search_memories():
+def legacy_search_memories_script():
     print("\n" + "=" * 50)
     print("3️⃣  检索记忆")
     print("=" * 50)
@@ -167,8 +175,6 @@ def main():
 
     tests = [
         ("健康检查", test_health),
-        ("写入记忆", test_add_memory),
-        ("检索记忆", test_search_memories),
         ("非流式Chat", test_chat_non_streaming),
         ("流式Chat", test_chat_streaming),
         ("模型列表", test_list_models),

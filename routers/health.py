@@ -7,24 +7,20 @@ router = APIRouter()
 
 @router.get("/api/health")
 async def health():
-    from services.memory import get_mem0
     from services.asr_providers import supported_provider_modes
     try:
-        _ = get_mem0()
-        mem0_status = "ok"
+        import db
+        db.init_db()
+        cognition_status = "ok"
     except Exception as e:
-        mem0_status = f"unavailable: {e}"
+        cognition_status = f"unavailable: {e}"
     return JSONResponse({
-        "status": "ok", "version": "0.3.0",
+        "status": "ok", "version": "1.0.0",
         "server": f"http://{config.server.host}:{config.server.port}",
         "chat_model": config.chat.model,
         "embedding_model": config.embedding.model,
         "asr_mode": config.asr.mode,
         "asr_providers": supported_provider_modes(),
-        "mem0": mem0_status,
-        "memory_config": {
-            "top_k": config.memory.top_k, "threshold": config.memory.threshold,
-            "vector_store": config.memory.vector_store,
-        },
+        "cognition": cognition_status,
         "queue": {"asr": 0, "summary": 0},
     })

@@ -23,7 +23,7 @@ def _make_admin_token() -> str:
     return f"{payload}.{sig}"
 
 
-# Backward-compat aliases (internal references + routers/wiki.py)
+# Backward-compatible alias for internal admin checks.
 _check_admin = check_admin
 
 
@@ -117,7 +117,6 @@ async def admin_stats(request: Request):
         "token_cost": usage["token_cost_rmb"],
         "audio_cost": usage["audio_cost_rmb"],
         "usage_by_user": db.get_usage_by_user(), "recent_usage": db.get_usage_recent(50),
-        "memories_count": "N/A",
     })
 
 
@@ -139,11 +138,7 @@ async def admin_get_config(request: Request):
         "embedding_model": model_cfg.get("embedding_model") or config.embedding.model,
         "embedding_base_url": model_cfg.get("embedding_base_url") or config.embedding.base_url,
         "embedding_api_key": model_cfg.get("embedding_api_key") or config.embedding.api_key,
-        # Legacy keys (backward compat for old UI)
-        "upstream_model": model_cfg.get("chat_model") or config.chat.model,
         "asr_mode": config.asr.mode,
-        "memory_top_k": config.memory.top_k,
-        "memory_threshold": config.memory.threshold,
         "server_host": config.server.host, "server_port": config.server.port,
         "asr_voice_mode": asr_cfg.get("voice_mode", "cloud"),
         "doubao_asr_app_id": asr_cfg.get("app_id", ""),
@@ -152,9 +147,6 @@ async def admin_get_config(request: Request):
         "doubao_asr_standard_url": asr_cfg.get("standard_url", ""),
         "summary_prompt": asr_cfg.get("summary_prompt", ""),
         "insight_prompt": asr_cfg.get("insight_prompt", ""),
-        "wiki_model": asr_cfg.get("wiki_model", ""),
-        "wiki_base_url": asr_cfg.get("wiki_base_url", ""),
-        "wiki_api_key": asr_cfg.get("wiki_api_key", ""),
     })
 
 
@@ -209,29 +201,10 @@ async def admin_set_config(request: Request):
             embedding_api_key=emb_db.get("embedding_api_key", existing.get("embedding_api_key", "")),
         )
 
-    # ---- Legacy: upstream_model / embedding_model (backward compat) ----
-    if "upstream_model" in body:
-        config.chat.model = body["upstream_model"]
-        existing = db.get_model_config()
-        db.set_model_config(
-            chat_model=body["upstream_model"],
-            chat_base_url=existing.get("chat_base_url", ""),
-            chat_api_key=existing.get("chat_api_key", ""),
-            embedding_model=existing.get("embedding_model", ""),
-            embedding_base_url=existing.get("embedding_base_url", ""),
-            embedding_api_key=existing.get("embedding_api_key", ""),
-        )
-        changes.append("upstream_model→chat_model")
-
     for key, field in [("asr_mode", "mode")]:
         if key in body:
             setattr(config.asr, field, body[key])
             changes.append(key)
-    for key, field in [("memory_top_k", "top_k"), ("memory_threshold", "threshold")]:
-        if key in body:
-            setattr(config.memory, field, body[key])
-            changes.append(key)
-
     asr_keys = {
         "doubao_asr_app_id": "app_id", "doubao_asr_access_key": "access_key",
         "doubao_asr_flash_url": "flash_url", "doubao_asr_standard_url": "standard_url",
@@ -249,12 +222,12 @@ async def admin_set_config(request: Request):
     if voice_mode_val:
         changes.append("asr_voice_mode")
 
-    for k in ("summary_prompt", "insight_prompt", "wiki_model", "wiki_base_url", "wiki_api_key"):
+    for k in ("summary_prompt", "insight_prompt"):
         if k in body:
             changes.append(k)
 
     if asr_db_args or asr_mode_val or voice_mode_val or any(
-        k in body for k in ("summary_prompt", "insight_prompt", "wiki_model", "wiki_base_url", "wiki_api_key")
+        k in body for k in ("summary_prompt", "insight_prompt")
     ):
         db.set_asr_config(
             app_id=asr_db_args.get("app_id", config.doubao_asr.app_id),
@@ -265,9 +238,6 @@ async def admin_set_config(request: Request):
             standard_url=asr_db_args.get("standard_url", config.doubao_asr.standard_url),
             summary_prompt=body.get("summary_prompt", ""),
             insight_prompt=body.get("insight_prompt", ""),
-            wiki_model=body.get("wiki_model", ""),
-            wiki_base_url=body.get("wiki_base_url", ""),
-            wiki_api_key=body.get("wiki_api_key", ""),
         )
     log.info(f"Config updated: {', '.join(changes)}")
     return JSONResponse({"ok": True, "changes": changes})
@@ -289,7 +259,7 @@ async def admin_billing(request: Request):
 @router.get("/admin/api/logs")
 async def admin_logs(request: Request, lines: int = 100):
     _require_admin(request)
-    log_path = BASE_DIR / "server_output.log"
+    log_path = BASE_DIR / "data" / "logs" / "server.log"
     if not log_path.exists():
         return JSONResponse({"lines": ["Log file not found"]})
     with open(log_path, "r", encoding="utf-8", errors="replace") as f:

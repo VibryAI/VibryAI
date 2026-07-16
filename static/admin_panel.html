@@ -88,6 +88,62 @@ tr:hover td { background: rgba(255,255,255,.02); }
 .toast { position: fixed; top: 20px; right: 20px; background: var(--accent2); color: #000; padding: 12px 20px; border-radius: var(--radius); font-weight: 600; z-index: 999; animation: fade 3s forwards; }
 @keyframes fade { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
+/* Second Brain workspace */
+.cognition-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.cognition-tab { min-height: 44px; padding: 0 16px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-dim); font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.cognition-tab:hover { color: var(--text); background: rgba(255,255,255,.025); }
+.cognition-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.cognition-tab-panel { display: none; }
+.cognition-tab-panel.active { display: block; }
+.section-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.section-toolbar h3 { font-size: 16px; margin: 0; }
+.section-toolbar p { margin-top: 4px; color: var(--text-dim); font-size: 12px; }
+.insight-list { display: grid; gap: 8px; }
+.insight-item { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); text-align: left; cursor: pointer; }
+.insight-item:hover { border-color: var(--accent); }
+.insight-item-title { font-size: 14px; font-weight: 650; }
+.insight-item-preview { margin-top: 5px; color: var(--text-dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.insight-item-meta { color: var(--text-dim); font-size: 11px; text-align: right; white-space: nowrap; }
+.modal-backdrop { display: none; position: fixed; inset: 0; z-index: 300; padding: 24px; background: rgba(3,7,12,.78); align-items: center; justify-content: center; }
+.modal-backdrop.open { display: flex; }
+.modal-panel { width: min(620px,100%); max-height: calc(100vh - 48px); overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+.modal-panel.modal-wide { width: min(760px,100%); }
+.modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.modal-header h3 { margin: 0; font-size: 17px; }
+.modal-body { padding: 20px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); }
+.icon-btn { width: 36px; height: 36px; border: 0; border-radius: var(--radius); background: transparent; color: var(--text-dim); font-size: 20px; cursor: pointer; }
+.icon-btn:hover { background: rgba(255,255,255,.05); color: var(--text); }
+.insight-detail-meta { display: flex; gap: 8px 16px; flex-wrap: wrap; color: var(--text-dim); font-size: 12px; margin-bottom: 16px; }
+.insight-detail-content { padding: 14px 0 18px; font-size: 14px; line-height: 1.7; white-space: pre-wrap; border-bottom: 1px solid var(--border); }
+.evidence-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 10px; }
+.evidence-heading h4 { margin: 0; font-size: 14px; }
+.evidence-source-list { display: grid; gap: 8px; }
+.evidence-source { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.evidence-source-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.evidence-source-title { font-size: 13px; font-weight: 650; }
+.evidence-source-meta { margin-top: 3px; color: var(--text-dim); font-size: 11px; }
+.evidence-source-link { padding: 5px 9px; border: 1px solid var(--accent); border-radius: 4px; background: transparent; color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.evidence-source-link:hover { background: rgba(79,195,247,.08); }
+.evidence-quote { margin-top: 10px; padding-left: 10px; border-left: 2px solid var(--border); color: var(--text-dim); font-size: 12px; line-height: 1.55; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.insight-dialogue { display: grid; gap: 8px; margin: 14px 0; }
+.insight-dialogue:empty { display: none; }
+.insight-dialogue-message { padding: 10px 12px; border-radius: var(--radius); font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.insight-dialogue-message.user { margin-left: 10%; background: rgba(79,195,247,.1); }
+.insight-dialogue-message.assistant { margin-right: 10%; background: rgba(0,230,118,.07); }
+.meeting-detail-tabs { display: flex; gap: 4px; padding: 0 20px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.meeting-detail-tab { min-height: 42px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-dim); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.meeting-detail-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.meeting-detail-panel { display: none; min-height: 260px; max-height: 55vh; overflow-y: auto; padding: 20px; }
+.meeting-detail-panel.active { display: block; }
+.meeting-detail-text { font-size: 13px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.meeting-detail-insights { display: grid; gap: 10px; }
+.meeting-detail-insight { padding: 14px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
+.meeting-detail-insight h4 { margin: 0; font-size: 14px; }
+.meeting-detail-insight p { margin-top: 7px; color: var(--text-dim); font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+.meeting-detail-insight-meta { margin-top: 8px; color: var(--text-dim); font-size: 11px; }
+.meeting-detail-link { color: var(--accent); font-size: 12px; text-decoration: none; overflow-wrap: anywhere; }
+
 #app { display: none; }
 
 /* ===== RESPONSIVE ===== */
@@ -105,6 +161,11 @@ tr:hover td { background: rgba(255,255,255,.02); }
   .form-group input, .form-group select, .form-group textarea { max-width: 100%; }
   .log-view { height: 350px; font-size: 11px; }
   .login-box { margin: 40px 16px 0; padding: 24px; }
+  .cognition-tab { padding: 0 12px; }
+  .insight-item { grid-template-columns: 1fr; }
+  .insight-item-meta { text-align: left; }
+  .modal-backdrop { padding: 12px; align-items: flex-end; }
+  .modal-panel { max-height: calc(100vh - 24px); }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -150,14 +211,14 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </select>
     </div>
     <a href="#" data-page="dashboard" class="active" data-i18n="nav.dashboard">Dashboard</a>
+    <a href="#" data-page="cognition" data-i18n="nav.cognition">Second Brain</a>
     <a href="#" data-page="chat" data-i18n="nav.chat">Chat Test</a>
     <a href="#" data-page="models" data-i18n="nav.models">Model Config</a>
     <a href="#" data-page="personality" data-i18n="nav.personality">Personality</a>
-    <a href="#" data-page="memories" data-i18n="nav.memories">Memory Mgmt</a>
-    <a href="#" data-page="wiki" data-i18n="nav.wiki">Wiki KB</a>
     <a href="#" data-page="meetings" data-i18n="nav.meetings">Meetings</a>
     <a href="#" data-page="tokens" data-i18n="nav.tokens">API Tokens</a>
     <a href="#" data-page="billing" data-i18n="nav.billing">Billing</a>
+    <a href="#" data-page="integrations" data-i18n="nav.integrations">Integrations</a>
     <a href="#" data-page="logs" data-i18n="nav.logs">Runtime Logs</a>
     <a href="#" data-page="account" data-i18n="nav.account">Account</a>
     <a href="#" onclick="logout()" style="margin-top:20px; color:var(--danger)" data-i18n="nav.logout">Logout</a>
@@ -174,6 +235,98 @@ tr:hover td { background: rgba(255,255,255,.02); }
       <div class="table-wrap"><table id="dash-recent"><thead><tr><th data-i18n="dashboard.recent_headers.time">Time</th><th data-i18n="dashboard.recent_headers.user">User</th><th data-i18n="dashboard.recent_headers.endpoint">Endpoint</th><th data-i18n="dashboard.recent_headers.model">Model</th><th data-i18n="dashboard.recent_headers.tokens">Tokens</th><th data-i18n="dashboard.recent_headers.audio">Audio</th><th data-i18n="dashboard.recent_headers.cost">Cost</th></tr></thead><tbody></tbody></table></div>
     </div>
 
+    <!-- Second Brain -->
+    <div id="page-cognition" class="page">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+        <div><h2 style="margin:0" data-i18n="cognition.title">Second Brain</h2><div style="font-size:13px;color:var(--text-dim);margin-top:5px" data-i18n="cognition.subtitle">Projects, evidence, and nightly insights</div></div>
+        <button class="btn btn-primary" onclick="refreshCognition()" data-i18n="common.refresh">Refresh</button>
+      </div>
+
+      <div class="cognition-tabs" role="tablist" aria-label="Second Brain views">
+        <button class="cognition-tab active" type="button" role="tab" aria-selected="true" data-cognition-tab="overview" onclick="switchCognitionTab('overview')" data-i18n="cognition.tab_overview">Statistics & insights</button>
+        <button class="cognition-tab" type="button" role="tab" aria-selected="false" data-cognition-tab="projects" onclick="switchCognitionTab('projects')" data-i18n="cognition.tab_projects">Projects</button>
+        <button class="cognition-tab" type="button" role="tab" aria-selected="false" data-cognition-tab="sources" onclick="switchCognitionTab('sources')" data-i18n="cognition.tab_sources">Sources</button>
+      </div>
+
+      <section id="cognition-tab-overview" class="cognition-tab-panel active" role="tabpanel">
+        <div class="cards" id="cognition-cards"></div>
+        <div class="section-toolbar">
+          <div><h3 data-i18n="cognition.latest_insights">Latest insights</h3><p data-i18n="cognition.insight_hint">Open an insight to inspect or correct it through conversation.</p></div>
+        </div>
+        <div id="cognition-insights" class="insight-list"></div>
+      </section>
+
+      <section id="cognition-tab-projects" class="cognition-tab-panel" role="tabpanel">
+        <div class="section-toolbar">
+          <div><h3 data-i18n="cognition.project_management">Project management</h3><p data-i18n="cognition.project_auto_hint">New sources are automatically matched to existing projects.</p></div>
+          <button class="btn btn-primary" type="button" onclick="openCognitionModal('cognition-project-dialog')" data-i18n="cognition.add_project">+ Add project</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th data-i18n="cognition.name">Name</th><th data-i18n="cognition.goal">Goal</th><th data-i18n="cognition.stage">Stage</th><th data-i18n="cognition.tags">Tags</th><th></th></tr></thead><tbody id="cognition-projects"></tbody></table></div>
+      </section>
+
+      <section id="cognition-tab-sources" class="cognition-tab-panel" role="tabpanel">
+        <div class="section-toolbar">
+          <div><h3 data-i18n="cognition.source_management">Source management</h3><p data-i18n="cognition.source_auto_hint">Recordings, documents and conversations appear here automatically.</p></div>
+          <button class="btn btn-primary" type="button" onclick="openCognitionModal('cognition-source-dialog')" data-i18n="cognition.add_source">+ Add source</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th data-i18n="cognition.name">Name</th><th data-i18n="cognition.type">Type</th><th data-i18n="cognition.project_labels">Project labels</th><th data-i18n="cognition.status">Status</th><th data-i18n="cognition.captured">Captured</th><th></th></tr></thead><tbody id="cognition-sources"></tbody></table></div>
+      </section>
+
+      <div id="cognition-project-dialog" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cognition-project-dialog-title" onclick="closeCognitionModalOnBackdrop(event)">
+        <div class="modal-panel">
+          <div class="modal-header"><h3 id="cognition-project-dialog-title" data-i18n="cognition.add_project">Add project</h3><button class="icon-btn" type="button" onclick="closeCognitionModal('cognition-project-dialog')" title="Close" aria-label="Close">&times;</button></div>
+          <div class="modal-body">
+            <div class="form-group"><label data-i18n="cognition.project_name">Project name</label><input id="cognition-project-name" data-i18n-placeholder="cognition.project_name" placeholder="Project name"></div>
+            <div class="form-group"><label data-i18n="cognition.goal">Goal</label><input id="cognition-project-goal" data-i18n-placeholder="cognition.goal_placeholder" placeholder="What outcome matters?"></div>
+            <div class="form-group"><label data-i18n="cognition.description">Background</label><textarea id="cognition-project-description" data-i18n-placeholder="cognition.description_placeholder" placeholder="Key context, boundaries and current state"></textarea></div>
+            <div class="form-group" style="margin-bottom:0"><label data-i18n="cognition.tags">Tags</label><input id="cognition-project-tags" data-i18n-placeholder="cognition.tags_placeholder" placeholder="Comma-separated tags"></div>
+          </div>
+          <div class="modal-actions"><button class="btn" type="button" onclick="closeCognitionModal('cognition-project-dialog')" data-i18n="common.cancel">Cancel</button><button class="btn btn-primary" type="button" onclick="createCognitionProject()" data-i18n="common.create">Create</button></div>
+        </div>
+      </div>
+
+      <div id="cognition-source-dialog" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cognition-source-dialog-title" onclick="closeCognitionModalOnBackdrop(event)">
+        <div class="modal-panel">
+          <div class="modal-header"><h3 id="cognition-source-dialog-title" data-i18n="cognition.add_source">Add source</h3><button class="icon-btn" type="button" onclick="closeCognitionModal('cognition-source-dialog')" title="Close" aria-label="Close">&times;</button></div>
+          <div class="modal-body">
+            <div class="form-group"><label data-i18n="cognition.source_title">Source title</label><input id="cognition-source-title" data-i18n-placeholder="cognition.source_title" placeholder="Source title"></div>
+            <div class="form-group"><label data-i18n="cognition.capture_title">Source content</label><textarea id="cognition-source-content" data-i18n-placeholder="cognition.source_content" placeholder="Paste a note, meeting excerpt, or document text" style="min-height:160px"></textarea></div>
+            <div class="form-group" style="margin-bottom:0"><label data-i18n="cognition.project_labels">Project labels</label><select id="cognition-source-projects" multiple size="4" style="width:100%;max-width:none"></select></div>
+          </div>
+          <div class="modal-actions"><button class="btn" type="button" onclick="closeCognitionModal('cognition-source-dialog')" data-i18n="common.cancel">Cancel</button><button class="btn btn-primary" type="button" onclick="captureCognitionSource()" data-i18n="cognition.capture">Capture</button></div>
+        </div>
+      </div>
+
+      <div id="cognition-insight-dialog" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="cognition-insight-title" onclick="closeCognitionModalOnBackdrop(event)">
+        <div class="modal-panel modal-wide">
+          <div class="modal-header"><div><h3 id="cognition-insight-title"></h3><div id="cognition-insight-type" style="margin-top:5px;color:var(--accent);font-size:12px"></div></div><button class="icon-btn" type="button" onclick="closeCognitionModal('cognition-insight-dialog')" title="Close" aria-label="Close">&times;</button></div>
+          <div class="modal-body">
+            <div id="cognition-insight-meta" class="insight-detail-meta"></div>
+            <div id="cognition-insight-content" class="insight-detail-content"></div>
+            <div class="evidence-heading"><h4 data-i18n="cognition.evidence_sources">Evidence sources</h4><span id="cognition-evidence-count" style="color:var(--text-dim);font-size:12px"></span></div>
+            <div id="cognition-evidence-sources" class="evidence-source-list"></div>
+            <div id="cognition-insight-dialogue" class="insight-dialogue"></div>
+            <div class="form-group" style="margin:0"><label data-i18n="cognition.correction_label">Question or correction</label><textarea id="cognition-insight-correction" data-i18n-placeholder="cognition.correction_placeholder" placeholder="Explain what is incomplete or incorrect, or ask a follow-up question" style="min-height:92px"></textarea></div>
+          </div>
+          <div class="modal-actions"><button class="btn" type="button" onclick="closeCognitionModal('cognition-insight-dialog')" data-i18n="common.close">Close</button><button id="cognition-insight-send" class="btn btn-primary" type="button" onclick="sendInsightCorrection()" data-i18n="cognition.send_correction">Send correction</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Integrations -->
+    <div id="page-integrations" class="page">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+        <div><h2 style="margin:0" data-i18n="integrations.title">Integrations</h2><div style="font-size:13px;color:var(--text-dim);margin-top:5px" data-i18n="integrations.subtitle">Trusted plugins, background processing, and MCP access</div></div>
+        <button class="btn btn-primary" onclick="refreshIntegrations()" data-i18n="common.refresh">Refresh</button>
+      </div>
+      <h3 style="margin:0 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="integrations.plugins">Plugins</h3>
+      <div class="table-wrap"><table><thead><tr><th data-i18n="integrations.name">Name</th><th data-i18n="integrations.kind">Kind</th><th data-i18n="integrations.capabilities">Capabilities</th><th data-i18n="integrations.trust">Trust</th></tr></thead><tbody id="integration-plugins"></tbody></table></div>
+      <h3 style="margin:22px 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="integrations.jobs">Processing jobs</h3>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th data-i18n="integrations.type">Type</th><th data-i18n="integrations.status">Status</th><th data-i18n="integrations.created">Created</th><th></th></tr></thead><tbody id="integration-jobs"></tbody></table></div>
+      <h3 style="margin:22px 0 10px;font-size:14px;color:var(--text-dim)" data-i18n="integrations.mcp">MCP server</h3>
+      <div class="card"><div id="integration-mcp" style="font-size:13px;color:var(--text-dim)"></div></div>
+    </div>
+
     <!-- Chat -->
     <div id="page-chat" class="page">
       <h2 style="margin-bottom:16px" data-i18n="chat.title">Chat Test</h2>
@@ -182,13 +335,10 @@ tr:hover td { background: rgba(255,255,255,.02); }
         <input id="chat-uid" value="admin" style="width:140px;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px">
         <label style="font-size:13px;color:var(--text-dim);margin-left:8px"><input type="checkbox" id="chat-stream" checked> <span data-i18n="chat.stream_label">Stream</span></label>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--text-dim)" id="mem-indicator" data-i18n="chat.memory_indicator_wait">Memory: waiting for test</span>
-        <span style="font-size:12px;color:var(--text-dim)" id="wiki-indicator" data-i18n="chat.wiki_indicator_wait">Wiki: waiting for test</span>
-      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap"><span style="font-size:12px;color:var(--text-dim)" data-i18n="chat.context_indicator">Cognitive context is compiled per request.</span></div>
       <div class="chat-area" id="chat-area"></div>
       <div class="chat-input">
-        <input id="chat-input" data-i18n-placeholder="chat.input_placeholder" placeholder="Type a message to test memory injection..." onkeydown="if(event.key==='Enter')sendChat()">
+        <input id="chat-input" data-i18n-placeholder="chat.input_placeholder" placeholder="Type a message to test cognitive context..." onkeydown="if(event.key==='Enter')sendChat()">
         <button onclick="sendChat()" data-i18n="chat.send_btn">Send</button>
       </div>
       <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px" data-i18n="chat.history_title">Chat History</summary>
@@ -226,58 +376,44 @@ tr:hover td { background: rgba(255,255,255,.02); }
 
       <details open style="margin-bottom:16px">
         <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.emb_section_title">Embedding Model Config</summary>
-        <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.emb_section_desc">Used for memory vectorization and semantic search. Supports any OpenAI-compatible embedding API.</p>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.emb_section_desc">Zero-config default: bge-small-zh local. Select Cloud for external API.</p>
         <div class="card" style="margin-top:8px">
         <div class="form-group">
-          <label data-i18n="models.emb_model_label">Embedding Model</label>
-          <input id="cfg-emb-model" placeholder="doubao-embedding-vision-251215">
-          <div class="hint" data-i18n="models.emb_model_hint">Default from .env / DB config</div>
+          <label data-i18n="models.emb_provider_label">Provider</label>
+          <select id="cfg-emb-provider" onchange="toggleEmbProvider()">
+            <option value="local" data-i18n="models.emb_provider_local">Local (bge / gte / fastembed)</option>
+            <option value="cloud" data-i18n="models.emb_provider_cloud">Cloud (doubao / Jina / OpenAI)</option>
+          </select>
         </div>
-        <div class="form-group">
-          <label data-i18n="models.emb_base_url_label">API Base URL</label>
-          <input id="cfg-emb-base-url" placeholder="https://ark.cn-beijing.volces.com/api/v3">
-          <div class="hint" data-i18n="models.emb_base_url_hint">OpenAI-compatible endpoint (multimodal embeddings supported)</div>
+        <div id="emb-local-fields">
+          <div class="form-group">
+            <label data-i18n="models.emb_local_model_label">Local Model</label>
+            <select id="cfg-emb-model-local">
+              <option value="BAAI/bge-small-zh-v1.5" data-i18n="models.emb_local_small">bge-small-zh (512d, 100MB, fastest)</option>
+              <option value="thenlper/gte-base" data-i18n="models.emb_local_base">gte-base (768d, 440MB, recommended)</option>
+              <option value="thenlper/gte-large" data-i18n="models.emb_local_large">gte-large (1024d, 1.2GB, best)</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label data-i18n="models.emb_api_key_label">API Key</label>
-          <input id="cfg-emb-api-key" placeholder="your-api-key" type="password">
-          <div class="hint" data-i18n="models.emb_api_key_hint">Leave blank to keep current key</div>
-        </div>
-        <div class="form-group">
-          <label data-i18n="models.topk_label">Memory Retrieval Count (top_k)</label>
-          <input id="cfg-topk" type="number" min="1" max="20" placeholder="5">
-          <div class="hint" data-i18n="models.topk_hint">Number of memories injected per conversation, recommended 3-7</div>
-        </div>
-        <div class="form-group">
-          <label data-i18n="models.threshold_label">Memory Similarity Threshold</label>
-          <input id="cfg-threshold" type="number" min="0" max="1" step="0.05" placeholder="0.35">
-          <div class="hint" data-i18n="models.threshold_hint">Memories below this score are not injected, recommended 0.3-0.5</div>
+        <div id="emb-cloud-fields" style="display:none">
+          <div class="form-group">
+            <label data-i18n="models.emb_model_label">Model Name</label>
+            <input id="cfg-emb-model" placeholder="doubao-embedding-text-240715">
+            <div class="hint" data-i18n="models.emb_model_hint">Default from .env / DB config</div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="models.emb_base_url_label">API Base URL</label>
+            <input id="cfg-emb-base-url" placeholder="https://ark.cn-beijing.volces.com/api/v3">
+            <div class="hint" data-i18n="models.emb_base_url_hint">OpenAI-compatible endpoint (multimodal embeddings supported)</div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="models.emb_api_key_label">API Key</label>
+            <input id="cfg-emb-api-key" placeholder="your-api-key" type="password">
+            <div class="hint" data-i18n="models.emb_api_key_hint">Leave blank to keep current key</div>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="saveConfig('embedding')" data-i18n="models.save_emb_btn">Save Embedding Config</button>
         <span id="cfg-emb-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
-      </div>
-      </details>
-
-      <details style="margin-bottom:16px">
-        <summary style="cursor:pointer;font-size:15px;font-weight:600;color:var(--accent);padding:4px 0" data-i18n="models.wiki_section">Wiki Compilation Model Config</summary>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:12px" data-i18n="models.wiki_section_desc">Wiki compilation needs long context + cheap (default: DeepSeek). Leave blank to use upstream Chat model.</p>
-      <div class="card" style="margin-bottom:16px">
-        <div class="form-group">
-          <label data-i18n="models.wiki_model_label">Wiki Compilation Model</label>
-          <input id="cfg-wiki-model" placeholder="deepseek-chat">
-          <div class="hint" data-i18n="models.wiki_model_hint">Recommended: deepseek-chat (64K context, very cheap)</div>
-        </div>
-        <div class="form-group">
-          <label data-i18n="models.wiki_base_url_label">Wiki API Base URL</label>
-          <input id="cfg-wiki-base-url" placeholder="https://api.deepseek.com">
-        </div>
-        <div class="form-group">
-          <label data-i18n="models.wiki_api_key_label">Wiki API Key</label>
-          <input id="cfg-wiki-api-key" placeholder="sk-..." type="password">
-          <div class="hint" data-i18n="models.wiki_api_key_hint">DeepSeek API Key. Leave blank to reuse upstream API Key.</div>
-        </div>
-        <button class="btn btn-primary" onclick="saveConfig('wiki')" data-i18n="models.save_wiki_btn">Save Wiki Config</button>
-        <span id="cfg-wiki-saved" style="margin-left:12px;color:var(--accent2);font-size:13px;display:none" data-i18n="models.saved">Saved</span>
       </div>
       </details>
 
@@ -389,104 +525,6 @@ tr:hover td { background: rgba(255,255,255,.02); }
       </div>
     </div>
 
-    <!-- Memories -->
-    <div id="page-memories" class="page">
-      <h2 style="margin-bottom:16px" data-i18n="memories.title">Memory Management</h2>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <input id="mem-search" data-i18n-placeholder="memories.search_placeholder" placeholder="Search memories..." style="flex:1;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')searchMems()">
-        <button class="btn btn-primary" onclick="searchMems()" data-i18n="memories.search_btn">Search</button>
-      </div>
-      <div id="mem-results"></div>
-    </div>
-
-    <!-- Wiki RAG -->
-    <div id="page-wiki" class="page">
-      <h2 style="margin-bottom:16px" data-i18n="wiki.title">Wiki KB (karpathy-llm-wiki RAG)</h2>
-      <p style="color:var(--text-dim);font-size:13px;margin-bottom:20px" data-i18n="wiki.desc">Compiler-mode RAG: raw materials → LLM compiled into structured Wiki pages → referenced on query.<br><b>mem0 makes the system understand you better; wiki-rag makes the system more professional.</b></p>
-
-      <!-- Status -->
-      <div class="cards" id="wiki-cards">
-        <div class="card"><div class="label" data-i18n="wiki.status_label">Wiki Status</div><div class="value" id="wiki-status-text">-</div></div>
-        <div class="card"><div class="label" data-i18n="wiki.raw_count_label">Raw Materials</div><div class="value" id="wiki-raw-count">-</div></div>
-        <div class="card"><div class="label" data-i18n="wiki.article_count_label">Wiki Articles</div><div class="value" id="wiki-article-count">-</div></div>
-        <div class="card"><div class="label" data-i18n="wiki.topic_count_label">Topics</div><div class="value" id="wiki-topic-count">-</div></div>
-      </div>
-
-      <div id="wiki-init-section" style="margin-bottom:20px">
-        <button class="btn btn-primary" onclick="wikiInit()" data-i18n="wiki.init_btn">Initialize Wiki</button>
-        <span style="color:var(--text-dim);font-size:12px;margin-left:8px" data-i18n="wiki.init_hint">(Create raw/ and wiki/ directory structure)</span>
-      </div>
-
-      <!-- Tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="wiki-tabs" hidden>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('ingest')" id="wiki-tab-ingest" data-i18n="wiki.tabs.ingest">Ingest</button>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('query')" id="wiki-tab-query" data-i18n="wiki.tabs.query">Query</button>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('browse')" id="wiki-tab-browse" data-i18n="wiki.tabs.browse">Browse</button>
-        <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="switchWikiTab('lint')" id="wiki-tab-lint" data-i18n="wiki.tabs.lint">Lint</button>
-      </div>
-
-      <!-- Ingest -->
-      <div id="wiki-tab-content-ingest" class="wiki-tab-content" hidden>
-        <h3 style="font-size:15px;margin-bottom:12px" data-i18n="wiki.ingest.title">Ingest Raw Material</h3>
-        <div class="form-group"><label data-i18n="wiki.ingest.title_label">Title *</label><input id="wiki-ingest-title" data-i18n-placeholder="wiki.ingest.title_label" placeholder="Title *"></div>
-        <div class="form-group"><label data-i18n="wiki.ingest.topic_label">Topic</label><input id="wiki-ingest-topic" value="general" data-i18n-placeholder="wiki.ingest.topic_default" placeholder="general"></div>
-        <div class="form-group"><label data-i18n="wiki.ingest.url_label">Source URL (optional)</label><input id="wiki-ingest-url" placeholder="https://..."></div>
-        <div class="form-group"><label data-i18n="wiki.ingest.content_label">Content *</label><textarea id="wiki-ingest-content" data-i18n-placeholder="wiki.ingest.content_placeholder" placeholder="Paste raw text... (Markdown supported)" style="min-height:200px"></textarea></div>
-        <button class="btn btn-primary" onclick="wikiIngest()" data-i18n="wiki.ingest.compile_btn">Compile to Wiki</button>
-        <span id="wiki-ingest-status" style="margin-left:12px;font-size:13px;color:var(--text-dim)"></span>
-
-        <h3 style="font-size:15px;margin:24px 0 12px" data-i18n="wiki.ingest.file_upload_title">File Upload</h3>
-        <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-          <div class="form-group" style="margin:0"><label data-i18n="wiki.ingest.file_label">Select file (.md/.txt)</label><input type="file" id="wiki-upload-file" accept=".md,.txt,.json" style="max-width:300px"></div>
-          <div class="form-group" style="margin:0"><label data-i18n="wiki.ingest.file_topic_label">Topic</label><input id="wiki-upload-topic" value="general" style="width:140px"></div>
-          <button class="btn btn-primary" onclick="wikiUploadFile()" data-i18n="wiki.ingest.upload_btn">Upload & Compile</button>
-          <span id="wiki-upload-status" style="font-size:13px;color:var(--text-dim)"></span>
-        </div>
-      </div>
-
-      <!-- Query -->
-      <div id="wiki-tab-content-query" class="wiki-tab-content" hidden>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input id="wiki-query-input" data-i18n-placeholder="wiki.query.search_placeholder" placeholder="Search wiki KB..." style="flex:1;max-width:500px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px" onkeydown="if(event.key==='Enter')wikiQuery()">
-          <button class="btn btn-primary" onclick="wikiQuery()" data-i18n="wiki.query.search_btn">Search</button>
-        </div>
-        <label style="font-size:12px;color:var(--text-dim);margin-right:12px"><input type="checkbox" id="wiki-query-gen-answer"> <span data-i18n="wiki.query.gen_answer">Generate AI Answer</span></label>
-        <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-query-embedding"> <span data-i18n="wiki.query.semantic_search">Semantic Search</span></label>
-        <div id="wiki-query-answer" style="margin:12px 0;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:none"></div>
-        <div id="wiki-query-results" style="margin-top:12px"></div>
-      </div>
-
-      <!-- Browse -->
-      <div id="wiki-tab-content-browse" class="wiki-tab-content" hidden>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-primary" onclick="wikiRefreshList()" data-i18n="wiki.browse.refresh_btn">Refresh</button>
-          <button class="btn" style="background:var(--surface);color:var(--text);border:1px solid var(--border)" onclick="wikiRebuildIndex()" data-i18n="wiki.browse.rebuild_btn">Rebuild Index</button>
-          <select id="wiki-topic-filter" onchange="wikiRefreshList()" style="padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)"><option value="" data-i18n="wiki.browse.filter_all">All Topics</option></select>
-        </div>
-        <div id="wiki-article-list"></div>
-        <div id="wiki-article-detail" style="display:none;margin-top:16px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)"></div>
-      </div>
-
-      <!-- Lint -->
-      <div id="wiki-tab-content-lint" class="wiki-tab-content" hidden>
-        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="wikiLint()" data-i18n="wiki.lint.run_btn">Run Lint</button>
-          <label style="font-size:12px;color:var(--text-dim)"><input type="checkbox" id="wiki-lint-heuristic"> <span data-i18n="wiki.lint.heuristic_label">LLM Heuristic Check (slower)</span></label>
-          <span id="wiki-lint-status" style="font-size:13px;color:var(--text-dim)"></span>
-        </div>
-        <div id="wiki-lint-fixed"></div>
-        <div id="wiki-lint-reported"></div>
-        <div id="wiki-lint-heuristic-results"></div>
-      </div>
-
-      <details style="margin-top:20px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px" data-i18n="wiki.raw_title">Raw Materials</summary>
-        <div id="wiki-raw-list" style="margin-top:8px;color:var(--text-dim);font-size:12px" data-i18n="wiki.raw_refresh_hint">Click to refresh...</div>
-      </details>
-      <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--text-dim);font-size:13px" data-i18n="wiki.log_title">Operation Log</summary>
-        <div id="wiki-log-preview" style="margin-top:8px;color:var(--text-dim);font-size:12px;font-family:monospace;white-space:pre-wrap"></div>
-      </details>
-    </div>
-
     <!-- API Tokens -->
     <div id="page-tokens" class="page">
       <h2 style="margin-bottom:8px" data-i18n="tokens.title">API Tokens</h2>
@@ -501,7 +539,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
           <button class="btn btn-primary" onclick="createToken()" data-i18n="tokens.create_btn">Create Token</button>
         </div>
         <div id="token-created" style="margin-top:12px;display:none;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
-          <strong style="color:var(--accent2)" data-i18n="tokens.created_label">Token created! Copy it now — won't be shown again</strong>
+          <strong style="color:var(--accent2)" data-i18n="tokens.created_label">Token created! Copy it now - it will not be shown again</strong>
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
             <code id="token-full" style="background:var(--surface);padding:8px 12px;border-radius:var(--radius);word-break:break-all;font-size:13px"></code>
             <button class="btn" style="background:var(--accent);color:#000;padding:8px 16px;font-size:12px" onclick="copyToken()" data-i18n="tokens.copy_btn">Copy</button>
@@ -550,6 +588,25 @@ tr:hover td { background: rgba(255,255,255,.02); }
         <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:var(--text-dim)" data-i18n="meetings.view_transcript">View Transcript</summary>
           <div id="player-transcript" style="margin-top:8px;white-space:pre-wrap;font-size:13px;max-height:300px;overflow-y:auto;line-height:1.6"></div>
         </details>
+      </div>
+    </div>
+
+    <!-- Linkable Meeting Detail -->
+    <div id="meeting-detail-dialog" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="meeting-detail-title" onclick="closeMeetingDetailOnBackdrop(event)">
+      <div class="modal-panel modal-wide">
+        <div class="modal-header">
+          <div><h3 id="meeting-detail-title" data-i18n="meetings.detail_title">Meeting detail</h3><div id="meeting-detail-meta" style="margin-top:5px;color:var(--text-dim);font-size:12px"></div></div>
+          <div style="display:flex;gap:4px"><button class="icon-btn" type="button" onclick="copyMeetingDetailLink()" data-i18n-title="meetings.copy_link" title="Copy link" aria-label="Copy link">🔗</button><button class="icon-btn" type="button" onclick="closeMeetingDetail()" data-i18n-title="common.close" title="Close" aria-label="Close">&times;</button></div>
+        </div>
+        <div style="padding:14px 20px 0"><audio id="meeting-detail-audio" controls style="width:100%"></audio><a id="meeting-detail-link" class="meeting-detail-link" href="#"></a></div>
+        <div class="meeting-detail-tabs" role="tablist" aria-label="Meeting content">
+          <button class="meeting-detail-tab" type="button" role="tab" aria-selected="false" data-meeting-detail-tab="transcript" onclick="switchMeetingDetailTab('transcript')" data-i18n="meetings.tab_transcript">Transcript</button>
+          <button class="meeting-detail-tab active" type="button" role="tab" aria-selected="true" data-meeting-detail-tab="summary" onclick="switchMeetingDetailTab('summary')" data-i18n="meetings.tab_summary">Minutes</button>
+          <button class="meeting-detail-tab" type="button" role="tab" aria-selected="false" data-meeting-detail-tab="insights" onclick="switchMeetingDetailTab('insights')" data-i18n="meetings.tab_insights">Insights</button>
+        </div>
+        <section id="meeting-detail-transcript" class="meeting-detail-panel" role="tabpanel"><div id="meeting-detail-transcript-content" class="meeting-detail-text"></div></section>
+        <section id="meeting-detail-summary" class="meeting-detail-panel active" role="tabpanel"><div id="meeting-detail-summary-content" class="meeting-detail-text"></div></section>
+        <section id="meeting-detail-insights" class="meeting-detail-panel" role="tabpanel"><div id="meeting-detail-insights-content" class="meeting-detail-insights"></div></section>
       </div>
     </div>
 
@@ -605,7 +662,7 @@ tr:hover td { background: rgba(255,255,255,.02); }
   </div>
 </div>
 
-<script src="/static/i18n.js?v=20260711"></script>
+<script src="/static/i18n.js?v=20260716-meeting-detail"></script>
 <script>
 // ==================== Auth ====================
 let TOKEN = localStorage.getItem('vibry_admin_token') || '';
@@ -623,7 +680,10 @@ function logout() { TOKEN = ''; localStorage.removeItem('vibry_admin_token'); do
 // ==================== API Tokens ====================
 function refreshTokens() {
   const T = I18N.t.bind(I18N);
-  fetch('/admin/api/tokens', {headers:authHeaders()}).then(r=>r.json()).then(d => {
+  fetch('/admin/api/tokens', {headers:authHeaders()}).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }).then(d => {
     const tokens = d.tokens || [];
     document.getElementById('token-list').innerHTML = tokens.length === 0
       ? `<p style="color:var(--text-dim)">${T('tokens.empty')}</p>`
@@ -635,6 +695,8 @@ function refreshTokens() {
           <td style="font-size:12px;color:var(--text-dim)">${t.last_used_at||'—'}</td>
           <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="deleteToken('${t.id}')">🗑️</button></td>
         </tr>`).join('') + '</tbody></table></div>';
+  }).catch(error => {
+    document.getElementById('token-list').innerHTML = `<div class="card" style="color:var(--danger)">${T('common.unknown_error')}: ${error.message}</div>`;
   });
 }
 
@@ -663,22 +725,32 @@ function deleteToken(id) {
     .then(r=>r.json()).then(d => { if (d.ok) refreshTokens(); });
 }
 function authHeaders() { return {'Content-Type':'application/json','Authorization':'Bearer '+TOKEN}; }
-function showApp() { document.getElementById('login-page').style.display='none'; document.getElementById('app').style.display='flex'; refreshDashboard(); }
+function showApp() {
+  document.getElementById('login-page').style.display='none';
+  document.getElementById('app').style.display='flex';
+  if (!openMeetingDetailFromLocation()) refreshDashboard();
+}
 
 // ==================== Navigation ====================
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 document.querySelectorAll('.sidebar a[data-page]').forEach(a => {
   a.addEventListener('click', e => {
     e.preventDefault();
+    const targetPage = document.getElementById('page-'+a.dataset.page);
+    if (!targetPage) {
+      console.error(`Missing page container: page-${a.dataset.page}`);
+      return;
+    }
     document.querySelectorAll('.sidebar a').forEach(x => x.classList.remove('active'));
     a.classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-'+a.dataset.page).classList.add('active');
+    targetPage.classList.add('active');
     if (a.dataset.page === 'dashboard') refreshDashboard();
+    if (a.dataset.page === 'cognition') refreshCognition();
+    if (a.dataset.page === 'integrations') refreshIntegrations();
     if (a.dataset.page === 'billing') refreshBilling();
     if (a.dataset.page === 'models') loadConfig();
     if (a.dataset.page === 'personality') loadPersonality();
-    if (a.dataset.page === 'wiki') refreshWikiStatus();
     if (a.dataset.page === 'account') loadAccount();
     if (a.dataset.page === 'tokens') refreshTokens();
     if (a.dataset.page === 'logs') refreshLogs();
@@ -703,8 +775,8 @@ window.addEventListener('i18n:langChanged', () => {
   else if (pageId === 'page-account') loadAccount();
   else if (pageId === 'page-tokens') refreshTokens();
   else if (pageId === 'page-logs') refreshLogs();
-  else if (pageId === 'page-wiki') refreshWikiStatus();
-  else if (pageId === 'page-memories') searchMems();
+  else if (pageId === 'page-cognition') refreshCognition();
+  else if (pageId === 'page-integrations') refreshIntegrations();
 });
 
 // ==================== Dashboard ====================
@@ -713,7 +785,6 @@ function refreshDashboard() {
   fetch('/admin/api/stats', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('dash-cards').innerHTML =
       `<div class="card"><div class="label">${T('dashboard.cards.recordings')}</div><div class="value">${d.recordings}</div></div>
-       <div class="card"><div class="label">${T('dashboard.cards.memories')}</div><div class="value">${d.memories_count ?? '-'}</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.api_calls')}</div><div class="value">${d.total_calls}</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.tokens')}</div><div class="value">${(d.total_tokens/1000).toFixed(0)}k</div></div>
        <div class="card"><div class="label">${T('dashboard.cards.audio')}</div><div class="value">${(d.total_audio_seconds||0).toFixed(0)}s</div></div>
@@ -728,6 +799,302 @@ function refreshDashboard() {
     const tbr = document.querySelector('#dash-recent tbody');
     tbr.innerHTML = (d.recent_usage||[]).slice(0,20).map(u => `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.total_tokens || '-'}</td><td>${(u.audio_seconds||0)>0 ? (u.audio_seconds).toFixed(1)+'s' : '-'}</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`).join('');
   });
+}
+
+// ==================== Second Brain ====================
+let cognitionData = {projects: [], sources: [], insights: []};
+let activeCognitionInsightId = '';
+let cognitionEvidenceSources = {};
+
+function cognitionEscape(value) {
+  const node = document.createElement('span'); node.textContent = value || ''; return node.innerHTML;
+}
+function cognitionFetch(url, options = {}) {
+  return fetch(url, {headers: authHeaders(), ...options}).then(async response => {
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+    return response.json();
+  });
+}
+function switchCognitionTab(tabName) {
+  document.querySelectorAll('.cognition-tab').forEach(button => {
+    const active = button.dataset.cognitionTab === tabName;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.cognition-tab-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.id === `cognition-tab-${tabName}`);
+  });
+}
+function openCognitionModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.add('open');
+  const input = modal.querySelector('input,textarea,button');
+  if (input) input.focus();
+}
+function closeCognitionModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.remove('open');
+}
+function closeCognitionModalOnBackdrop(event) {
+  if (event.target === event.currentTarget) event.currentTarget.classList.remove('open');
+}
+function refreshCognition() {
+  const T = I18N.t.bind(I18N);
+  Promise.all([
+    cognitionFetch('/api/v2/dashboard'),
+    cognitionFetch('/api/v2/sources?limit=100'),
+    cognitionFetch('/api/v2/insights?limit=50'),
+  ]).then(([d, sourceData, insightData]) => {
+    cognitionData = {
+      projects: d.projects || [],
+      sources: sourceData.sources || [],
+      insights: insightData.insights || [],
+    };
+    const c = d.counts || {};
+    document.getElementById('cognition-cards').innerHTML =
+      `<div class="card"><div class="label">${T('cognition.cards.sources')}</div><div class="value">${c.sources || 0}</div></div>
+       <div class="card"><div class="label">${T('cognition.cards.processing')}</div><div class="value">${c.sources_pending || 0}</div></div>
+       <div class="card"><div class="label">${T('cognition.cards.projects')}</div><div class="value">${c.projects || 0}</div></div>
+       <div class="card"><div class="label">${T('cognition.cards.claims')}</div><div class="value">${c.claims || 0}</div></div>
+       <div class="card"><div class="label">${T('cognition.cards.insights')}</div><div class="value">${c.insights || 0}</div></div>
+       <div class="card"><div class="label">${T('cognition.cards.jobs')}</div><div class="value">${c.jobs_queued || 0}</div></div>`;
+    document.getElementById('cognition-projects').innerHTML = cognitionData.projects.map(p =>
+      `<tr><td>${cognitionEscape(p.name)}</td><td>${cognitionEscape(p.goal || '-')}</td><td>${cognitionEscape(p.stage)}</td><td>${cognitionEscape((Array.isArray(p.tags) ? p.tags : []).join(', '))}</td><td style="white-space:nowrap"><button class="btn btn-primary" onclick="runProjectInsight('${p.id}')">${T('cognition.run_insight')}</button><button class="btn btn-danger" style="padding:10px 12px;margin-left:6px" onclick="deleteCognitionProject('${p.id}')" title="${T('cognition.delete_project')}" aria-label="${T('cognition.delete_project')}">🗑️</button></td></tr>`
+    ).join('') || `<tr><td colspan="5" style="color:var(--text-dim)">${T('cognition.empty_projects')}</td></tr>`;
+    const projectOptions = (source) => cognitionData.projects.map(project => {
+      const selected = (source.projects || []).some(item => item.id === project.id && item.status !== 'rejected');
+      return `<option value="${cognitionEscape(project.id)}" ${selected ? 'selected' : ''}>${cognitionEscape(project.name)}</option>`;
+    }).join('');
+    document.getElementById('cognition-source-projects').innerHTML = projectOptions({projects: []});
+    document.getElementById('cognition-sources').innerHTML = cognitionData.sources.map(source =>
+      `<tr id="source-row-${source.id}"><td>${cognitionEscape(source.title || T('cognition.untitled'))}</td><td>${cognitionEscape(source.source_type)}</td><td><select id="source-projects-${source.id}" multiple size="2" style="min-width:150px">${projectOptions(source)}</select></td><td>${cognitionEscape(source.status)}</td><td>${cognitionEscape(source.captured_at)}</td><td><button class="btn btn-primary" onclick="saveSourceProjects('${source.id}')">${T('cognition.save_labels')}</button></td></tr>`
+    ).join('') || `<tr><td colspan="6" style="color:var(--text-dim)">${T('cognition.empty_sources')}</td></tr>`;
+    const projectNames = Object.fromEntries(cognitionData.projects.map(project => [project.id, project.name]));
+    document.getElementById('cognition-insights').innerHTML = cognitionData.insights.map(insight =>
+      `<button class="insight-item" type="button" onclick="openCognitionInsight('${insight.id}')">
+        <span><span class="insight-item-title">${cognitionEscape(insight.title)}</span><span class="insight-item-preview">${cognitionEscape(insight.content)}</span></span>
+        <span class="insight-item-meta">${cognitionEscape(projectNames[insight.project_id] || T('cognition.global_scope'))}<br>${Math.round((insight.confidence || 0) * 100)}%</span>
+      </button>`
+    ).join('') || `<div style="font-size:13px;color:var(--text-dim)">${T('cognition.empty_insights')}</div>`;
+  }).catch(error => toast(`${T('cognition.load_failed')}: ${error.message}`));
+}
+function openCognitionInsight(insightId) {
+  const T = I18N.t.bind(I18N);
+  const insight = cognitionData.insights.find(item => item.id === insightId);
+  if (!insight) return;
+  activeCognitionInsightId = insightId;
+  const project = cognitionData.projects.find(item => item.id === insight.project_id);
+  document.getElementById('cognition-insight-title').textContent = insight.title || T('cognition.untitled_insight');
+  document.getElementById('cognition-insight-type').textContent = insight.insight_type || '';
+  document.getElementById('cognition-insight-content').textContent = insight.content || '';
+  document.getElementById('cognition-insight-meta').innerHTML =
+    `<span>${T('cognition.project')}: <strong>${cognitionEscape(project?.name || T('cognition.global_scope'))}</strong></span>
+     <span>${T('cognition.confidence')}: <strong>${Math.round((insight.confidence || 0) * 100)}%</strong></span>
+     <span>${T('cognition.evidence')}: <strong>${(insight.evidence || []).length}</strong></span>
+     <span>${T('cognition.created')}: <strong>${cognitionEscape(insight.created_at || '-')}</strong></span>`;
+  document.getElementById('cognition-insight-dialogue').innerHTML = '';
+  document.getElementById('cognition-insight-correction').value = '';
+  document.getElementById('cognition-evidence-count').textContent = '';
+  document.getElementById('cognition-evidence-sources').innerHTML = `<div style="color:var(--text-dim);font-size:12px">${T('cognition.evidence_loading')}</div>`;
+  openCognitionModal('cognition-insight-dialog');
+  loadInsightEvidence(insight);
+}
+async function loadInsightEvidence(insight) {
+  const T = I18N.t.bind(I18N);
+  const grouped = {};
+  (insight.evidence || []).forEach(item => {
+    (item.sources || []).forEach(source => {
+      if (!source.source_id) return;
+      if (!grouped[source.source_id]) grouped[source.source_id] = {quotes: [], claimIds: []};
+      if (source.quote && !grouped[source.source_id].quotes.includes(source.quote)) grouped[source.source_id].quotes.push(source.quote);
+      if (item.claim_id && !grouped[source.source_id].claimIds.includes(item.claim_id)) grouped[source.source_id].claimIds.push(item.claim_id);
+    });
+  });
+  const sourceIds = Object.keys(grouped);
+  const container = document.getElementById('cognition-evidence-sources');
+  document.getElementById('cognition-evidence-count').textContent = `${sourceIds.length} ${T('cognition.source_count')}`;
+  if (sourceIds.length === 0) {
+    container.innerHTML = `<div style="color:var(--text-dim);font-size:12px">${T('cognition.evidence_empty')}</div>`;
+    return;
+  }
+  const results = await Promise.allSettled(sourceIds.map(sourceId => cognitionFetch(`/api/v2/sources/${encodeURIComponent(sourceId)}`)));
+  const rows = [];
+  results.forEach((result, index) => {
+    const sourceId = sourceIds[index];
+    if (result.status !== 'fulfilled' || !result.value.source) return;
+    const source = result.value.source;
+    cognitionEvidenceSources[sourceId] = source;
+    const quote = grouped[sourceId].quotes.join('\n\n');
+    const recordingId = evidenceRecordingId(source);
+    rows.push(`<div class="evidence-source">
+      <div class="evidence-source-top">
+        <div><div class="evidence-source-title">${cognitionEscape(source.title || T('cognition.untitled'))}</div><div class="evidence-source-meta">${cognitionEscape(source.source_type || '')} · ${cognitionEscape(source.occurred_at || source.captured_at || '')}</div></div>
+        <a class="evidence-source-link" href="${recordingId ? meetingDetailPath(recordingId) : '#'}" onclick="event.preventDefault();openEvidenceSource('${sourceId}')">${recordingId ? T('cognition.open_minutes') : T('cognition.open_source')} →</a>
+      </div>
+      <div class="evidence-quote">${cognitionEscape(quote || T('cognition.no_quote'))}</div>
+    </div>`);
+  });
+  container.innerHTML = rows.join('') || `<div style="color:var(--text-dim);font-size:12px">${T('cognition.evidence_load_failed')}</div>`;
+}
+function evidenceRecordingId(source) {
+  if (source?.metadata?.legacy_recording_id) return source.metadata.legacy_recording_id;
+  const externalId = source?.external_id || '';
+  if (externalId.startsWith('recording_summary:')) return externalId.substring('recording_summary:'.length);
+  if (externalId.startsWith('recording:')) return externalId.substring('recording:'.length);
+  return '';
+}
+function openEvidenceSource(sourceId) {
+  const source = cognitionEvidenceSources[sourceId];
+  if (!source) return;
+  const recordingId = evidenceRecordingId(source);
+  closeCognitionModal('cognition-insight-dialog');
+  if (recordingId) {
+    openMeetingDetail(recordingId);
+    return;
+  }
+  switchCognitionTab('sources');
+  const row = document.getElementById(`source-row-${sourceId}`);
+  if (row) {
+    row.scrollIntoView({behavior:'smooth', block:'center'});
+    row.style.outline = '1px solid var(--accent)';
+    setTimeout(() => { row.style.outline = ''; }, 1800);
+  }
+}
+function appendInsightDialogue(role, content) {
+  const message = document.createElement('div');
+  message.className = `insight-dialogue-message ${role}`;
+  message.textContent = content;
+  document.getElementById('cognition-insight-dialogue').appendChild(message);
+}
+async function sendInsightCorrection() {
+  const T = I18N.t.bind(I18N);
+  const insight = cognitionData.insights.find(item => item.id === activeCognitionInsightId);
+  const input = document.getElementById('cognition-insight-correction');
+  const message = input.value.trim();
+  if (!insight || !message) { toast(T('cognition.correction_required')); return; }
+  const sendButton = document.getElementById('cognition-insight-send');
+  sendButton.disabled = true;
+  appendInsightDialogue('user', message);
+  input.value = '';
+  try {
+    await cognitionFetch('/api/v2/feedback', {
+      method: 'POST',
+      body: JSON.stringify({target_type: 'insight', target_id: insight.id, action: 'correction', correction: {message, source: 'dashboard'}}),
+    });
+    const chatUrl = insight.project_id
+      ? `/api/v2/projects/${encodeURIComponent(insight.project_id)}/chat`
+      : '/api/v2/memory-matrix/chat';
+    const result = await cognitionFetch(chatUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        message: `${T('cognition.correction_context')}\n${insight.title}\n\n${message}`,
+        metadata: {insight_id: insight.id, interaction: 'insight_correction'},
+      }),
+    });
+    const reply = result.assistant_message?.content || T('cognition.correction_saved');
+    const plainReply = document.createElement('div');
+    plainReply.innerHTML = reply;
+    appendInsightDialogue('assistant', plainReply.textContent || reply);
+  } catch (error) {
+    appendInsightDialogue('assistant', `${T('cognition.correction_failed')}: ${error.message}`);
+  } finally {
+    sendButton.disabled = false;
+  }
+}
+function createCognitionProject() {
+  const T = I18N.t.bind(I18N);
+  const name = document.getElementById('cognition-project-name').value.trim();
+  const goal = document.getElementById('cognition-project-goal').value.trim();
+  const description = document.getElementById('cognition-project-description').value.trim();
+  const tags = document.getElementById('cognition-project-tags').value.split(/[,，]/).map(item => item.trim()).filter(Boolean);
+  if (!name) { toast(T('cognition.project_name_required')); return; }
+  cognitionFetch('/api/v2/projects', {method:'POST', body:JSON.stringify({name, goal, description, tags})})
+    .then(() => {
+      ['cognition-project-name','cognition-project-goal','cognition-project-description','cognition-project-tags'].forEach(id => document.getElementById(id).value = '');
+      closeCognitionModal('cognition-project-dialog');
+      switchCognitionTab('projects');
+      refreshCognition();
+    }).catch(error => toast(`${T('cognition.project_create_failed')}: ${error.message}`));
+}
+function captureCognitionSource() {
+  const T = I18N.t.bind(I18N);
+  const title = document.getElementById('cognition-source-title').value.trim();
+  const content = document.getElementById('cognition-source-content').value.trim();
+  if (!content) { toast(T('cognition.source_required')); return; }
+  const project_ids = Array.from(document.getElementById('cognition-source-projects').selectedOptions).map(option => option.value);
+  cognitionFetch('/api/v2/sources', {method:'POST', body:JSON.stringify({content, title, project_ids, source_type:'manual', origin:'dashboard'})})
+    .then(() => {
+      document.getElementById('cognition-source-title').value = '';
+      document.getElementById('cognition-source-content').value = '';
+      closeCognitionModal('cognition-source-dialog');
+      switchCognitionTab('sources');
+      refreshCognition();
+    }).catch(error => toast(`${T('cognition.source_create_failed')}: ${error.message}`));
+}
+function saveSourceProjects(sourceId) {
+  const selector = document.getElementById('source-projects-' + sourceId);
+  const project_ids = Array.from(selector.selectedOptions).map(option => option.value);
+  cognitionFetch('/api/v2/sources/' + encodeURIComponent(sourceId) + '/projects', {method:'PUT', body:JSON.stringify({project_ids})})
+    .then(() => refreshCognition());
+}
+function runProjectInsight(projectId) {
+  cognitionFetch('/api/v2/insights/run', {method:'POST', body:JSON.stringify({project_id:projectId, trigger:'dashboard'})})
+    .then(() => { toast(I18N.t('cognition.insight_queued')); refreshCognition(); });
+}
+function deleteCognitionProject(projectId) {
+  const T = I18N.t.bind(I18N);
+  if (!window.confirm(T('cognition.delete_project_confirm'))) return;
+  cognitionFetch('/api/v2/projects/' + encodeURIComponent(projectId), {method:'DELETE'})
+    .then(() => { toast(T('cognition.delete_project_done')); refreshCognition(); })
+    .catch(() => toast(T('cognition.delete_project_failed')));
+}
+function refreshIntegrations() {
+  const T = I18N.t.bind(I18N);
+  fetch('/api/v2/operations', {headers:authHeaders()}).then(r=>r.json()).then(d => {
+    document.getElementById('integration-plugins').innerHTML = (d.plugins || []).map(p =>
+      `<tr><td>${cognitionEscape(p.name)}</td><td>${cognitionEscape(p.kind)}</td><td>${cognitionEscape((p.capabilities || []).join(', '))}</td><td>${p.trusted ? T('integrations.builtin') : T('integrations.external')}</td></tr>`
+    ).join('') || `<tr><td colspan="4" style="color:var(--text-dim)">${T('integrations.empty_plugins')}</td></tr>`;
+    document.getElementById('integration-jobs').innerHTML = (d.jobs || []).map(job => {
+      const retry = job.status === 'failed' ? `<button class="btn btn-primary" onclick="retryCognitionJob('${job.id}')">${T('integrations.retry')}</button>` : '';
+      return `<tr><td style="font-size:11px">${cognitionEscape(job.id)}</td><td>${cognitionEscape(job.job_type)}</td><td>${cognitionEscape(job.status)}</td><td>${cognitionEscape(job.created_at)}</td><td>${retry}</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="color:var(--text-dim)">${T('integrations.empty_jobs')}</td></tr>`;
+    const mcp = d.mcp || {};
+    const semantic = d.semantic || {};
+    document.getElementById('integration-mcp').innerHTML =
+      `<div><strong>${T('integrations.mcp')}</strong> · ${cognitionEscape(mcp.transport || '')}</div>
+       <div style="margin-top:8px">${T('integrations.entrypoint')}: <code>${cognitionEscape(mcp.entrypoint || '')}</code></div>
+       <div style="margin-top:8px">${T('integrations.tools')}: ${cognitionEscape((mcp.tools || []).join(', '))}</div>
+       <div style="margin-top:8px">${T('integrations.scopes')}: ${cognitionEscape((mcp.scopes || []).join(', '))}</div>
+       <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>${T('integrations.client_config')}</strong><button class="btn btn-primary" onclick="copyMcpConfig()">${T('integrations.copy_config')}</button></div>
+       <pre id="integration-mcp-config" style="margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);font-size:12px"></pre>
+       <div style="margin-top:12px"><strong>${T('integrations.semantic')}</strong></div>
+       <div style="margin-top:8px">${T('integrations.mode')}: ${cognitionEscape(semantic.mode || '')}</div>
+       <div style="margin-top:8px">${T('integrations.model')}: <code>${cognitionEscape(semantic.model_id || '')}</code></div>
+       <div style="margin-top:10px"><button class="btn btn-primary" onclick="rebuildSemanticIndex()">${T('integrations.rebuild_semantic')}</button></div>`;
+    document.getElementById('integration-mcp-config').textContent = JSON.stringify(mcp.client_config || {}, null, 2);
+  }).catch(() => toast(T('integrations.load_failed')));
+}
+function copyMcpConfig() {
+  const text = document.getElementById('integration-mcp-config').textContent;
+  navigator.clipboard.writeText(text).then(() => toast(I18N.t('integrations.copied_config')));
+}
+function rebuildSemanticIndex() {
+  const T = I18N.t.bind(I18N);
+  fetch('/admin/api/v2/semantic/reindex', {method:'POST', headers:authHeaders(), body:JSON.stringify({})})
+    .then(response => {
+      if (!response.ok) throw new Error('semantic reindex failed');
+      return response.json();
+    })
+    .then(() => { toast(T('integrations.semantic_rebuilt')); refreshIntegrations(); })
+    .catch(() => toast(T('integrations.semantic_rebuild_failed')));
+}
+function retryCognitionJob(id) {
+  fetch('/api/v2/jobs/' + encodeURIComponent(id) + '/retry', {method:'POST', headers:authHeaders(), body:'{}'})
+    .then(() => refreshIntegrations());
 }
 
 // ==================== Chat ====================
@@ -760,12 +1127,6 @@ function sendChat() {
     if (!stream) {
       const d = await resp.json();
       assistDiv.lastChild.textContent = d.choices?.[0]?.message?.content || JSON.stringify(d);
-      const mems = d._vibry_memories;
-      if (mems && mems.count > 0) {
-        document.getElementById('mem-indicator').textContent = T('chat.memory_indicator', mems.count) + ' — ' + mems.items.map(i=>i.memory.substring(0,30)).join(', ');
-      } else {
-        document.getElementById('mem-indicator').textContent = T('chat.memory_indicator_none');
-      }
       return;
     }
     assistDiv.lastChild.textContent = '';
@@ -784,17 +1145,16 @@ function sendChat() {
         }
       }
     }
-  }).then(() => {
-    fetch('/api/wiki/status').then(r=>r.json()).then(d => {
-      document.getElementById('wiki-indicator').textContent = d.initialized
-        ? T('chat.wiki_indicator_ok', (d.wiki_count||0))
-        : T('chat.wiki_indicator_no');
-    }).catch(() => {});
-    setTimeout(loadChatHistory, 500);
-  }).catch(e => { assistDiv.lastChild.textContent = T('chat.error') + ': '+e.message; });
+  }).then(() => setTimeout(loadChatHistory, 500))
+    .catch(e => { assistDiv.lastChild.textContent = T('chat.error') + ': '+e.message; });
 }
 
 // ==================== Config ====================
+function toggleEmbProvider() {
+  var isLocal = document.getElementById('cfg-emb-provider').value === 'local';
+  document.getElementById('emb-local-fields').style.display = isLocal ? '' : 'none';
+  document.getElementById('emb-cloud-fields').style.display = isLocal ? 'none' : '';
+}
 function loadConfig() {
   fetch('/admin/api/config', {headers:authHeaders()}).then(r=>r.json()).then(d => {
     // Chat model
@@ -802,15 +1162,21 @@ function loadConfig() {
     document.getElementById('cfg-chat-base-url').value = d.chat_base_url || '';
     document.getElementById('cfg-chat-api-key').value = d.chat_api_key || '';
     // Embedding model
-    document.getElementById('cfg-emb-model').value = d.embedding_model || '';
-    document.getElementById('cfg-emb-base-url').value = d.embedding_base_url || '';
-    document.getElementById('cfg-emb-api-key').value = d.embedding_api_key || '';
+    var embBase = d.embedding_base_url || '';
+    var isLocal = !embBase || embBase.startsWith('local://');
+    document.getElementById('cfg-emb-provider').value = isLocal ? 'local' : 'cloud';
+    if (isLocal) {
+      var m = document.getElementById('cfg-emb-model-local');
+      if (m) m.value = d.embedding_model || 'BAAI/bge-small-zh-v1.5';
+    } else {
+      document.getElementById('cfg-emb-model').value = d.embedding_model || '';
+      document.getElementById('cfg-emb-base-url').value = embBase;
+      document.getElementById('cfg-emb-api-key').value = d.embedding_api_key || '';
+    }
+    toggleEmbProvider();
     // ASR
     document.getElementById('cfg-asr-mode').value = d.asr_mode || 'cloud';
     document.getElementById('cfg-voice-mode').value = d.asr_voice_mode || 'cloud';
-    // Memory
-    document.getElementById('cfg-topk').value = d.memory_top_k || 5;
-    document.getElementById('cfg-threshold').value = d.memory_threshold || 0.35;
     // Doubao ASR
     document.getElementById('cfg-doubao-appid').value = d.doubao_asr_app_id || '';
     document.getElementById('cfg-doubao-accesskey').value = d.doubao_asr_access_key || '';
@@ -819,42 +1185,44 @@ function loadConfig() {
     // Prompts
     document.getElementById('cfg-summary-prompt').value = d.summary_prompt || '';
     document.getElementById('cfg-insight-prompt').value = d.insight_prompt || '';
-    // Wiki
-    document.getElementById('cfg-wiki-model').value = d.wiki_model || '';
-    document.getElementById('cfg-wiki-base-url').value = d.wiki_base_url || '';
-    document.getElementById('cfg-wiki-api-key').value = d.wiki_api_key || '';
   });
 }
 function saveConfig(section) {
+  var isLocal = document.getElementById('cfg-emb-provider').value === 'local';
+  var embModel, embBase, embKey;
+  if (isLocal) {
+    embModel = document.getElementById('cfg-emb-model-local').value;
+    embBase = 'local://';
+    embKey = '';
+  } else {
+    embModel = document.getElementById('cfg-emb-model').value;
+    embBase = document.getElementById('cfg-emb-base-url').value;
+    embKey = document.getElementById('cfg-emb-api-key').value;
+  }
   const body = {
     // Chat model
     chat_model: document.getElementById('cfg-chat-model').value,
     chat_base_url: document.getElementById('cfg-chat-base-url').value,
     chat_api_key: document.getElementById('cfg-chat-api-key').value,
     // Embedding model
-    embedding_model: document.getElementById('cfg-emb-model').value,
-    embedding_base_url: document.getElementById('cfg-emb-base-url').value,
-    embedding_api_key: document.getElementById('cfg-emb-api-key').value,
+    embedding_model: embModel,
+    embedding_base_url: embBase,
+    embedding_api_key: embKey,
     // ASR
     asr_mode: document.getElementById('cfg-asr-mode').value,
     asr_voice_mode: document.getElementById('cfg-voice-mode').value,
-    memory_top_k: parseInt(document.getElementById('cfg-topk').value),
-    memory_threshold: parseFloat(document.getElementById('cfg-threshold').value),
     doubao_asr_app_id: document.getElementById('cfg-doubao-appid').value,
     doubao_asr_access_key: document.getElementById('cfg-doubao-accesskey').value,
     doubao_asr_flash_url: document.getElementById('cfg-doubao-flash-url').value,
     doubao_asr_standard_url: document.getElementById('cfg-doubao-standard-url').value,
     summary_prompt: document.getElementById('cfg-summary-prompt').value,
     insight_prompt: document.getElementById('cfg-insight-prompt').value,
-    wiki_model: document.getElementById('cfg-wiki-model').value,
-    wiki_base_url: document.getElementById('cfg-wiki-base-url').value,
-    wiki_api_key: document.getElementById('cfg-wiki-api-key').value,
   };
   fetch('/admin/api/config', {method:'POST',headers:authHeaders(),body:JSON.stringify(body)})
     .then(r=>r.json()).then(d => {
       if (d.ok) {
         const map = {
-          'chat': 'cfg-saved', 'embedding': 'cfg-emb-saved', 'wiki': 'cfg-wiki-saved',
+          'chat': 'cfg-saved', 'embedding': 'cfg-emb-saved',
           'asr': 'cfg-asr-saved', 'prompt': 'cfg-prompt-saved'
         };
         const id = section ? map[section] : 'cfg-saved';
@@ -862,241 +1230,6 @@ function saveConfig(section) {
         if (el) { el.style.display = 'inline'; setTimeout(() => el.style.display = 'none', 2000); }
       }
     });
-}
-
-// ==================== Memories ====================
-function searchMems() {
-  const T = I18N.t.bind(I18N);
-  const q = document.getElementById('mem-search').value || 'test';
-  fetch('/api/memories?q='+encodeURIComponent(q)+'&top_k=20', {headers:{'Authorization':'Bearer admin'}})
-    .then(r=>r.json()).then(d => {
-      document.getElementById('mem-results').innerHTML = (d.memories||[]).map(m =>
-        `<div class="card" style="margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between">
-            <strong>${m.memory||''}</strong>
-            <span class="badge badge-ok">${T('memories.score_label')}: ${(m.score||0).toFixed(2)}</span>
-          </div>
-          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">ID: ${m.id||''}</div>
-        </div>`
-      ).join('') || `<p style="color:var(--text-dim)">${T('memories.no_results')}</p>`;
-    });
-}
-
-// ==================== Wiki RAG ====================
-let wikiCurrentTab = 'ingest';
-
-function switchWikiTab(tab) {
-  wikiCurrentTab = tab;
-  document.querySelectorAll('.wiki-tab-content').forEach(el => el.hidden = true);
-  const contentEl = document.getElementById('wiki-tab-content-' + tab);
-  if (contentEl) contentEl.hidden = false;
-  document.querySelectorAll('#wiki-tabs button').forEach(b => b.style.background = 'var(--surface)');
-  const btnEl = document.getElementById('wiki-tab-' + tab);
-  if (btnEl) btnEl.style.background = 'var(--accent)';
-}
-
-function refreshWikiStatus() {
-  const T = I18N.t.bind(I18N);
-  fetch('/api/wiki/status').then(r=>r.json()).then(d => {
-    if (d.initialized) {
-      document.getElementById('wiki-status-text').innerHTML = `<span style="color:var(--accent2)">${T('wiki.status_ready')}</span>`;
-      document.getElementById('wiki-raw-count').textContent = d.raw_count;
-      document.getElementById('wiki-article-count').textContent = d.wiki_count;
-      document.getElementById('wiki-topic-count').textContent = (d.topics||[]).length;
-      document.getElementById('wiki-init-section').hidden = true;
-      document.getElementById('wiki-tabs').hidden = false;
-      switchWikiTab(wikiCurrentTab);
-      wikiRefreshList();
-      wikiLoadRawList();
-      if (d.recent_logs && d.recent_logs.length) {
-        document.getElementById('wiki-log-preview').textContent = d.recent_logs.join('\n');
-      }
-    } else {
-      document.getElementById('wiki-status-text').textContent = T('wiki.status_not_init');
-      document.getElementById('wiki-raw-count').textContent = '-';
-      document.getElementById('wiki-article-count').textContent = '-';
-      document.getElementById('wiki-topic-count').textContent = '-';
-      document.getElementById('wiki-init-section').hidden = false;
-      document.getElementById('wiki-tabs').hidden = true;
-      document.querySelectorAll('.wiki-tab-content').forEach(el => el.hidden = true);
-    }
-  }).catch(e => {
-    document.getElementById('wiki-status-text').textContent = T('wiki.status_load_fail');
-  });
-}
-
-function wikiInit() {
-  const T = I18N.t.bind(I18N);
-  fetch('/api/wiki/init', {method:'POST',headers:authHeaders(),body:'{}'})
-    .then(r=>r.json()).then(d => {
-      if (d.ok) { toast(T('wiki.init_ok') + ': ' + (d.created||[]).join(', ')); refreshWikiStatus(); }
-      else { toast(T('wiki.init_fail')); }
-    });
-}
-
-function wikiIngest() {
-  const T = I18N.t.bind(I18N);
-  const title = document.getElementById('wiki-ingest-title').value.trim();
-  const topic = document.getElementById('wiki-ingest-topic').value.trim() || 'general';
-  const source_url = document.getElementById('wiki-ingest-url').value.trim();
-  const content = document.getElementById('wiki-ingest-content').value.trim();
-  const statusEl = document.getElementById('wiki-ingest-status');
-
-  if (!title) { statusEl.textContent = T('wiki.ingest.title_required'); return; }
-  if (!content) { statusEl.textContent = T('wiki.ingest.content_required'); return; }
-
-  statusEl.textContent = T('wiki.ingest.compiling');
-  fetch('/api/wiki/ingest', {method:'POST',headers:authHeaders(),body:JSON.stringify({title,topic,source_url,content})})
-    .then(r=>r.json()).then(d => {
-      if (d.ok) {
-        statusEl.textContent = T('wiki.ingest.done', (d.articles_created||[]).length, (d.articles_updated||[]).length, (d.compile_time_s||0).toFixed(1));
-        document.getElementById('wiki-ingest-content').value = '';
-        refreshWikiStatus();
-      } else {
-        statusEl.textContent = (d.error||T('wiki.ingest.error'));
-      }
-    }).catch(e => { statusEl.textContent = T('wiki.ingest.request_fail') + ': '+e.message; });
-}
-
-function wikiUploadFile() {
-  const T = I18N.t.bind(I18N);
-  const fileInput = document.getElementById('wiki-upload-file');
-  const file = fileInput.files[0];
-  if (!file) return;
-  const topic = document.getElementById('wiki-upload-topic').value || 'general';
-  const statusEl = document.getElementById('wiki-upload-status');
-  statusEl.textContent = T('wiki.ingest.uploading');
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('topic', topic);
-
-  fetch('/api/wiki/ingest/file', {method:'POST',headers:{'Authorization':'Bearer '+TOKEN},body:formData})
-    .then(r=>r.json()).then(d => {
-      if (d.ok) {
-        statusEl.textContent = T('wiki.ingest.upload_done', (d.articles_created||[]).length);
-        fileInput.value = '';
-        refreshWikiStatus();
-      } else {
-        statusEl.textContent = (d.error||T('wiki.ingest.error'));
-      }
-    }).catch(e => { statusEl.textContent = T('wiki.ingest.request_fail') + ': '+e.message; });
-}
-
-function wikiQuery() {
-  const T = I18N.t.bind(I18N);
-  const q = document.getElementById('wiki-query-input').value.trim();
-  if (!q) return;
-  const genAnswer = document.getElementById('wiki-query-gen-answer').checked;
-  const useEmbedding = document.getElementById('wiki-query-embedding').checked;
-
-  fetch('/api/wiki/query', {method:'POST',headers:authHeaders(),body:JSON.stringify({query:q,top_k:5,generate_answer:genAnswer,use_embedding:useEmbedding})})
-    .then(r=>r.json()).then(d => {
-      document.getElementById('wiki-query-results').innerHTML = (d.results||[]).map(r =>
-        `<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="wikiViewArticle('${r.path}')">
-          <div style="display:flex;justify-content:space-between">
-            <strong>📄 ${r.title||r.filename}</strong>
-            <span class="badge badge-ok">${T('memories.score_label')}: ${(r.score||0).toFixed(2)}</span>
-          </div>
-          <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${r.topic} — ${r.snippet||''}</div>
-        </div>`
-      ).join('') || `<p style="color:var(--text-dim)">${T('wiki.query.no_results')}</p>`;
-
-      if (d.answer) {
-        document.getElementById('wiki-query-answer').style.display = 'block';
-        document.getElementById('wiki-query-answer').innerHTML = '<strong>' + T('wiki.query.ai_answer_label') + '</strong><br>' + d.answer.replace(/\n/g,'<br>');
-      } else {
-        document.getElementById('wiki-query-answer').style.display = 'none';
-      }
-    });
-}
-
-function wikiRefreshList() {
-  const T = I18N.t.bind(I18N);
-  const topic = document.getElementById('wiki-topic-filter').value;
-  const url = '/api/wiki/pages' + (topic ? '?topic='+encodeURIComponent(topic) : '');
-  fetch(url).then(r=>r.json()).then(d => {
-    const topics = [...new Set((d.articles||[]).map(a=>a.topic))];
-    const sel = document.getElementById('wiki-topic-filter');
-    const curVal = sel.value;
-    sel.innerHTML = `<option value="">${T('wiki.browse.filter_all')}</option>` + topics.map(t => '<option value="'+t+'">'+t+'</option>').join('');
-    sel.value = curVal;
-
-    document.getElementById('wiki-article-list').innerHTML = (d.count === 0)
-      ? `<p style="color:var(--text-dim)">${T('wiki.browse.no_articles')}</p>`
-      : '<div class="table-wrap"><table><thead><tr><th data-i18n="wiki.browse.headers.title">' + T('wiki.browse.headers.title') + '</th><th data-i18n="wiki.browse.headers.topic">' + T('wiki.browse.headers.topic') + '</th><th data-i18n="wiki.browse.headers.updated">' + T('wiki.browse.headers.updated') + '</th><th data-i18n="wiki.browse.headers.actions">' + T('wiki.browse.headers.actions') + '</th></tr></thead><tbody>' +
-        (d.articles||[]).map(a =>
-          `<tr>
-            <td><a href="#" onclick="wikiViewArticle('${a.path}')" style="color:var(--accent);text-decoration:none">📄 ${a.title||a.filename}</a></td>
-            <td><span class="badge badge-ok">${a.topic}</span></td>
-            <td style="font-size:11px;color:var(--text-dim)">${a.updated||''}</td>
-            <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="wikiDeleteArticle('${a.path}')">🗑️</button></td>
-          </tr>`
-        ).join('') + '</tbody></table></div>';
-  });
-}
-
-function wikiViewArticle(path) {
-  const T = I18N.t.bind(I18N);
-  fetch('/api/wiki/page?path='+encodeURIComponent(path)).then(r=>r.json()).then(d => {
-    document.getElementById('wiki-article-detail').style.display = 'block';
-    document.getElementById('wiki-article-detail').innerHTML =
-      `<div style="display:flex;justify-content:space-between;margin-bottom:8px">
-        <strong>📄 ${path}</strong>
-        <button class="btn" style="background:var(--bg);color:var(--text-dim);border:1px solid var(--border);padding:4px 10px;font-size:11px" onclick="document.getElementById('wiki-article-detail').style.display='none'">${T('wiki.browse.close_btn')}</button>
-      </div>
-      <div style="background:var(--bg);padding:12px;border-radius:var(--radius);max-height:400px;overflow-y:auto;font-size:13px;line-height:1.7">${(d.content||'').replace(/\n/g,'<br>').replace(/\[(.+?)\]\((.+?)\)/g,'<a href="#" style="color:var(--accent)">$1</a>')}</div>`;
-    document.getElementById('wiki-article-detail').scrollIntoView({behavior:'smooth'});
-  });
-}
-
-function wikiDeleteArticle(path) {
-  const T = I18N.t.bind(I18N);
-  if (!confirm(T('wiki.browse.delete_confirm', path))) return;
-  fetch('/api/wiki/page?path='+encodeURIComponent(path), {method:'DELETE',headers:authHeaders()})
-    .then(r=>r.json()).then(d => {
-      if (d.ok) { toast(T('wiki.browse.deleted')); wikiRefreshList(); refreshWikiStatus(); }
-    });
-}
-
-function wikiRebuildIndex() {
-  const T = I18N.t.bind(I18N);
-  fetch('/api/wiki/rebuild-index', {method:'POST',headers:authHeaders(),body:'{}'})
-    .then(r=>r.json()).then(d => {
-      if (d.ok) { toast(T('wiki.browse.rebuild_ok', (d.articles||0), (d.topics||0))); wikiRefreshList(); }
-    });
-}
-
-function wikiLint() {
-  const T = I18N.t.bind(I18N);
-  const heuristic = document.getElementById('wiki-lint-heuristic').checked;
-  const statusEl = document.getElementById('wiki-lint-status');
-  statusEl.textContent = T('wiki.lint.checking');
-
-  fetch('/api/wiki/lint', {method:'POST',headers:authHeaders(),body:JSON.stringify({auto_fix:true,heuristic})})
-    .then(r=>r.json()).then(d => {
-      statusEl.textContent = T('wiki.lint.done');
-      const det = d.deterministic || {};
-      document.getElementById('wiki-lint-fixed').innerHTML = (det.fixed||[]).length
-        ? `<h4 style="color:var(--accent2)">${T('wiki.lint.auto_fix_title')} (${det.fixed.length})</h4>` + det.fixed.map(f => '<div style="font-size:12px;margin:2px 0">'+f+'</div>').join('')
-        : `<p style="color:var(--text-dim)">${T('wiki.lint.no_auto_fix')}</p>`;
-      document.getElementById('wiki-lint-reported').innerHTML = (det.reported||[]).length
-        ? `<h4 style="color:var(--warn)">${T('wiki.lint.issues_title')} (${det.reported.length})</h4>` + det.reported.map(r => '<div style="font-size:12px;margin:2px 0">'+r+'</div>').join('')
-        : '';
-      document.getElementById('wiki-lint-heuristic-results').innerHTML = (d.heuristic||[]).length
-        ? `<h4 style="color:var(--accent)">${T('wiki.lint.heuristic_title')} (${d.heuristic.length})</h4>` + d.heuristic.map(h => '<div style="font-size:12px;margin:2px 0">'+h+'</div>').join('')
-        : '';
-      refreshWikiStatus();
-    }).catch(e => { statusEl.textContent = T('wiki.lint.fail') + ': '+e.message; });
-}
-
-function wikiLoadRawList() {
-  const T = I18N.t.bind(I18N);
-  fetch('/api/wiki/raw').then(r=>r.json()).then(d => {
-    document.getElementById('wiki-raw-list').innerHTML = (d.files||[]).length === 0
-      ? T('wiki.raw_empty')
-      : (d.files||[]).map(f => `<div>📄 ${f.path} <span style="color:var(--text-dim)">(${f.topic})</span></div>`).join('');
-  });
 }
 
 // ==================== Meetings ====================
@@ -1154,6 +1287,7 @@ function renderMeetingTable() {
           <td style="font-size:12px">${r.transcript_chars||0}</td>
           <td style="font-size:12px">${r.status||'-'}</td>
           <td>
+            <button class="btn btn-primary" style="font-size:11px;padding:2px 8px;margin-right:4px" onclick="openMeetingDetail('${r.id}')" data-i18n="meetings.detail">View</button>
             ${r.audio_path ? `<button class="btn" style="font-size:11px;padding:2px 8px;margin-right:4px" onclick="playRecording('${r.id}','${r.audio_token||''}','${(r.title||'').replace(/'/g,"\\'")}')" data-i18n="meetings.play">▶ Play</button>` : ''}
             <button class="btn" style="font-size:11px;padding:2px 8px;color:var(--danger)" onclick="deleteRecording('${r.id}','${(r.title||'').replace(/'/g,"\\'")}')" data-i18n="meetings.delete">Delete</button>
           </td>
@@ -1161,16 +1295,146 @@ function renderMeetingTable() {
       }).join('');
 }
 
+let activeMeetingDetailId = '';
+
+function meetingDetailPath(recordingId) {
+  return `/admin/?recording=${encodeURIComponent(recordingId)}`;
+}
+
+function switchMeetingDetailTab(tabName) {
+  document.querySelectorAll('.meeting-detail-tab').forEach(button => {
+    const active = button.dataset.meetingDetailTab === tabName;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.meeting-detail-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.id === `meeting-detail-${tabName}`);
+  });
+}
+
+function meetingSummaryText(summary) {
+  const T = I18N.t.bind(I18N);
+  if (!summary) return T('meetings.empty_summary');
+  if (typeof summary === 'string') {
+    try { summary = JSON.parse(summary); }
+    catch (_) { return summary || T('meetings.empty_summary'); }
+  }
+  if (summary.detailed_summary) return summary.detailed_summary;
+  const lines = [];
+  if (summary.current_intent) lines.push(`${T('meetings.summary_intent')}: ${summary.current_intent}`);
+  if ((summary.key_decisions || []).length) lines.push(`${T('meetings.summary_decisions')}:\n- ${summary.key_decisions.join('\n- ')}`);
+  if ((summary.action_items || []).length) lines.push(`${T('meetings.summary_actions')}:\n- ${summary.action_items.join('\n- ')}`);
+  return lines.join('\n\n') || T('meetings.empty_summary');
+}
+
+function renderMeetingDetailInsights(insights, legacyInsight) {
+  const T = I18N.t.bind(I18N);
+  const items = [...(insights || [])];
+  if (legacyInsight) {
+    let parsed = legacyInsight;
+    if (typeof parsed === 'string') {
+      try { parsed = JSON.parse(parsed); } catch (_) { parsed = null; }
+    }
+    if (parsed && typeof parsed === 'object') {
+      items.unshift({
+        title: parsed.core_insight || T('meetings.recording_insight'),
+        content: parsed.analysis ? JSON.stringify(parsed.analysis, null, 2) : JSON.stringify(parsed, null, 2),
+        insight_type: 'recording', confidence: null, evidence: [],
+      });
+    }
+  }
+  document.getElementById('meeting-detail-insights-content').innerHTML = items.length
+    ? items.map(item => `<article class="meeting-detail-insight"><h4>${cognitionEscape(item.title || T('meetings.recording_insight'))}</h4><p>${cognitionEscape(item.content || '')}</p><div class="meeting-detail-insight-meta">${cognitionEscape(item.insight_type || '')}${item.confidence == null ? '' : ` · ${Math.round(item.confidence * 100)}%`} · ${(item.evidence || []).length} ${T('meetings.evidence_groups')}</div></article>`).join('')
+    : `<div style="color:var(--text-dim);font-size:13px">${T('meetings.empty_insights')}</div>`;
+}
+
+function openMeetingDetail(recordingId, updateUrl = true) {
+  const T = I18N.t.bind(I18N);
+  activeMeetingDetailId = recordingId;
+  const meetingsNav = document.querySelector('.sidebar a[data-page="meetings"]');
+  if (meetingsNav && !document.getElementById('page-meetings').classList.contains('active')) meetingsNav.click();
+  document.getElementById('meeting-detail-title').textContent = T('meetings.loading_detail');
+  document.getElementById('meeting-detail-meta').textContent = '';
+  document.getElementById('meeting-detail-transcript-content').textContent = '';
+  document.getElementById('meeting-detail-summary-content').textContent = '';
+  document.getElementById('meeting-detail-insights-content').innerHTML = '';
+  document.getElementById('meeting-detail-dialog').classList.add('open');
+  switchMeetingDetailTab('summary');
+
+  const stablePath = meetingDetailPath(recordingId);
+  const stableUrl = `${window.location.origin}${stablePath}`;
+  const link = document.getElementById('meeting-detail-link');
+  link.href = stablePath;
+  link.textContent = stableUrl;
+  if (updateUrl) window.history.pushState({recordingId}, '', stablePath);
+
+  cognitionFetch(`/api/v2/recordings/${encodeURIComponent(recordingId)}/content`).then(data => {
+    const recording = data.recording || {};
+    document.getElementById('meeting-detail-title').textContent = recording.title || T('meetings.detail_title');
+    document.getElementById('meeting-detail-meta').textContent = [recording.created_at, recording.category, `${recording.transcript_chars || 0} ${T('meetings.characters')}`].filter(Boolean).join(' · ');
+    document.getElementById('meeting-detail-transcript-content').textContent = recording.transcript || T('meetings.empty_transcript');
+    document.getElementById('meeting-detail-summary-content').textContent = meetingSummaryText(recording.summary_json);
+    renderMeetingDetailInsights(data.insights, recording.insight_json);
+    const audio = document.getElementById('meeting-detail-audio');
+    if (recording.audio_path && recording.audio_token) {
+      audio.src = `/api/audio/${encodeURIComponent(recordingId)}?token=${encodeURIComponent(recording.audio_token)}`;
+      audio.style.display = '';
+    } else {
+      audio.removeAttribute('src');
+      audio.style.display = 'none';
+    }
+  }).catch(error => {
+    document.getElementById('meeting-detail-title').textContent = T('meetings.detail_load_failed');
+    document.getElementById('meeting-detail-summary-content').textContent = error.message;
+  });
+}
+
+function copyMeetingDetailLink() {
+  const url = `${window.location.origin}${meetingDetailPath(activeMeetingDetailId)}`;
+  navigator.clipboard.writeText(url).then(() => toast(I18N.t('meetings.link_copied')));
+}
+
+function closeMeetingDetail(updateUrl = true) {
+  document.getElementById('meeting-detail-dialog').classList.remove('open');
+  const audio = document.getElementById('meeting-detail-audio');
+  audio.pause();
+  if (updateUrl && new URLSearchParams(window.location.search).has('recording')) {
+    window.history.pushState({}, '', '/admin/');
+  }
+  activeMeetingDetailId = '';
+}
+
+function closeMeetingDetailOnBackdrop(event) {
+  if (event.target === event.currentTarget) closeMeetingDetail();
+}
+
+function openMeetingDetailFromLocation() {
+  const recordingId = new URLSearchParams(window.location.search).get('recording');
+  if (!recordingId) return false;
+  openMeetingDetail(recordingId, false);
+  return true;
+}
+
+window.addEventListener('popstate', () => {
+  const recordingId = new URLSearchParams(window.location.search).get('recording');
+  if (recordingId) openMeetingDetail(recordingId, false);
+  else if (document.getElementById('meeting-detail-dialog').classList.contains('open')) closeMeetingDetail(false);
+});
+
 function playRecording(recId, token, title) {
   const player = document.getElementById('meeting-player');
   const audio = document.getElementById('player-audio');
   document.getElementById('player-title').textContent = title;
   audio.src = `/api/audio/${recId}?token=${token}`;
+  audio.style.display = '';
   player.style.display = 'block';
   audio.play();
   // Load transcript
   fetch(`/api/recordings/${recId}`, {headers: authHeaders()}).then(r=>r.json()).then(d => {
     document.getElementById('player-transcript').textContent = d.transcript || '(empty)';
+    const details = player.querySelector('details');
+    const summaryLabel = details?.querySelector('summary');
+    if (summaryLabel) summaryLabel.textContent = I18N.t('meetings.view_transcript');
   });
 }
 
@@ -1280,7 +1544,10 @@ function removeCategory(id, name) {
 // ==================== Billing ====================
 function refreshBilling() {
   const T = I18N.t.bind(I18N);
-  fetch('/admin/api/billing', {headers:authHeaders()}).then(r=>r.json()).then(d => {
+  fetch('/admin/api/billing', {headers:authHeaders()}).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }).then(d => {
     document.getElementById('bill-cards').innerHTML =
       `<div class="card"><div class="label">${T('billing.summary_cards.total_calls')}</div><div class="value">${d.summary.total_calls}</div></div>
        <div class="card"><div class="label">${T('billing.summary_cards.total_tokens')}</div><div class="value">${(d.summary.total_tokens/1000).toFixed(0)}k</div></div>
@@ -1291,6 +1558,9 @@ function refreshBilling() {
     document.querySelector('#bill-table tbody').innerHTML = (d.recent||[]).map(u =>
       `<tr><td>${u.created_at}</td><td>${u.user_id}</td><td>${u.endpoint}</td><td style="font-size:11px">${u.model}</td><td>${u.prompt_tokens || '-'}</td><td>${u.completion_tokens || '-'}</td><td>${u.total_tokens || '-'}</td><td>${(u.audio_seconds||0)>0 ? (u.audio_seconds).toFixed(1)+'s' : '-'}</td><td>¥${(u.cost_rmb||0).toFixed(5)}</td></tr>`
     ).join('');
+  }).catch(error => {
+    document.getElementById('bill-cards').innerHTML = `<div class="card" style="color:var(--danger)">${T('common.unknown_error')}: ${error.message}</div>`;
+    document.querySelector('#bill-table tbody').innerHTML = '';
   });
 }
 
