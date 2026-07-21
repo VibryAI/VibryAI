@@ -72,17 +72,21 @@ class CognitiveWorker:
                         payload.get("trigger", "scheduled"),
                     )
                 elif job["job_type"] in {
-                    "transcribe_recording", "summarize_recording", "recording_insight",
+                    "transcribe_recording", "poll_standard_asr", "summarize_recording", "recording_insight",
                     "memory_ingest", "memory_insight",
                 }:
                     from services.recording_pipeline import process_recording_job
-                    process_recording_job(job)
+                    should_complete = process_recording_job(job)
                 elif job["job_type"] == "aggregate_minutes":
                     from services.aggregate_pipeline import process_aggregate_job
                     process_aggregate_job(job)
                 else:
                     raise ValueError(f"unknown job type: {job['job_type']}")
-                store.complete_job(job["id"], job.get("lease_owner"))
+                if job["job_type"] not in {
+                    "transcribe_recording", "poll_standard_asr", "summarize_recording", "recording_insight",
+                    "memory_ingest", "memory_insight",
+                } or should_complete:
+                    store.complete_job(job["id"], job.get("lease_owner"))
             except Exception as exc:
                 if job:
                     status = store.fail_job(job["id"], str(exc), job.get("lease_owner"))

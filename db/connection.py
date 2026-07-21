@@ -203,6 +203,7 @@ def init_db():
         ("processing_version", "INTEGER NOT NULL DEFAULT 0"),
         ("client_recording_id", "TEXT DEFAULT ''"),
         ("upload_path", "TEXT DEFAULT ''"),
+        ("audio_sha256", "TEXT DEFAULT ''"),
     ]:
         if col not in rec_cols:
             conn.execute(f"ALTER TABLE recordings ADD COLUMN {col} {decl}")
@@ -211,6 +212,10 @@ def init_db():
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_recordings_user_updated "
         "ON recordings(user_id, updated_at DESC)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_recordings_user_audio_hash "
+        "ON recordings(user_id, audio_sha256)"
     )
     conn.execute(
         "UPDATE recordings SET core_status=status "

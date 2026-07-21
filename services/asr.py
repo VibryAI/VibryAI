@@ -43,7 +43,10 @@ if "editdistance" not in sys.modules:
 # 统一转写接口
 # ===================================================================
 
-def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous", category: str = "") -> dict:
+def transcribe(
+    audio_bytes: bytes, title: str = "", user_id: str = "anonymous", category: str = "",
+    provider_result=None,
+) -> dict:
     """Provider-based transcription entrypoint.
 
     Args:
@@ -88,8 +91,11 @@ def transcribe(audio_bytes: bytes, title: str = "", user_id: str = "anonymous", 
     t0 = time.time()
     rec_id = None
     try:
-        provider = get_asr_provider(asr_mode)
-        result = provider.transcribe(audio_bytes, audio_fmt=audio_fmt)
+        if provider_result is None:
+            provider = get_asr_provider(asr_mode)
+            result = provider.transcribe(audio_bytes, audio_fmt=audio_fmt)
+        else:
+            result = provider_result
         text = result.text.strip()
         utterances_data = result.utterances
 

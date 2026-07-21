@@ -274,16 +274,45 @@ class DoubaoStandardProvider(BaseAsrProvider):
     name = "doubao_standard"
 
     def transcribe(self, audio_bytes: bytes, audio_fmt: str | None = None, language: str | None = None) -> AsrResult:
+        tasks = self.submit_tasks(audio_bytes, audio_fmt=audio_fmt, language=language)
+        results = [self._wait_for_task(task) for task in tasks]
+        return self.merge_task_results(tasks, results, language=language)
+
+    def submit_tasks(
+        self, audio_bytes: bytes, *, audio_fmt: str | None = None,
+        language: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Submit every audio chunk once and return durable, credential-free task state."""
         chunks = _standard_asr_chunks(audio_bytes, audio_fmt)
+        tasks: list[dict[str, Any]] = []
+        for index, (chunk, offset_ms) in enumerate(chunks):
+            task = self._submit_chunk(
+                chunk,
+                audio_fmt="ogg" if len(chunks) > 1 else audio_fmt,
+                language=language,
+            )
+            task.update({
+                "chunk_index": index,
+                "offset_ms": offset_ms,
+                "language": language or "auto",
+            })
+            tasks.append(task)
+        return tasks
+
+    def merge_task_results(
+        self, tasks: list[dict[str, Any]], query_results: list[dict[str, Any]],
+        *, language: str | None = None,
+    ) -> AsrResult:
         results = [
-            self._transcribe_chunk(chunk, audio_fmt="ogg" if len(chunks) > 1 else audio_fmt, language=language)
-            for chunk, _offset_ms in chunks
+            self.result_from_query(task, result, language=language)
+            for task, result in zip(tasks, query_results)
         ]
         if len(results) == 1:
             return results[0]
-
         segments: list[AsrSegment] = []
-        for chunk_index, ((_, offset_ms), result) in enumerate(zip(chunks, results), start=1):
+        for task, result in zip(tasks, results):
+            chunk_index = int(task.get("chunk_index", 0)) + 1
+            offset_ms = int(task.get("offset_ms", 0) or 0)
             for segment in result.segments:
                 segment.id = len(segments)
                 segment.start_ms += offset_ms
@@ -305,6 +334,16 @@ class DoubaoStandardProvider(BaseAsrProvider):
         return merged
 
     def _transcribe_chunk(self, audio_bytes: bytes, audio_fmt: str | None, language: str | None) -> AsrResult:
+        """Backward-compatible synchronous adapter for direct API callers."""
+        task = self._submit_chunk(audio_bytes, audio_fmt=audio_fmt, language=language)
+        return self.result_from_query(
+            task, self._poll_result(task), language=language,
+        )
+
+    def _submit_chunk(
+        self, audio_bytes: bytes, *, audio_fmt: str | None,
+        language: str | None,
+    ) -> dict[str, Any]:
         doubao = config.doubao_asr
         app_id = doubao.app_id or os.getenv("DOUBAO_ASR_APP_ID", "")
         access_key = doubao.access_key or os.getenv("DOUBAO_ASR_ACCESS_KEY", "")
@@ -352,8 +391,19 @@ class DoubaoStandardProvider(BaseAsrProvider):
             if status_code != "20000000":
                 msg = resp.headers.get("X-Api-Message", "unknown error")
                 raise RuntimeError(f"Doubao submit failed: {msg}")
+        return {
+            "task_id": task_id,
+            "logid": logid,
+            "standard_url": standard_url,
+            "submitted_at": t0,
+        }
 
-        result = self._poll_result(standard_url, app_id, access_key, task_id, logid)
+    def result_from_query(
+        self, task: dict[str, Any], result: dict[str, Any], *,
+        language: str | None = None,
+    ) -> AsrResult:
+        task_id = str(task.get("task_id") or "")
+        logid = str(task.get("logid") or "")
         payload = result.get("result", {}) if isinstance(result, dict) else {}
         utterances = payload.get("utterances", []) or []
         segments = [
@@ -367,7 +417,7 @@ class DoubaoStandardProvider(BaseAsrProvider):
             model="bigmodel-standard",
             text=text.strip(),
             language=language or "auto",
-            duration_ms=int((time.time() - t0) * 1000),
+            duration_ms=int((time.time() - float(task.get("submitted_at") or time.time())) * 1000),
             segments=segments,
             raw={"doubao": result, "request_id": task_id, "logid": logid},
         )
@@ -375,7 +425,19 @@ class DoubaoStandardProvider(BaseAsrProvider):
             formatted.text = formatted.formatted_text() or formatted.text
         return formatted
 
-    def _poll_result(self, standard_url: str, app_id: str, access_key: str, task_id: str, logid: str) -> dict[str, Any]:
+    def poll_task(self, task: dict[str, Any]) -> dict[str, Any] | None:
+        """Perform one short query. ``None`` means the upstream task is still running."""
+        doubao = config.doubao_asr
+        app_id = doubao.app_id or os.getenv("DOUBAO_ASR_APP_ID", "")
+        access_key = doubao.access_key or os.getenv("DOUBAO_ASR_ACCESS_KEY", "")
+        standard_url = str(task.get("standard_url") or doubao.standard_url or os.getenv(
+            "DOUBAO_ASR_STANDARD_URL",
+            "https://openspeech-direct.zijieapi.com/api/v3/auc/bigmodel/submit",
+        ))
+        task_id = str(task.get("task_id") or "")
+        logid = str(task.get("logid") or "")
+        if not task_id:
+            raise ValueError("Doubao ASR task id is missing")
         query_url = (
             standard_url.replace("/submit", "/query")
             if standard_url.endswith("/submit")
@@ -389,23 +451,32 @@ class DoubaoStandardProvider(BaseAsrProvider):
             "X-Api-Request-Id": task_id,
             "X-Tt-Logid": logid,
         }
+        req = urllib.request.Request(query_url, data=b"{}", method="POST")
+        for key, value in headers.items():
+            req.add_header(key, value)
+        poll_timeout = _network_timeout("DOUBAO_ASR_POLL_TIMEOUT", 30)
+        with urllib.request.urlopen(req, timeout=poll_timeout) as resp:
+            code = resp.headers.get("X-Api-Status-Code", "")
+            if code == "20000000":
+                return json.loads(resp.read().decode("utf-8"))
+            if code in ("20000001", "20000002"):
+                return None
+            msg = resp.headers.get("X-Api-Message", "unknown error")
+            raise RuntimeError(f"Doubao query failed: {msg}")
+
+    def _poll_result(self, task: dict[str, Any]) -> dict[str, Any]:
         max_wait = int(os.getenv("DOUBAO_ASR_MAX_WAIT", "120"))
         elapsed = 0
         while elapsed < max_wait:
             time.sleep(2)
             elapsed += 2
-            req = urllib.request.Request(query_url, data=b"{}", method="POST")
-            for key, value in headers.items():
-                req.add_header(key, value)
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                code = resp.headers.get("X-Api-Status-Code", "")
-                if code == "20000000":
-                    return json.loads(resp.read().decode("utf-8"))
-                if code in ("20000001", "20000002"):
-                    continue
-                msg = resp.headers.get("X-Api-Message", "unknown error")
-                raise RuntimeError(f"Doubao query failed: {msg}")
+            result = self.poll_task(task)
+            if result is not None:
+                return result
         raise TimeoutError(f"Doubao query timeout after {max_wait}s")
+
+    def _wait_for_task(self, task: dict[str, Any]) -> dict[str, Any]:
+        return self._poll_result(task)
 
 
 def get_asr_provider(mode: str | None = None) -> BaseAsrProvider:

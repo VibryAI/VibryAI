@@ -9,7 +9,7 @@ from db.models import (
     DEFAULT_ASR_CONFIG, get_asr_config, set_asr_config,
     DEFAULT_MODEL_CONFIG, get_model_config, set_model_config,
     generate_id, generate_token, get_audio_info,
-    upsert_recording, get_recording, list_recordings, count_recordings,
+    upsert_recording, get_recording, find_recording_by_audio_hash, list_recordings, count_recordings,
     delete_recording, update_tags,
     log_analysis, get_analysis_log,
     get_stats,

@@ -1109,6 +1109,45 @@ def update_job_progress(job_id: str, progress: dict) -> None:
     conn.commit()
 
 
+def update_job_payload(job_id: str, payload: dict, lease_owner: str | None = None) -> bool:
+    """Persist durable upstream state while a worker owns a job."""
+    query = "UPDATE cognition_jobs SET payload_json=? WHERE id=?"
+    args: list[Any] = [_json(payload), job_id]
+    if lease_owner:
+        query += " AND status='running' AND lease_owner=?"
+        args.append(lease_owner)
+    conn = get_conn()
+    cur = conn.execute(query, args)
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def reschedule_job(
+    job_id: str, *, payload: dict, progress: dict, delay_seconds: int,
+    lease_owner: str | None = None,
+) -> bool:
+    """Release a polling job without spending its retry budget.
+
+    Pending upstream ASR is a normal state, not a failed worker attempt.
+    """
+    run_after = (
+        datetime.now(timezone.utc) + timedelta(seconds=max(1, delay_seconds))
+    ).isoformat(timespec="seconds")
+    query = """UPDATE cognition_jobs
+       SET status='queued', attempts=CASE WHEN attempts>0 THEN attempts-1 ELSE 0 END,
+           lease_owner='', lease_until=NULL, run_after=?, payload_json=?,
+           progress_json=?, error_text=''
+       WHERE id=?"""
+    args: list[Any] = [run_after, _json(payload), _json(progress), job_id]
+    if lease_owner:
+        query += " AND lease_owner=?"
+        args.append(lease_owner)
+    conn = get_conn()
+    cur = conn.execute(query, args)
+    conn.commit()
+    return cur.rowcount == 1
+
+
 def complete_job(job_id: str, lease_owner: str | None = None) -> None:
     conn = get_conn()
     query = (

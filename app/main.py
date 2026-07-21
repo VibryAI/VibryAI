@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI):
     worker_lanes = [
         (
             "transcription", config.cognition.transcription_workers,
-            {"transcribe_recording"}, 0.25,
+            {"transcribe_recording", "poll_standard_asr"}, 0.25,
         ),
         (
             "minutes", config.cognition.minutes_workers,

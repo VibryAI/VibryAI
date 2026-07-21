@@ -409,6 +409,27 @@ def get_recording(rec_id: str) -> dict | None:
     return _row_to_dict(row)
 
 
+def find_recording_by_audio_hash(user_id: str, audio_sha256: str) -> dict | None:
+    """Find the best reusable recording for an identical uploaded audio file."""
+    if not user_id or not audio_sha256:
+        return None
+    conn = get_conn()
+    row = conn.execute(
+        """SELECT * FROM recordings
+           WHERE user_id=? AND audio_sha256=?
+           ORDER BY CASE COALESCE(core_status, status)
+                WHEN 'completed' THEN 0
+                WHEN 'summarizing' THEN 1
+                WHEN 'transcribing' THEN 2
+                WHEN 'queued' THEN 3
+                ELSE 4 END,
+                updated_at DESC
+           LIMIT 1""",
+        (user_id, audio_sha256),
+    ).fetchone()
+    return _row_to_dict(row) if row is not None else None
+
+
 def list_recordings(
     status: str = None,
     user_id: str = None,

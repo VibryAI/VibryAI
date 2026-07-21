@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import re
@@ -13,6 +14,7 @@ import db
 from app.config import config
 from cognition import store
 from db.connection import get_conn
+from utils.audio import detect_audio_format
 from services.markdown_content import (
     memory_insight_to_markdown,
     parse_memory_insight_markdown,
@@ -49,6 +51,42 @@ def _emit(user_id: str, recording_id: str, event_type: str, **payload) -> None:
     )
 
 
+def _sha256_bytes(audio_bytes: bytes) -> str:
+    return hashlib.sha256(audio_bytes).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for block in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _reusable_by_hash(user_id: str, audio_sha256: str) -> tuple[dict, dict | None] | None:
+    recording = db.find_recording_by_audio_hash(user_id, audio_sha256)
+    if not recording:
+        return None
+    jobs = store.list_recording_jobs(recording["id"], user_id)
+    active_job = next((job for job in jobs if job.get("status") in {"queued", "running"}), None)
+    transcription_job = next(
+        (job for job in jobs if job.get("job_type") in {"transcribe_recording", "poll_standard_asr"}),
+        None,
+    )
+    return recording, active_job or transcription_job or (jobs[-1] if jobs else None)
+
+
+def _recording_id_for_upload(title: str, user_id: str, audio_sha256: str) -> str:
+    recording_id = db.generate_id(title)
+    existing = db.get_recording(recording_id)
+    if not existing or (
+        existing.get("user_id") == user_id
+        and existing.get("audio_sha256") == audio_sha256
+    ):
+        return recording_id
+    return f"{recording_id}_{audio_sha256[:10]}"
+
+
 def submit_recording(
     *, audio_bytes: bytes, title: str, user_id: str, category: str = "",
 ) -> tuple[dict, dict | None, bool]:
@@ -59,7 +97,11 @@ def submit_recording(
     if len(audio_bytes) > 200 * 1024 * 1024:
         raise ValueError("audio exceeds 200 MB")
 
-    recording_id = db.generate_id(title)
+    audio_sha256 = _sha256_bytes(audio_bytes)
+    reusable = _reusable_by_hash(user_id, audio_sha256)
+    if reusable:
+        return reusable[0], reusable[1], True
+    recording_id = _recording_id_for_upload(title, user_id, audio_sha256)
     existing = db.get_recording(recording_id)
     if existing and existing.get("user_id") != user_id:
         raise ValueError("recording id belongs to another user")
@@ -95,6 +137,7 @@ def submit_recording(
         processing_error="",
         client_recording_id=title,
         upload_path=str(upload_path),
+        audio_sha256=audio_sha256,
     )
     job = store.enqueue_job(
         user_id=user_id,
@@ -120,7 +163,11 @@ def submit_recording_file(
     if file_size > 200 * 1024 * 1024:
         raise ValueError("audio exceeds 200 MB")
 
-    recording_id = db.generate_id(title)
+    audio_sha256 = _sha256_file(staged_path)
+    reusable = _reusable_by_hash(user_id, audio_sha256)
+    if reusable:
+        return reusable[0], reusable[1], True
+    recording_id = _recording_id_for_upload(title, user_id, audio_sha256)
     existing = db.get_recording(recording_id)
     if existing and existing.get("user_id") != user_id:
         raise ValueError("recording id belongs to another user")
@@ -154,6 +201,7 @@ def submit_recording_file(
         processing_error="",
         client_recording_id=title,
         upload_path=str(upload_path),
+        audio_sha256=audio_sha256,
     )
     job = store.enqueue_job(
         user_id=user_id,
@@ -199,9 +247,10 @@ def _enqueue_stage(
     return job
 
 
-def process_recording_job(job: dict) -> None:
+def process_recording_job(job: dict) -> bool:
     handlers = {
         "transcribe_recording": _transcribe_recording,
+        "poll_standard_asr": _poll_standard_asr,
         "summarize_recording": _summarize_recording,
         "recording_insight": _recording_insight,
         "memory_ingest": _memory_ingest,
@@ -210,10 +259,10 @@ def process_recording_job(job: dict) -> None:
     handler = handlers.get(job.get("job_type"))
     if not handler:
         raise ValueError(f"unsupported recording job: {job.get('job_type')}")
-    handler(job)
+    return handler(job) is not False
 
 
-def _transcribe_recording(job: dict) -> None:
+def _transcribe_recording(job: dict) -> bool:
     recording = _recording(job)
     upload_path = Path(recording.get("upload_path") or "")
     if not upload_path.is_file():
@@ -226,14 +275,113 @@ def _transcribe_recording(job: dict) -> None:
     store.update_job_progress(job["id"], {"stage": "transcribing"})
     _emit(recording["user_id"], recording["id"], "recording_transcribing", core_status="transcribing")
 
+    audio_bytes = upload_path.read_bytes()
+    from services.asr_providers import DoubaoStandardProvider, get_asr_provider
+
+    provider = get_asr_provider(config.asr.mode)
+    if isinstance(provider, DoubaoStandardProvider):
+        payload = _payload(job)
+        tasks = payload.get("asr_tasks")
+        if not isinstance(tasks, list) or not tasks:
+            tasks = provider.submit_tasks(
+                audio_bytes, audio_fmt=detect_audio_format(audio_bytes),
+            )
+            payload["asr_tasks"] = tasks
+            if not store.update_job_payload(job["id"], payload, job.get("lease_owner")):
+                raise RuntimeError("unable to persist submitted ASR task")
+        poll_job = store.enqueue_job(
+            user_id=recording["user_id"],
+            recording_id=recording["id"],
+            job_type="poll_standard_asr",
+            payload={"recording_id": recording["id"], "asr_tasks": tasks, "completed_results": {}},
+            dedupe_key=f"recording:{recording['id']}:poll_standard_asr:v1",
+        )
+        if poll_job.get("status") == "failed":
+            store.retry_job(poll_job["id"], recording["user_id"])
+        stage = {"stage": "waiting_asr", "submitted_chunks": len(tasks), "completed_chunks": 0}
+        store.update_job_progress(job["id"], stage)
+        _emit(
+            recording["user_id"], recording["id"], "recording_asr_submitted",
+            core_status="transcribing", chunks=len(tasks),
+        )
+        return True
+
     from services.asr import transcribe
 
     result = transcribe(
-        upload_path.read_bytes(), recording.get("title", ""), recording["user_id"],
+        audio_bytes, recording.get("title", ""), recording["user_id"],
         recording.get("category", ""),
     )
     if result.get("error") or not (result.get("text") or "").strip():
         raise RuntimeError(result.get("error") or "empty transcription")
+    _after_transcription(recording)
+    return True
+
+
+def _poll_standard_asr(job: dict) -> bool:
+    """Poll submitted Doubao tasks once, then release the worker until the next check."""
+    recording = _recording(job)
+    payload = _payload(job)
+    tasks = payload.get("asr_tasks")
+    if not isinstance(tasks, list) or not tasks:
+        raise ValueError("submitted ASR task state is missing")
+
+    from services.asr_providers import DoubaoStandardProvider, get_asr_provider
+
+    provider = get_asr_provider(config.asr.mode)
+    if not isinstance(provider, DoubaoStandardProvider):
+        raise RuntimeError("standard ASR polling requires the standard ASR provider")
+    completed = payload.get("completed_results")
+    completed = completed if isinstance(completed, dict) else {}
+    for task in tasks:
+        task_id = str(task.get("task_id") or "")
+        if not task_id or task_id in completed:
+            continue
+        result = provider.poll_task(task)
+        if result is not None:
+            completed[task_id] = result
+
+    payload["completed_results"] = completed
+    if len(completed) < len(tasks):
+        try:
+            interval = max(2, int(os.getenv("DOUBAO_ASR_POLL_INTERVAL", "5")))
+        except ValueError:
+            interval = 5
+        progress = {
+            "stage": "waiting_asr",
+            "submitted_chunks": len(tasks),
+            "completed_chunks": len(completed),
+        }
+        if not store.reschedule_job(
+            job["id"], payload=payload, progress=progress, delay_seconds=interval,
+            lease_owner=job.get("lease_owner"),
+        ):
+            raise RuntimeError("unable to reschedule pending ASR poll")
+        _emit(
+            recording["user_id"], recording["id"], "recording_asr_waiting",
+            core_status="transcribing", completed_chunks=len(completed), total_chunks=len(tasks),
+        )
+        return False
+
+    ordered_results = [completed[str(task["task_id"])] for task in tasks]
+    asr_result = provider.merge_task_results(tasks, ordered_results)
+    from services.asr import transcribe
+    upload_path = Path(recording.get("upload_path") or "")
+    if not upload_path.is_file():
+        raise FileNotFoundError(f"uploaded audio not found: {upload_path}")
+
+    persisted = transcribe(
+        upload_path.read_bytes(),
+        recording.get("title", ""), recording["user_id"], recording.get("category", ""),
+        provider_result=asr_result,
+    )
+    if persisted.get("error") or not (persisted.get("text") or "").strip():
+        raise RuntimeError(persisted.get("error") or "empty transcription")
+    _after_transcription(recording)
+    return True
+
+
+def _after_transcription(recording: dict) -> None:
 
     db.upsert_recording(
         recording["id"], status="summarizing", core_status="summarizing",
@@ -647,7 +795,7 @@ def on_recording_job_failed(job: dict, error: str, final: bool) -> None:
     if not final or not job.get("recording_id"):
         return
     fields: dict = {"processing_error": error[:500]}
-    if job.get("job_type") in {"transcribe_recording", "summarize_recording"}:
+    if job.get("job_type") in {"transcribe_recording", "poll_standard_asr", "summarize_recording"}:
         fields.update(status="failed", core_status="failed")
     elif job.get("job_type") == "recording_insight":
         fields["recording_insight_status"] = "failed"

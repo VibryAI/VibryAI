@@ -48,7 +48,8 @@ def pipeline_db(monkeypatch, tmp_path):
             memory_insight_status TEXT DEFAULT 'pending', recording_insight_json TEXT DEFAULT '',
             memory_insight_json TEXT DEFAULT '', recording_insight_markdown TEXT DEFAULT '',
             memory_insight_markdown TEXT DEFAULT '', processing_error TEXT DEFAULT '',
-            processing_version INTEGER DEFAULT 0, client_recording_id TEXT DEFAULT '', upload_path TEXT DEFAULT ''
+            processing_version INTEGER DEFAULT 0, client_recording_id TEXT DEFAULT '', upload_path TEXT DEFAULT '',
+            audio_sha256 TEXT DEFAULT ''
         );
         CREATE TABLE analysis_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT, recording_id TEXT, user_id TEXT,
@@ -85,9 +86,10 @@ def test_submit_is_durable_and_idempotent(pipeline_db):
     )
 
     assert not duplicate
-    assert not repeated_duplicate
+    assert repeated_duplicate
     assert recording["core_status"] == "queued"
     assert job["id"] == repeated_job["id"]
+    assert recording["audio_sha256"]
     claimed = store.claim_next_job()
     assert claimed["job_type"] == "transcribe_recording"
     assert claimed["lease_owner"]
@@ -112,6 +114,33 @@ def test_streamed_file_submit_moves_upload_and_queues_transcription(
     assert not staged_path.exists()
     assert recording["recording_insight_status"] == "disabled"
     assert recording["upload_path"].endswith(".opus")
+    assert recording["audio_sha256"]
+
+
+def test_pending_standard_asr_releases_the_worker_between_polls(pipeline_db, monkeypatch):
+    recording, _, _ = recording_pipeline.submit_recording(
+        audio_bytes=b"OggS-standard-async", title="note20260721-180000.opus", user_id="admin",
+    )
+    import services.asr_providers as providers
+
+    provider = providers.DoubaoStandardProvider()
+    monkeypatch.setattr(providers, "get_asr_provider", lambda _mode=None: provider)
+    monkeypatch.setattr(provider, "submit_tasks", lambda *_args, **_kwargs: [{
+        "task_id": "task-1", "logid": "log-1", "standard_url": "https://example.test/submit",
+        "submitted_at": 1.0, "chunk_index": 0, "offset_ms": 0,
+    }])
+    monkeypatch.setattr(provider, "poll_task", lambda _task: None)
+
+    submit_job = store.claim_next_job({"transcribe_recording"})
+    assert recording_pipeline.process_recording_job(submit_job)
+    poll_job = store.claim_next_job({"poll_standard_asr"})
+    assert poll_job is not None
+
+    assert recording_pipeline.process_recording_job(poll_job) is False
+    waiting = store.get_job(poll_job["id"], "admin")
+    assert waiting["status"] == "queued"
+    assert waiting["attempts"] == 0
+    assert json.loads(waiting["progress_json"])["stage"] == "waiting_asr"
 
 
 @pytest.mark.parametrize("suffix", [".ogg", ".wav", ".mp3", ".m4a", ".aac", ".flac"])
