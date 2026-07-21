@@ -25,6 +25,15 @@ log = logging.getLogger("vibry.asr.providers")
 os.environ.setdefault("HF_ENDPOINT", getattr(config.asr, "hf_endpoint", "https://hf-mirror.com"))
 
 
+def _network_timeout(name: str, default: int, *, minimum: int = 30) -> int:
+    """Read a bounded network timeout without allowing a bad env value to fail ASR."""
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, value)
+
+
 FUNASR_MODELS: dict[str, dict[str, Any]] = {
     "sensevoice": {
         "model": "iic/SenseVoiceSmall",
@@ -269,7 +278,10 @@ class DoubaoStandardProvider(BaseAsrProvider):
         req = urllib.request.Request(standard_url, data=body, method="POST")
         for key, value in headers.items():
             req.add_header(key, value)
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        # Standard ASR receives a base64 payload. Long recordings can take more
+        # than one minute to write to the upstream service on constrained links.
+        submit_timeout = _network_timeout("DOUBAO_ASR_SUBMIT_TIMEOUT", 300)
+        with urllib.request.urlopen(req, timeout=submit_timeout) as resp:
             status_code = resp.headers.get("X-Api-Status-Code", "")
             logid = resp.headers.get("X-Tt-Logid", "")
             if status_code != "20000000":
