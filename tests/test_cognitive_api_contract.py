@@ -21,6 +21,7 @@ def test_cognitive_routes_replace_legacy_management_routes():
         "/api/v2/projects/{project_id}/workspace", "/api/v2/projects/{project_id}/chat",
         "/api/v2/recordings/{recording_id}/content",
         "/api/v2/memory-matrix", "/api/v2/memory-matrix/chat",
+        "/api/v2/memory-matrix/messages/{message_id}/feedback",
         "/admin/api/v2/semantic/reindex",
         "/admin/api/v2/migrations/recording-summaries",
     }

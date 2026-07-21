@@ -71,6 +71,11 @@ class ConversationInput(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class MessageFeedbackInput(BaseModel):
+    action: str = Field(pattern="^(confirmed|correct|rejected)$")
+    correction: str = Field(default="", max_length=8_000)
+
+
 class TaskInput(BaseModel):
     title: str = Field(min_length=1, max_length=300)
     description: str = Field(default="", max_length=8_000)
@@ -419,6 +424,38 @@ async def memory_matrix_chat(request: Request, payload: ConversationInput):
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/api/v2/memory-matrix/messages/{message_id}/feedback")
+async def respond_to_memory_message(
+    request: Request, message_id: str, payload: MessageFeedbackInput,
+):
+    """Persist a card action without waiting for a conversational LLM turn."""
+    user_id = resolve_user_id(request)
+    status = "accepted" if payload.action == "confirmed" else "needs_correction"
+    message = store.update_message_metadata(
+        message_id,
+        user_id,
+        {"status": status, "feedback_action": payload.action},
+    )
+    if not message:
+        raise HTTPException(status_code=404, detail="message not found")
+    store.add_feedback(
+        user_id=user_id,
+        target_type="message",
+        target_id=message_id,
+        action=payload.action,
+        correction={"message": payload.correction, "scope": "global"},
+    )
+    store.add_event(
+        user_id=user_id,
+        event_type="message_feedback",
+        actor="user",
+        object_type="message",
+        object_id=message_id,
+        payload={"action": payload.action, "status": status},
+    )
+    return {"message": message}
 
 
 @router.post("/api/v2/memory-matrix/items", status_code=201)
