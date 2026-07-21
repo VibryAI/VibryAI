@@ -102,6 +102,53 @@ def test_processing_creates_claim_evidence_and_project_membership(cognition_db):
     assert brief["claims"]
 
 
+def test_markdown_summary_creates_structured_memory_claims(cognition_db):
+    source, _, _ = store.create_source(
+        user_id="u1",
+        source_type="recording",
+        mime_type="text/markdown",
+        derivation_type="summary",
+        content="""# 录音纪要
+
+## 核心目的
+确定 VibryAI 新版发布方案。
+
+## 关键决定
+- APP 与服务端同步发布
+- 发布前完成旧数据刷新
+
+## 行动项
+- 张三准备 Android 安装包
+
+## 会议主要内容
+
+### 发布节奏
+团队计划先验证云端任务队列，再进行手机端灰度测试。
+
+## 标签
+- VibryAI
+- 发布
+""",
+    )
+
+    result = process_source(source["id"])
+    claims = store.list_claims_for_source(source["id"])
+    contents = {item["content"] for item in claims}
+
+    assert result["claim_count"] >= 6
+    assert "[目的] 确定 VibryAI 新版发布方案。" in contents
+    assert "[决策] APP 与服务端同步发布" in contents
+    assert "[决策] 发布前完成旧数据刷新" in contents
+    assert "[行动项] 张三准备 Android 安装包" in contents
+    assert "[主题] VibryAI" in contents
+    assert "[主题] 发布" in contents
+    assert not (
+        len(claims) == 1
+        and claims[0]["content"].startswith("# 录音纪要")
+        and claims[0]["confidence"] == pytest.approx(0.55)
+    )
+
+
 def test_claim_write_merges_exact_duplicates_and_normalizes_entities(cognition_db):
     first, _, _ = store.create_source(user_id="u1", source_type="manual", content="first evidence")
     second, _, _ = store.create_source(user_id="u1", source_type="manual", content="second evidence")

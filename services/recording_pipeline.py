@@ -74,7 +74,7 @@ def submit_recording(
 
     _UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     suffix = Path(title).suffix.lower()
-    if suffix not in {".ogg", ".opus", ".wav", ".mp3", ".m4a"}:
+    if suffix not in {".ogg", ".opus", ".wav", ".mp3", ".m4a", ".aac", ".flac"}:
         suffix = ".ogg"
     upload_path = _UPLOAD_DIR / f"{recording_id}{suffix}"
     part_path = upload_path.with_suffix(upload_path.suffix + ".part")
@@ -135,7 +135,7 @@ def submit_recording_file(
 
     _UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     suffix = Path(title).suffix.lower()
-    if suffix not in {".ogg", ".opus", ".wav", ".mp3", ".m4a"}:
+    if suffix not in {".ogg", ".opus", ".wav", ".mp3", ".m4a", ".aac", ".flac"}:
         suffix = ".ogg"
     upload_path = _UPLOAD_DIR / f"{recording_id}{suffix}"
     os.replace(staged_path, upload_path)

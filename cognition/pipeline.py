@@ -24,6 +24,17 @@ def extract_candidates(source: dict) -> list[dict[str, Any]]:
     except (TypeError, json.JSONDecodeError):
         payload = None
 
+    metadata = source.get("metadata") or {}
+    is_summary = (
+        source.get("derivation_type") == "summary"
+        or source.get("source_type") in {"topic_summary", "summary"}
+        or metadata.get("kind") in {"minutes", "summary", "topic_summary", "aggregate"}
+    )
+    if payload is None and is_summary:
+        from services.markdown_content import parse_summary_markdown
+
+        payload = parse_summary_markdown(text)
+
     if isinstance(payload, dict):
         for decision in payload.get("key_decisions") or payload.get("decisions") or []:
             if isinstance(decision, str) and decision.strip():

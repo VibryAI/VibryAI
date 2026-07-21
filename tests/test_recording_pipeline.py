@@ -114,6 +114,26 @@ def test_streamed_file_submit_moves_upload_and_queues_transcription(
     assert recording["upload_path"].endswith(".opus")
 
 
+@pytest.mark.parametrize("suffix", [".ogg", ".wav", ".mp3", ".m4a", ".aac", ".flac"])
+def test_streamed_file_submit_preserves_supported_audio_suffix(
+    pipeline_db, tmp_path, suffix,
+):
+    staged_path = tmp_path / "incoming.part"
+    staged_path.write_bytes(b"container-audio")
+
+    recording, job, duplicate = recording_pipeline.submit_recording_file(
+        staged_path=staged_path,
+        file_size=staged_path.stat().st_size,
+        title=f"imported-training{suffix}",
+        user_id="admin",
+    )
+
+    assert not duplicate
+    assert job["job_type"] == "transcribe_recording"
+    assert recording["upload_path"].endswith(suffix)
+    assert not staged_path.exists()
+
+
 def test_summary_completes_core_before_memory_ingest(pipeline_db, monkeypatch):
     title = "note20260718-211000.opus"
     recording_id = db.generate_id(title)
