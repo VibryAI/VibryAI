@@ -5,6 +5,8 @@ param(
     [string]$ServiceName = $(if ($env:VIBRY_SERVICE) { $env:VIBRY_SERVICE } else { "vibry-server" }),
     [int]$Port = $(if ($env:VIBRY_PORT) { [int]$env:VIBRY_PORT } else { 9999 }),
     [string]$Version = (Get-Date -Format "yyyyMMdd-HHmmss"),
+    [string]$ServerVersion = $(if ($env:SERVER_VERSION) { $env:SERVER_VERSION } else { "1.0.2" }),
+    [string]$BuildId = $(if ($env:SERVER_BUILD_ID) { $env:SERVER_BUILD_ID } else { "" }),
     [switch]$SkipTests,
     [switch]$PackageOnly
 )
@@ -32,9 +34,16 @@ Assert-Command "tar"
 Assert-SafeValue "Version" $Version '^[A-Za-z0-9._-]+$'
 Assert-SafeValue "RemoteDir" $RemoteDir '^/[A-Za-z0-9._/-]+$'
 Assert-SafeValue "ServiceName" $ServiceName '^[A-Za-z0-9._@-]+$'
+Assert-SafeValue "ServerVersion" $ServerVersion '^[A-Za-z0-9._-]+$'
 if ($Port -lt 1 -or $Port -gt 65535) { throw "Invalid port: $Port" }
 
 $Root = $PSScriptRoot
+$BuildId = if ($BuildId) {
+    $BuildId
+} else {
+    (& git -C $Root rev-parse --short HEAD).Trim()
+}
+Assert-SafeValue "BuildId" $BuildId '^[A-Za-z0-9._-]+$'
 $ReleaseDir = Join-Path $Root "release"
 $PackageName = "vibry-server-$Version"
 $PackagePath = Join-Path $ReleaseDir "$PackageName.tar.gz"
@@ -139,6 +148,9 @@ if sudo test -f '$RemoteDir/run.py'; then
 else
   sudo env VIBRY_HOME='$RemoteDir' VIBRY_SERVICE='$ServiceName' VIBRY_PORT='$Port' bash deploy.sh
 fi
+sudo sed -i '/^SERVER_VERSION=/d; /^SERVER_BUILD_ID=/d' '$RemoteDir/.env'
+printf '%s\n' 'SERVER_VERSION=$ServerVersion' 'SERVER_BUILD_ID=$BuildId' | sudo tee -a '$RemoteDir/.env' >/dev/null
+sudo systemctl restart '$ServiceName'
 rm -rf '$RemoteStage' '$RemoteArchive' '$RemoteChecksum'
 "@
 
