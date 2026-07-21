@@ -117,6 +117,18 @@ def test_streamed_file_submit_moves_upload_and_queues_transcription(
     assert recording["audio_sha256"]
 
 
+def test_audio_hash_backfill_covers_pre_migration_uploads(pipeline_db):
+    recording, _, _ = recording_pipeline.submit_recording(
+        audio_bytes=b"OggS-historical-audio", title="note20260718-210501.opus", user_id="admin",
+    )
+    pipeline_db.execute("UPDATE recordings SET audio_sha256='' WHERE id=?", (recording["id"],))
+    pipeline_db.commit()
+
+    assert recording_pipeline.backfill_recording_audio_hashes() == 1
+    restored = db.get_recording(recording["id"])
+    assert restored["audio_sha256"] == recording_pipeline._sha256_bytes(b"OggS-historical-audio")
+
+
 def test_pending_standard_asr_releases_the_worker_between_polls(pipeline_db, monkeypatch):
     recording, _, _ = recording_pipeline.submit_recording(
         audio_bytes=b"OggS-standard-async", title="note20260721-180000.opus", user_id="admin",

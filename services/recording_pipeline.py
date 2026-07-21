@@ -87,6 +87,33 @@ def _recording_id_for_upload(title: str, user_id: str, audio_sha256: str) -> str
     return f"{recording_id}_{audio_sha256[:10]}"
 
 
+def backfill_recording_audio_hashes(limit: int = 250) -> int:
+    """Populate hashes for pre-migration uploads without touching cloud storage."""
+    rows = get_conn().execute(
+        """SELECT id, upload_path FROM recordings
+           WHERE COALESCE(audio_sha256, '')='' AND COALESCE(upload_path, '')<>''
+           LIMIT ?""",
+        (max(1, limit),),
+    ).fetchall()
+    updates: list[tuple[str, str]] = []
+    for row in rows:
+        path = Path(row["upload_path"])
+        if not path.is_file():
+            continue
+        try:
+            updates.append((_sha256_file(path), row["id"]))
+        except OSError:
+            log.warning("unable to hash historical upload: %s", path)
+    if updates:
+        conn = get_conn()
+        conn.executemany(
+            "UPDATE recordings SET audio_sha256=? WHERE id=? AND COALESCE(audio_sha256, '')=''",
+            updates,
+        )
+        conn.commit()
+    return len(updates)
+
+
 def submit_recording(
     *, audio_bytes: bytes, title: str, user_id: str, category: str = "",
 ) -> tuple[dict, dict | None, bool]:

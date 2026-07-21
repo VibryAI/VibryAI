@@ -52,7 +52,13 @@ async def lifespan(app: FastAPI):
     config.embedding.reload_from_db()
 
     # Durable cognitive jobs process Sources into claims and project suggestions.
-    from services.recording_pipeline import backfill_completed_recording_jobs, backfill_markdown_fields
+    from services.recording_pipeline import (
+        backfill_completed_recording_jobs, backfill_markdown_fields,
+        backfill_recording_audio_hashes,
+    )
+    hashed_recordings = backfill_recording_audio_hashes()
+    if hashed_recordings:
+        log.info("Backfilled recording audio hashes: %s", hashed_recordings)
     markdown_backfill = backfill_markdown_fields()
     if any(markdown_backfill.values()):
         log.info("Backfilled recording Markdown: %s", markdown_backfill)
