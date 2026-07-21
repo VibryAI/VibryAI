@@ -25,6 +25,7 @@ def test_doubao_standard_uses_configurable_submit_timeout(monkeypatch):
         return _SubmitResponse()
 
     monkeypatch.setenv("DOUBAO_ASR_SUBMIT_TIMEOUT", "321")
+    monkeypatch.setattr(asr_providers, "_standard_asr_chunks", lambda audio, _fmt: [(audio, 0)])
     monkeypatch.setattr(asr_providers, "compress_for_asr", lambda audio: (audio, "ogg", "opus"))
     monkeypatch.setattr(asr_providers.urllib.request, "urlopen", fake_urlopen)
 

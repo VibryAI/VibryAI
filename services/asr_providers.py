@@ -20,7 +20,7 @@ from typing import Any
 
 from app.config import config
 from services.asr_contract import AsrResult, AsrSegment, build_result_from_text
-from utils.audio import compress_for_asr, get_audio_duration_seconds
+from utils.audio import compress_for_asr
 
 log = logging.getLogger("vibry.asr.providers")
 
@@ -39,9 +39,6 @@ def _network_timeout(name: str, default: int, *, minimum: int = 30) -> int:
 def _standard_asr_chunks(audio_bytes: bytes, audio_fmt: str | None) -> list[tuple[bytes, int]]:
     """Split long recordings before the base64 Standard-ASR upload."""
     chunk_seconds = _network_timeout("DOUBAO_ASR_CHUNK_SECONDS", 900, minimum=60)
-    duration_seconds = get_audio_duration_seconds(audio_bytes)
-    if duration_seconds <= chunk_seconds:
-        return [(audio_bytes, 0)]
 
     ffmpeg = getattr(getattr(config, "audio", None), "ffmpeg_path", "ffmpeg")
     suffix = (audio_fmt or "ogg").lower().lstrip(".")
@@ -51,7 +48,6 @@ def _standard_asr_chunks(audio_bytes: bytes, audio_fmt: str | None) -> list[tupl
         source = Path(temp_dir) / f"source.{suffix}"
         pattern = Path(temp_dir) / "chunk_%03d.ogg"
         source.write_bytes(audio_bytes)
-        encode_timeout = max(180, int(duration_seconds * 0.5) + 60)
         proc = subprocess.run(
             [
                 ffmpeg, "-y", "-i", str(source), "-map", "0:a:0", "-ac", "1", "-ar", "16000",
@@ -59,17 +55,17 @@ def _standard_asr_chunks(audio_bytes: bytes, audio_fmt: str | None) -> list[tupl
                 "-reset_timestamps", "1", str(pattern),
             ],
             capture_output=True,
-            timeout=encode_timeout,
+            timeout=600,
         )
         chunks = [
             (path.read_bytes(), index * chunk_seconds * 1000)
             for index, path in enumerate(sorted(Path(temp_dir).glob("chunk_*.ogg")))
             if path.stat().st_size > 0
         ]
-        if proc.returncode != 0 or len(chunks) < 2:
+        if proc.returncode != 0:
             message = proc.stderr.decode("utf-8", errors="replace")[-400:]
             raise RuntimeError(f"unable to split long recording for ASR: {message}")
-        return chunks
+        return chunks if len(chunks) > 1 else [(audio_bytes, 0)]
 
 
 FUNASR_MODELS: dict[str, dict[str, Any]] = {
