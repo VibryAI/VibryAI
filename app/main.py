@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
         ),
         (
             "minutes", config.cognition.minutes_workers,
-            {"summarize_recording"}, 0.25,
+            {"summarize_recording", "aggregate_minutes"}, 0.25,
         ),
         (
             "memory", config.cognition.memory_workers,
@@ -136,7 +136,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Vibry AI Core",
     description="Vibry.AI cognitive core, AI gateway, transcription, projects, and insights",
-    version="1.0.0",
+    version=config.server.version,
     lifespan=lifespan,
 )
 

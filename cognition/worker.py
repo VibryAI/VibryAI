@@ -77,14 +77,21 @@ class CognitiveWorker:
                 }:
                     from services.recording_pipeline import process_recording_job
                     process_recording_job(job)
+                elif job["job_type"] == "aggregate_minutes":
+                    from services.aggregate_pipeline import process_aggregate_job
+                    process_aggregate_job(job)
                 else:
                     raise ValueError(f"unknown job type: {job['job_type']}")
                 store.complete_job(job["id"], job.get("lease_owner"))
             except Exception as exc:
                 if job:
                     status = store.fail_job(job["id"], str(exc), job.get("lease_owner"))
-                    from services.recording_pipeline import on_recording_job_failed
-                    on_recording_job_failed(job, str(exc), status == "failed")
+                    if job.get("job_type") == "aggregate_minutes":
+                        from services.aggregate_pipeline import on_aggregate_job_failed
+                        on_aggregate_job_failed(job, str(exc), status == "failed")
+                    else:
+                        from services.recording_pipeline import on_recording_job_failed
+                        on_recording_job_failed(job, str(exc), status == "failed")
                 log.exception("Cognitive job failed: %s", exc)
                 self._stop.wait(self._poll_seconds)
             finally:

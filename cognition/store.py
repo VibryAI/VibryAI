@@ -84,6 +84,29 @@ def init_cognition_schema(conn: sqlite3.Connection) -> None:
         );
         CREATE INDEX IF NOT EXISTS idx_jobs_status_created ON cognition_jobs(status, created_at);
 
+        CREATE TABLE IF NOT EXISTS recording_aggregates (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL DEFAULT 'anonymous',
+            title TEXT NOT NULL DEFAULT '',
+            recording_ids_json TEXT NOT NULL DEFAULT '[]',
+            project_ids_json TEXT NOT NULL DEFAULT '[]',
+            status TEXT NOT NULL DEFAULT 'queued',
+            summary_markdown TEXT NOT NULL DEFAULT '',
+            source_id TEXT,
+            message_id TEXT,
+            error_text TEXT NOT NULL DEFAULT '',
+            dedupe_key TEXT NOT NULL,
+            processing_version TEXT NOT NULL DEFAULT 'aggregate-minutes-v1',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT,
+            UNIQUE(user_id, dedupe_key),
+            FOREIGN KEY(source_id) REFERENCES sources(id),
+            FOREIGN KEY(message_id) REFERENCES cognition_messages(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_recording_aggregates_user_created
+            ON recording_aggregates(user_id, created_at DESC);
+
         CREATE TABLE IF NOT EXISTS projects_v2 (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL DEFAULT 'anonymous',
@@ -436,6 +459,85 @@ def _l4_row(row: sqlite3.Row | None) -> dict | None:
     data = dict(row)
     data["evidence"] = _list(data.pop("evidence_json", "[]"))
     return data
+
+
+def _aggregate_row(row: sqlite3.Row | None) -> dict | None:
+    if not row:
+        return None
+    data = dict(row)
+    data["recording_ids"] = _list(data.pop("recording_ids_json", "[]"))
+    data["project_ids"] = _list(data.pop("project_ids_json", "[]"))
+    return data
+
+
+def create_recording_aggregate(
+    *, user_id: str, title: str, recording_ids: list[str],
+    project_ids: list[str] | None = None, dedupe_key: str,
+) -> tuple[dict, bool]:
+    conn = get_conn()
+    existing = conn.execute(
+        "SELECT * FROM recording_aggregates WHERE user_id=? AND dedupe_key=?",
+        (user_id, dedupe_key),
+    ).fetchone()
+    if existing:
+        return _aggregate_row(existing) or {}, True
+
+    aggregate_id = f"agg_{uuid.uuid4().hex}"
+    now = _now()
+    conn.execute(
+        """INSERT INTO recording_aggregates (
+               id,user_id,title,recording_ids_json,project_ids_json,status,
+               dedupe_key,created_at,updated_at
+           ) VALUES (?,?,?,?,?,'queued',?,?,?)""",
+        (
+            aggregate_id, user_id, title.strip(), _json(recording_ids),
+            _json(project_ids or []), dedupe_key, now, now,
+        ),
+    )
+    conn.commit()
+    return get_recording_aggregate(aggregate_id, user_id) or {}, False
+
+
+def get_recording_aggregate(aggregate_id: str, user_id: str | None = None) -> dict | None:
+    conn = get_conn()
+    query = "SELECT * FROM recording_aggregates WHERE id=?"
+    args: list[Any] = [aggregate_id]
+    if user_id is not None:
+        query += " AND user_id=?"
+        args.append(user_id)
+    return _aggregate_row(conn.execute(query, args).fetchone())
+
+
+def list_recording_aggregates(user_id: str, limit: int = 50) -> list[dict]:
+    rows = get_conn().execute(
+        "SELECT * FROM recording_aggregates WHERE user_id=? ORDER BY created_at DESC LIMIT ?",
+        (user_id, max(1, min(limit, 200))),
+    ).fetchall()
+    return [_aggregate_row(row) or {} for row in rows]
+
+
+def update_recording_aggregate(aggregate_id: str, **changes: Any) -> dict | None:
+    allowed = {
+        "title", "status", "summary_markdown", "source_id", "message_id",
+        "error_text", "processing_version", "completed_at",
+    }
+    assignments: list[str] = []
+    values: list[Any] = []
+    for key, value in changes.items():
+        if key in allowed:
+            assignments.append(f"{key}=?")
+            values.append(value)
+    if not assignments:
+        return get_recording_aggregate(aggregate_id)
+    assignments.append("updated_at=?")
+    values.extend([_now(), aggregate_id])
+    conn = get_conn()
+    conn.execute(
+        f"UPDATE recording_aggregates SET {','.join(assignments)} WHERE id=?",
+        values,
+    )
+    conn.commit()
+    return get_recording_aggregate(aggregate_id)
 
 
 def create_source(

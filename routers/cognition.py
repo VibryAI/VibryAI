@@ -129,6 +129,12 @@ class InsightRunInput(BaseModel):
     trigger: str = Field(default="manual", max_length=40)
 
 
+class AggregateInput(BaseModel):
+    recording_ids: list[str] = Field(min_length=2, max_length=20)
+    title: str = Field(default="多记录专题总结", min_length=1, max_length=300)
+    project_ids: list[str] = Field(default_factory=list, max_length=20)
+
+
 class LegacyMigrationInput(BaseModel):
     user_id: str | None = None
     limit: int = Field(default=1000, ge=1, le=10000)
@@ -468,6 +474,42 @@ async def get_project_brief(request: Request, project_id: str):
 @router.get("/api/v2/insights")
 async def list_insights(request: Request, project_id: str = "", limit: int = 30):
     return {"insights": store.list_insights(resolve_user_id(request), project_id or None, limit)}
+
+
+@router.post("/api/v2/aggregates", status_code=202)
+async def create_aggregate(request: Request, payload: AggregateInput):
+    from services.aggregate_pipeline import submit_aggregate
+
+    try:
+        aggregate, job, duplicate = submit_aggregate(
+            user_id=resolve_user_id(request),
+            recording_ids=payload.recording_ids,
+            title=payload.title,
+            project_ids=payload.project_ids,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    status_code = 200 if duplicate and aggregate.get("status") == "completed" else 202
+    return JSONResponse(
+        {"aggregate": aggregate, "job": job, "duplicate": duplicate},
+        status_code=status_code,
+    )
+
+
+@router.get("/api/v2/aggregates")
+async def list_aggregates(request: Request, limit: int = 50):
+    items = store.list_recording_aggregates(resolve_user_id(request), limit=limit)
+    return {"count": len(items), "aggregates": items}
+
+
+@router.get("/api/v2/aggregates/{aggregate_id}")
+async def get_aggregate(request: Request, aggregate_id: str):
+    aggregate = store.get_recording_aggregate(
+        aggregate_id, resolve_user_id(request),
+    )
+    if not aggregate:
+        raise HTTPException(status_code=404, detail="aggregate not found")
+    return {"aggregate": aggregate}
 
 
 @router.post("/api/v2/insights/run", status_code=202)

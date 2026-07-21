@@ -18,7 +18,8 @@ async def health():
         cognition_status = f"unavailable: {e}"
         queue = {"unavailable": True}
     return JSONResponse({
-        "status": "ok", "version": "1.0.0",
+        "status": "ok", "version": config.server.version,
+        "build_id": config.server.build_id,
         "server": f"http://{config.server.host}:{config.server.port}",
         "chat_model": config.chat.model,
         "embedding_model": config.embedding.model,

@@ -314,6 +314,8 @@ class CognitionConfig:
 @dataclass
 class ServerConfig:
     """服务配置"""
+    version: str = os.getenv("SERVER_VERSION", "1.0.1")
+    build_id: str = os.getenv("SERVER_BUILD_ID", "local-dev")
     host: str = os.getenv("SERVER_HOST", "0.0.0.0")
     port: int = int(os.getenv("SERVER_PORT", "9999"))
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
