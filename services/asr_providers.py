@@ -6,6 +6,8 @@ import base64
 import json
 import logging
 import os
+from pathlib import Path
+import subprocess
 import tempfile
 import threading
 import time
@@ -18,7 +20,7 @@ from typing import Any
 
 from app.config import config
 from services.asr_contract import AsrResult, AsrSegment, build_result_from_text
-from utils.audio import compress_for_asr
+from utils.audio import compress_for_asr, get_audio_duration_seconds
 
 log = logging.getLogger("vibry.asr.providers")
 
@@ -32,6 +34,42 @@ def _network_timeout(name: str, default: int, *, minimum: int = 30) -> int:
     except (TypeError, ValueError):
         return default
     return max(minimum, value)
+
+
+def _standard_asr_chunks(audio_bytes: bytes, audio_fmt: str | None) -> list[tuple[bytes, int]]:
+    """Split long recordings before the base64 Standard-ASR upload."""
+    chunk_seconds = _network_timeout("DOUBAO_ASR_CHUNK_SECONDS", 900, minimum=60)
+    duration_seconds = get_audio_duration_seconds(audio_bytes)
+    if duration_seconds <= chunk_seconds:
+        return [(audio_bytes, 0)]
+
+    ffmpeg = getattr(getattr(config, "audio", None), "ffmpeg_path", "ffmpeg")
+    suffix = (audio_fmt or "ogg").lower().lstrip(".")
+    if suffix not in {"ogg", "opus", "wav", "mp3", "m4a", "aac", "flac"}:
+        suffix = "ogg"
+    with tempfile.TemporaryDirectory(prefix="vibry_asr_chunks_") as temp_dir:
+        source = Path(temp_dir) / f"source.{suffix}"
+        pattern = Path(temp_dir) / "chunk_%03d.ogg"
+        source.write_bytes(audio_bytes)
+        encode_timeout = max(180, int(duration_seconds * 0.5) + 60)
+        proc = subprocess.run(
+            [
+                ffmpeg, "-y", "-i", str(source), "-map", "0:a:0", "-ac", "1", "-ar", "16000",
+                "-c:a", "libopus", "-b:a", "16k", "-f", "segment", "-segment_time", str(chunk_seconds),
+                "-reset_timestamps", "1", str(pattern),
+            ],
+            capture_output=True,
+            timeout=encode_timeout,
+        )
+        chunks = [
+            (path.read_bytes(), index * chunk_seconds * 1000)
+            for index, path in enumerate(sorted(Path(temp_dir).glob("chunk_*.ogg")))
+            if path.stat().st_size > 0
+        ]
+        if proc.returncode != 0 or len(chunks) < 2:
+            message = proc.stderr.decode("utf-8", errors="replace")[-400:]
+            raise RuntimeError(f"unable to split long recording for ASR: {message}")
+        return chunks
 
 
 FUNASR_MODELS: dict[str, dict[str, Any]] = {
@@ -240,6 +278,37 @@ class DoubaoStandardProvider(BaseAsrProvider):
     name = "doubao_standard"
 
     def transcribe(self, audio_bytes: bytes, audio_fmt: str | None = None, language: str | None = None) -> AsrResult:
+        chunks = _standard_asr_chunks(audio_bytes, audio_fmt)
+        results = [
+            self._transcribe_chunk(chunk, audio_fmt="ogg" if len(chunks) > 1 else audio_fmt, language=language)
+            for chunk, _offset_ms in chunks
+        ]
+        if len(results) == 1:
+            return results[0]
+
+        segments: list[AsrSegment] = []
+        for chunk_index, ((_, offset_ms), result) in enumerate(zip(chunks, results), start=1):
+            for segment in result.segments:
+                segment.id = len(segments)
+                segment.start_ms += offset_ms
+                segment.end_ms += offset_ms
+                if segment.speaker is not None:
+                    segment.speaker = f"{chunk_index}-{segment.speaker}"
+                segments.append(segment)
+        merged = AsrResult(
+            provider=self.name,
+            model="bigmodel-standard",
+            text="\n".join(result.text for result in results if result.text).strip(),
+            language=language or "auto",
+            duration_ms=sum(result.duration_ms or 0 for result in results),
+            segments=segments,
+            raw={"chunks": [result.raw for result in results]},
+        )
+        if merged.segments:
+            merged.text = merged.formatted_text() or merged.text
+        return merged
+
+    def _transcribe_chunk(self, audio_bytes: bytes, audio_fmt: str | None, language: str | None) -> AsrResult:
         doubao = config.doubao_asr
         app_id = doubao.app_id or os.getenv("DOUBAO_ASR_APP_ID", "")
         access_key = doubao.access_key or os.getenv("DOUBAO_ASR_ACCESS_KEY", "")
