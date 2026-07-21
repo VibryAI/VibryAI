@@ -551,7 +551,10 @@ def get_stats(user_id: str = None) -> dict:
 
 def _row_to_dict(row: sqlite3.Row) -> dict:
     d = dict(row)
-    for field in ("tags", "summary_json"):
+    for field in (
+        "tags", "summary_json", "insight_json",
+        "recording_insight_json", "memory_insight_json",
+    ):
         if field in d and isinstance(d[field], str):
             try:
                 d[field] = json.loads(d[field])

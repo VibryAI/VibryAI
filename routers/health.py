@@ -10,10 +10,13 @@ async def health():
     from services.asr_providers import supported_provider_modes
     try:
         import db
+        from cognition import store
         db.init_db()
         cognition_status = "ok"
+        queue = store.queue_snapshot()
     except Exception as e:
         cognition_status = f"unavailable: {e}"
+        queue = {"unavailable": True}
     return JSONResponse({
         "status": "ok", "version": "1.0.0",
         "server": f"http://{config.server.host}:{config.server.port}",
@@ -22,5 +25,5 @@ async def health():
         "asr_mode": config.asr.mode,
         "asr_providers": supported_provider_modes(),
         "cognition": cognition_status,
-        "queue": {"asr": 0, "summary": 0},
+        "queue": queue,
     })

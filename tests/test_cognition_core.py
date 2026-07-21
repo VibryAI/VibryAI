@@ -45,6 +45,38 @@ def test_source_is_idempotent_and_creates_durable_job(cognition_db):
     assert job["status"] == "queued"
 
 
+def test_refresh_source_replaces_stale_evidence_and_preserves_projects(cognition_db):
+    project = store.create_project(user_id="u1", name="培训项目")
+    source, _, _ = store.create_source(
+        user_id="u1",
+        source_type="recording",
+        content="旧纪要：第一版培训计划。",
+        external_id="recording_summary:rec-1",
+        project_ids=[project["id"]],
+    )
+    process_source(source["id"])
+    old_claim_ids = {
+        item["id"] for item in store.list_claims_for_source(source["id"])
+    }
+
+    refreshed, job, changed = store.refresh_source_content(
+        source_id=source["id"],
+        user_id="u1",
+        content="新纪要：培训改为两天，并增加销售演练。",
+        metadata={"kind": "minutes"},
+    )
+
+    assert changed
+    assert refreshed["id"] == source["id"]
+    assert refreshed["status"] == "queued"
+    assert refreshed["metadata"]["project_ids"] == [project["id"]]
+    assert job["job_type"] == "process_source"
+    assert store.list_claims_for_source(source["id"]) == []
+    assert not old_claim_ids.intersection(
+        row["id"] for row in cognition_db.execute("SELECT id FROM claims_v2")
+    )
+
+
 def test_processing_creates_claim_evidence_and_project_membership(cognition_db):
     project = store.create_project(
         user_id="u1", name="VibryAI", tags=["记忆系统"], goal="重构认知内核"
@@ -343,3 +375,63 @@ def test_jobs_are_visible_and_failed_jobs_can_be_retried(cognition_db):
     assert store.list_jobs("u1")[0]["status"] == "failed"
     retried = store.retry_job(job["id"], "u1")
     assert retried["status"] == "queued"
+    assert retried["run_after"] is None
+
+
+def test_failed_jobs_back_off_and_stuck_jobs_are_recovered(cognition_db):
+    queued = store.enqueue_job(user_id="u1", job_type="memory_ingest")
+    claimed = store.claim_next_job({"memory_ingest"})
+    assert claimed["id"] == queued["id"]
+
+    status = store.fail_job(
+        claimed["id"], "temporary", claimed["lease_owner"],
+    )
+    delayed = store.get_job(claimed["id"], "u1")
+
+    assert status == "queued"
+    assert delayed["run_after"] is not None
+    cognition_db.execute(
+        "UPDATE cognition_jobs SET status='running',lease_until='2000-01-01T00:00:00+00:00',run_after=NULL WHERE id=?",
+        (claimed["id"],),
+    )
+    cognition_db.commit()
+    recovered = store.recover_stuck_jobs()
+
+    assert recovered == {"released": 1, "failed": 0}
+    assert store.get_job(claimed["id"], "u1")["status"] == "queued"
+    snapshot = store.queue_snapshot()
+    assert snapshot["queued"] == 1
+    assert snapshot["by_type"]["memory_ingest"]["queued"] == 1
+
+
+def test_worker_job_lanes_claim_only_allowed_types(cognition_db):
+    store.enqueue_job(user_id="u1", job_type="transcribe_recording")
+    memory_job = store.enqueue_job(user_id="u1", job_type="memory_ingest")
+
+    claimed = store.claim_next_job({"memory_ingest", "process_source"})
+
+    assert claimed["id"] == memory_job["id"]
+    assert claimed["job_type"] == "memory_ingest"
+
+
+def test_memory_matrix_auto_accepts_high_confidence_and_only_asks_low_confidence(
+    cognition_db,
+):
+    high = store.create_l4_item(
+        user_id="u1", title="稳定偏好", content_html="偏好完整纪要", confidence=0.9,
+    )
+    medium = store.create_l4_item(
+        user_id="u1", title="待观察", content_html="可能偏好日报", confidence=0.65,
+    )
+    low = store.create_l4_item(
+        user_id="u1", title="需要确认", content_html="可能负责销售", confidence=0.3,
+    )
+
+    matrix = store.memory_matrix("u1")
+    visible_ids = {item["id"] for item in matrix["profile"]}
+
+    assert high["status"] == "confirmed"
+    assert high["id"] in visible_ids
+    assert medium["id"] not in visible_ids
+    assert low["id"] in visible_ids
+    assert matrix["pending_confirmations"] == 1

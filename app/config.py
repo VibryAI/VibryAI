@@ -6,6 +6,68 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+DEFAULT_SUMMARY_PROMPT = """你是专业录音内容整理专员。请基于语音转写全文生成客观、完整的结构化纪要，严禁编造原文不存在的内容。
+
+只输出纯 Markdown，不要输出 JSON，不要使用 Markdown 代码块。
+
+# 录音纪要
+
+## 基本信息
+仅输出能够从文件名、系统上下文或录音原文中明确确认的信息：
+- 录音时间
+- 录音时长
+- 核心主题
+- 关键词
+
+无法确认的项目直接省略，不要填写“未知”“未识别”或推测内容。
+
+## 核心目的
+用一段话概括本次录音的核心主题和目的，不超过100字。
+
+## 关键决定
+只记录录音中明确作出的决定，使用无序列表。
+如果没有明确决定，省略整个“关键决定”章节。
+
+## 行动项
+只记录录音中明确提出的后续行动，使用无序列表。
+原文明确提供负责人、时间或交付内容时一并保留。
+如果没有明确行动项，省略整个“行动项”章节。
+
+## 会议主要内容
+
+根据录音中的实际主题拆分三级标题，例如：
+
+### 主题标题
+
+完整还原相关讨论、逻辑、数据、方案、不同意见和结论。正文可以使用段落、有序列表或无序列表。
+
+根据内容数量设置主题章节，不要为了套用格式添加没有实际内容的章节。
+
+## 标签
+输出3-5个能够从录音内容中明确提取的简短标签，使用无序列表。
+无法提取有效标签时，省略整个“标签”章节。
+
+## 硬性约束
+- 关键决定：录音中明确提到的决策才写，没有则省略整个章节
+- 行动项：录音中明确提到的行动项才写，没有则省略整个章节
+- 所有内容使用纯 Markdown，禁止内嵌 HTML
+- `##` 用于主要章节，`###` 用于具体主题
+- 客观还原，去除语气词和重复口语，但保留所有实质内容
+- 识别不清的原文标注为【录音模糊】
+- 不推测时间、时长、负责人、决定、行动项或结论
+- 不虚构数据、比例和因果关系
+- 没有实际内容的字段、列表或章节直接省略
+- 不输出开场说明、格式说明或结尾解释"""
+
+
+def _env_int(name: str, default: int, minimum: int = 1, maximum: int = 8) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        value = default
+    return max(minimum, min(value, maximum))
+
+
 @dataclass
 class ChatConfig:
     """Chat / LLM 模型配置（对话、摘要等）
@@ -175,6 +237,24 @@ class PromptConfig:
     """Prompt 模板配置"""
     insight_prompt: str = os.getenv("INSIGHT_PROMPT", "")
 
+    @property
+    def system_prompt(self) -> str:
+        """Return the Source-level insight prompt, preferring the admin DB value."""
+        try:
+            import db
+
+            db_prompt = db.get_asr_config().get("insight_prompt", "")
+            if db_prompt.strip():
+                return db_prompt
+        except Exception:
+            pass
+        if self.insight_prompt.strip():
+            return self.insight_prompt
+        return """你是 Vibry.AI 的单条录音洞察分析器。请识别这次录音中最值得关注的判断、机会、风险和下一步行动。
+
+只输出纯 Markdown，不要 JSON，不要代码块。使用“核心洞察、机会分析、风险提示、行动建议”四个二级标题。
+区分录音中明确表达的事实和你的推断；不要编造录音中不存在的信息；用中文简洁输出。"""
+
 
 @dataclass
 class SummaryConfig:
@@ -207,22 +287,8 @@ class SummaryConfig:
                 return db_prompt
         except Exception:
             pass
-        # 代码兜底
-        return f"""你是一位专业的会议纪要撰写助手，也是用户的数字孪生战略副驾。请根据以下录音转写内容，结合用户的个人背景和偏好，完成分析。
-
-要求：按以下 JSON 格式输出（不要包含 markdown 代码块标记），每个字段都必须填写：
-
-{{
-  "current_intent": "用一句话总结本次录音的核心目的",
-  "key_decisions": ["决策1", "决策2"],
-  "action_items": ["行动项1 @责任人", "行动项2 @责任人"],
-  "memory_conflict": "对比用户过去的偏好和习惯，指出一致性或矛盾点",
-  "proactive_next": "基于用户日程的建议行动",
-  "tags": ["标签1", "标签2", "标签3"],
-  "detailed_summary": "一段300-500字的结构化完整纪要，分段包括：会议背景、讨论要点、结论、后续安排"
-}}
-
-请用中文输出，简洁专业，避免废话。特别是 action_items 必须明确责任人。tags 必须用中文短语，3-5个。"""
+        # 代码兜底；云端后台配置仍拥有最高优先级。
+        return DEFAULT_SUMMARY_PROMPT
 
     @property
     def user_profile_text(self) -> str:
@@ -239,6 +305,10 @@ class CognitionConfig:
     """Cognitive Core v2 processing and reflection settings."""
     nightly_insight_time: str = os.getenv("COGNITION_NIGHTLY_INSIGHT_TIME", "02:30")
     scheduler_enabled: bool = os.getenv("COGNITION_SCHEDULER_ENABLED", "true").lower() not in {"0", "false", "no"}
+    transcription_workers: int = _env_int("COGNITION_TRANSCRIPTION_WORKERS", 2)
+    minutes_workers: int = _env_int("COGNITION_MINUTES_WORKERS", 2)
+    memory_workers: int = _env_int("COGNITION_MEMORY_WORKERS", 2)
+    insight_workers: int = _env_int("COGNITION_INSIGHT_WORKERS", 1)
 
 
 @dataclass

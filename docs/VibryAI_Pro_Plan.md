@@ -1,5 +1,11 @@
 # VibryAI Pro 版 — 架构蓝图
 
+> **历史归档，不代表当前实现。** 本文保留 2026 年 7 月早期的多租户设想，
+> 其中 Mem0、Qdrant、Wiki Plugin 和 `/v1/agent/*` 均未用于当前 VibryAI
+> Server 1.0。当前单用户认知内核、实际接口和扩展方式分别见
+> [VibryAI_Product_Requirements.md](VibryAI_Product_Requirements.md)、
+> [API_REFERENCE.md](API_REFERENCE.md) 和 [AGENT_INTEGRATION.md](AGENT_INTEGRATION.md)。
+
 > 未来参考方案 | 多租户 · 多 Provider · 多智能体 · 插件体系
 
 ---

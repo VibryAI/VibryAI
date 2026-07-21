@@ -1,5 +1,6 @@
 """Vibry AI Core — ASR + Summarization + Insight endpoints"""
-import asyncio, base64, time, logging
+import asyncio, base64, os, tempfile, time, logging
+from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from app.config import config
@@ -13,6 +14,36 @@ _asr_lock = asyncio.Lock()
 _summary_lock = asyncio.Lock()
 _asr_queue = 0
 _summary_queue = 0
+
+_UPLOAD_STAGE_DIR = Path(__file__).resolve().parents[1] / "data" / "recording_uploads"
+_MAX_UPLOAD_BYTES = 200 * 1024 * 1024
+
+
+async def _stage_upload(upload_file) -> tuple[Path, int]:
+    """Stream multipart audio to disk so long recordings do not occupy request memory."""
+    _UPLOAD_STAGE_DIR.mkdir(parents=True, exist_ok=True)
+    suffix = Path(getattr(upload_file, "filename", "") or "recording.ogg").suffix.lower()
+    if suffix not in {".ogg", ".opus", ".wav", ".mp3", ".m4a"}:
+        suffix = ".ogg"
+    fd, raw_path = tempfile.mkstemp(prefix="upload_", suffix=f"{suffix}.part", dir=_UPLOAD_STAGE_DIR)
+    path = Path(raw_path)
+    size = 0
+    try:
+        with os.fdopen(fd, "wb") as target:
+            while True:
+                chunk = await upload_file.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > _MAX_UPLOAD_BYTES:
+                    raise ValueError("audio exceeds 200 MB")
+                target.write(chunk)
+        if size == 0:
+            raise ValueError("audio is required")
+        return path, size
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
 
 
 def _capture_transcript_source(result: dict, title: str, user_id: str, category: str = "") -> dict:
@@ -49,6 +80,9 @@ async def get_asr_mode():
 
 @router.post("/api/asr-mode")
 async def set_asr_mode(request: Request):
+    from utils.auth import check_admin
+    if not check_admin(request):
+        raise HTTPException(status_code=401, detail="Admin required")
     data = await request.json()
     mode = data.get("mode", config.asr.mode)
     from services.asr_providers import supported_provider_modes
@@ -93,6 +127,77 @@ async def api_transcribe(request: Request):
         "cognition_job_id": result.get("cognition_job_id"),
     })
 
+
+@router.post("/api/v2/recordings/process", status_code=202)
+async def api_submit_recording(request: Request):
+    """Persist an audio upload and return immediately with a durable job id."""
+    user_id = resolve_user_id(request)
+    content_type = request.headers.get("content-type", "")
+    category = ""
+    staged_path: Path | None = None
+    audio_bytes: bytes | None = None
+    if "application/json" in content_type:
+        data = await request.json()
+        audio_b64 = data.get("audio_base64", "")
+        title = data.get("title", "")
+        category = data.get("category", "")
+        if not audio_b64:
+            raise HTTPException(status_code=400, detail="missing audio_base64")
+        try:
+            audio_bytes = base64.b64decode(audio_b64, validate=True)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="invalid audio_base64") from exc
+    elif "multipart" in content_type:
+        form = await request.form()
+        audio_file = form.get("audio")
+        if audio_file is None:
+            raise HTTPException(status_code=400, detail="missing audio")
+        try:
+            staged_path, staged_size = await _stage_upload(audio_file)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        title = form.get("title", "") or getattr(audio_file, "filename", "")
+        category = form.get("category", "")
+    else:
+        raise HTTPException(status_code=400, detail="need JSON or multipart")
+
+    from services.recording_pipeline import submit_recording, submit_recording_file
+
+    try:
+        if staged_path is not None:
+            recording, job, duplicate = await asyncio.to_thread(
+                submit_recording_file,
+                staged_path=staged_path,
+                file_size=staged_size,
+                title=str(title or "recording.ogg"),
+                user_id=user_id,
+                category=str(category or ""),
+            )
+        else:
+            recording, job, duplicate = await asyncio.to_thread(
+                submit_recording,
+                audio_bytes=audio_bytes or b"",
+                title=str(title or "recording.ogg"),
+                user_id=user_id,
+                category=str(category or ""),
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    finally:
+        if staged_path is not None:
+            staged_path.unlink(missing_ok=True)
+    return JSONResponse(
+        {
+            "recording_id": recording.get("id"),
+            "job_id": job.get("id") if job else None,
+            "core_status": recording.get("core_status", recording.get("status", "queued")),
+            "recording_insight_status": recording.get("recording_insight_status", "pending"),
+            "memory_insight_status": recording.get("memory_insight_status", "pending"),
+            "duplicate": duplicate,
+        },
+        status_code=200 if duplicate and recording.get("core_status") == "completed" else 202,
+    )
+
 @router.post("/api/transcribe/voice")
 async def api_transcribe_voice(request: Request):
     global _asr_queue; _asr_queue += 1
@@ -128,7 +233,14 @@ async def api_summarize(request: Request):
     async with _summary_lock:
         _summary_queue -= 1
         from services.asr import summarize
-        result = await asyncio.to_thread(summarize, transcript, title, context, user_id)
+        persist_recording = data.get("persist", True) is not False
+        if persist_recording:
+            result = await asyncio.to_thread(summarize, transcript, title, context, user_id)
+        else:
+            result = await asyncio.to_thread(
+                summarize, transcript, title, context, user_id,
+                persist_recording=False,
+            )
     elapsed = (time.time()-t0)*1000
     if "error" in result: return JSONResponse({"error": result["error"]}, status_code=500)
     return JSONResponse(result)
@@ -140,29 +252,19 @@ async def api_insight(request: Request):
     data = await request.json()
     transcript = data.get("transcript",""); title = data.get("record_title","Recording"); context = data.get("context","")
     if not transcript: _summary_queue -= 1; raise HTTPException(status_code=400, detail="transcript required")
-    import re
-    insight_prompt = config.prompt.insight_prompt if hasattr(config,'prompt') and config.prompt.insight_prompt else ""
-    if not insight_prompt: insight_prompt = config.summary.system_prompt
-    insight_prompt = insight_prompt.replace("{name}",config.summary.user_name).replace("{role}",config.summary.user_role).replace("{context}",config.summary.user_context)
     async with _summary_lock:
         _summary_queue -= 1
-        messages = [{"role":"system","content":insight_prompt},{"role":"user","content":f"Recording: {title}\n\nTranscript:\n{transcript}\n\nContext: {context}"}]
-        from services.asr import call_llm
-        model = config.summary.effective_model
-        result = await asyncio.to_thread(call_llm, model, messages, 180)
-        if "error" in result: return JSONResponse({"error": str(result["error"])}, status_code=500)
-        # ★ 计费：LLM 按 token 计费
-        usage = result.get("usage", {})
-        db.log_usage(
-            user_id=user_id, endpoint="/api/insight", model=model,
-            prompt_tokens=usage.get("prompt_tokens",0),
-            completion_tokens=usage.get("completion_tokens",0),
-            total_tokens=usage.get("total_tokens",0),
-        )
-        raw = result.get("choices",[{}])[0].get("message",{}).get("content","")
-        match = re.search(r'\{[\s\S]*\}', raw)
-        try: parsed = __import__('json').loads(match.group() if match else raw)
-        except: parsed = {"core_insight":"","analysis":{"opportunity":"","risk":""},"action_suggestions":[]}
+        from services.recording_pipeline import generate_recording_insight
+        try:
+            parsed = await asyncio.to_thread(
+                generate_recording_insight,
+                transcript=transcript,
+                title=title,
+                context=context,
+                user_id=user_id,
+            )
+        except RuntimeError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=500)
     return JSONResponse(parsed)
 
 @router.post("/admin/api/transcribe-upload")

@@ -23,6 +23,8 @@ def get_conn() -> sqlite3.Connection:
         _local.conn.row_factory = sqlite3.Row
         _local.conn.execute("PRAGMA journal_mode=WAL")
         _local.conn.execute("PRAGMA foreign_keys=ON")
+        _local.conn.execute("PRAGMA synchronous=NORMAL")
+        _local.conn.execute("PRAGMA busy_timeout=10000")
     return _local.conn
 
 
@@ -40,6 +42,7 @@ def init_db():
             transcript TEXT DEFAULT '',
             transcript_chars INTEGER DEFAULT 0,
             summary_json TEXT DEFAULT '',
+            summary_markdown TEXT DEFAULT '',
             tags TEXT DEFAULT '[]',
             category TEXT DEFAULT '未分类',
             status TEXT DEFAULT 'pending',
@@ -184,10 +187,42 @@ def init_db():
     # 迁移 recordings: 添加 VibryCard 独有列
     cur = conn.execute("PRAGMA table_info(recordings)")
     rec_cols = {row[1] for row in cur.fetchall()}
-    for col, decl in [("insight_json", "TEXT DEFAULT ''"), ("utterances_json", "TEXT DEFAULT ''"), ("raw_wav_path", "TEXT DEFAULT ''")]:
+    for col, decl in [
+        ("insight_json", "TEXT DEFAULT ''"),
+        ("utterances_json", "TEXT DEFAULT ''"),
+        ("raw_wav_path", "TEXT DEFAULT ''"),
+        ("core_status", "TEXT NOT NULL DEFAULT 'pending'"),
+        ("recording_insight_status", "TEXT NOT NULL DEFAULT 'pending'"),
+        ("memory_insight_status", "TEXT NOT NULL DEFAULT 'pending'"),
+        ("recording_insight_json", "TEXT DEFAULT ''"),
+        ("memory_insight_json", "TEXT DEFAULT ''"),
+        ("summary_markdown", "TEXT DEFAULT ''"),
+        ("recording_insight_markdown", "TEXT DEFAULT ''"),
+        ("memory_insight_markdown", "TEXT DEFAULT ''"),
+        ("processing_error", "TEXT DEFAULT ''"),
+        ("processing_version", "INTEGER NOT NULL DEFAULT 0"),
+        ("client_recording_id", "TEXT DEFAULT ''"),
+        ("upload_path", "TEXT DEFAULT ''"),
+    ]:
         if col not in rec_cols:
             conn.execute(f"ALTER TABLE recordings ADD COLUMN {col} {decl}")
             print(f"  [migrate] recordings + {col}")
+
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_recordings_user_updated "
+        "ON recordings(user_id, updated_at DESC)"
+    )
+    conn.execute(
+        "UPDATE recordings SET core_status=status "
+        "WHERE core_status='pending' AND status!='pending'"
+    )
+    conn.execute(
+        """UPDATE recordings
+           SET recording_insight_json=insight_json,
+               recording_insight_status='completed'
+           WHERE COALESCE(recording_insight_json,'')=''
+             AND TRIM(COALESCE(insight_json,'')) NOT IN ('','{}','[]')"""
+    )
 
     # 迁移 usage_log: 添加 audio_seconds 列 (ASR 时长计费)
     cur = conn.execute("PRAGMA table_info(usage_log)")

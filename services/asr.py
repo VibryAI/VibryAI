@@ -265,24 +265,10 @@ def call_llm(model: str, messages: list[dict], max_time: int = 180) -> dict:
 # ===================================================================
 
 def parse_summary(raw: str) -> dict:
-    """从 LLM 返回中提取 JSON"""
-    json_str = raw
-    match = re.search(r"\{[\s\S]*\}", raw)
-    if match:
-        json_str = match.group()
-    try:
-        return json.loads(json_str)
-    except json.JSONDecodeError:
-        return {
-            "current_intent": "",
-            "key_decisions": [],
-            "action_items": [],
-            "memory_conflict": "",
-            "proactive_next": "",
-            "tags": [],
-            "detailed_summary": raw,
-            "full_summary": raw,
-        }
+    """Build the legacy structured view from Markdown without trusting model JSON."""
+    from services.markdown_content import parse_summary_markdown
+
+    return parse_summary_markdown(raw)
 
 
 def summarize(
@@ -290,6 +276,7 @@ def summarize(
     title: str = "录音",
     context: str = "",
     user_id: str = "anonymous",
+    persist_recording: bool = True,
 ) -> dict:
     """生成会议纪要
 
@@ -312,7 +299,17 @@ def summarize(
     log.info(f"🧠 纪要开始 [user={user_id}] | 标题:{title} | {char_count}字符 | model={model}")
 
     # 构建 system prompt
-    system_prompt = sum_cfg.system_prompt + "\n\n" + sum_cfg.user_profile_text
+    output_contract = """\
+【最终输出协议：本段优先于前文中任何冲突要求】
+- 最终响应只能是纯 Markdown 正文；禁止 JSON、代码块、HTML、开场说明和结尾解释。
+- 以“# 录音纪要”为唯一一级标题。
+- 使用“## 基本信息”“## 核心目的”“## 会议主要内容”等章节；具体内容主题使用三级标题。
+- “关键决定”“行动项”“标签”没有可靠内容时，必须省略整个章节，不得输出空字段或占位文字。
+- 不得推测时间、时长、负责人、决定、行动项、结论、数据、比例或因果关系。
+- 客观完整地保留实质内容；识别不清的原文标注为【录音模糊】。"""
+    system_prompt = (
+        sum_cfg.system_prompt + "\n\n" + sum_cfg.user_profile_text + "\n\n" + output_contract
+    )
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -325,39 +322,47 @@ def summarize(
 
     if "error" in result:
         log.error(f"❌ 纪要失败 ({api_time:.1f}s): {result['error']}")
-        rec_id = db.generate_id(title)
-        db.upsert_recording(rec_id, user_id=user_id, title=title, filename=title, status="failed")
-        db.log_analysis(rec_id, "summarize", "error", user_id=user_id,
-                        input_size=char_count, error_msg=str(result["error"])[:500])
+        if persist_recording:
+            rec_id = db.generate_id(title)
+            db.upsert_recording(
+                rec_id, user_id=user_id, title=title, filename=title, status="failed",
+            )
+            db.log_analysis(
+                rec_id, "summarize", "error", user_id=user_id,
+                input_size=char_count, error_msg=str(result["error"])[:500],
+            )
         return {"error": str(result["error"])}
 
     raw = result.get("choices", [{}])[0].get("message", {}).get("content", "")
     parsed = parse_summary(raw)
+    summary_markdown = str(parsed.get("markdown") or raw).strip()
+    parsed["markdown"] = summary_markdown
 
     tokens = result.get("usage", {}).get("total_tokens", "?")
     decisions = len(parsed.get("key_decisions", []))
     log.info(f"✅ 纪要完成 | API{api_time:.1f}s | tokens={tokens} | {decisions}决策")
 
-    # 存入数据库
-    rec_id = db.generate_id(title)
-    tags = parsed.get("tags", [])
-    db.upsert_recording(
-        rec_id,
-        user_id=user_id,
-        title=title,
-        filename=title,
-        status="completed",
-        summary_json=json.dumps(parsed, ensure_ascii=False),
-        tags=json.dumps(tags, ensure_ascii=False),
-        transcript_chars=char_count,
-    )
-    db.log_analysis(
-        rec_id, "summarize", "success",
-        user_id=user_id,
-        input_size=char_count,
-        output_chars=len(json.dumps(parsed, ensure_ascii=False)),
-        duration_ms=int(api_time * 1000),
-    )
+    if persist_recording:
+        rec_id = db.generate_id(title)
+        tags = parsed.get("tags", [])
+        db.upsert_recording(
+            rec_id,
+            user_id=user_id,
+            title=title,
+            filename=title,
+            status="completed",
+            summary_json=json.dumps(parsed, ensure_ascii=False),
+            summary_markdown=summary_markdown,
+            tags=json.dumps(tags, ensure_ascii=False),
+            transcript_chars=char_count,
+        )
+        db.log_analysis(
+            rec_id, "summarize", "success",
+            user_id=user_id,
+            input_size=char_count,
+            output_chars=len(json.dumps(parsed, ensure_ascii=False)),
+            duration_ms=int(api_time * 1000),
+        )
     # ★ 计费：LLM 按 token 计费
     usage = result.get("usage", {})
     db.log_usage(

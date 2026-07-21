@@ -18,20 +18,43 @@ async def list_recordings(request: Request, status: str = None, category: str = 
 
 @router.get("/api/recordings/{rec_id}")
 async def get_recording(request: Request, rec_id: str):
+    user_id = resolve_user_id(request)
     rec = db.get_recording(rec_id)
-    if rec is None: raise HTTPException(status_code=404, detail="Record not found")
+    if rec is None or rec.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="Record not found")
     logs_data = db.get_analysis_log(rec_id)
     rec["analysis_log"] = logs_data
     return JSONResponse(rec)
 
+
+@router.get("/api/v2/recordings/{rec_id}/processing")
+async def get_recording_processing(request: Request, rec_id: str):
+    user_id = resolve_user_id(request)
+    recording = db.get_recording(rec_id)
+    if not recording or recording.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="recording not found")
+    from cognition import store
+    return JSONResponse({
+        "recording": recording,
+        "jobs": store.list_recording_jobs(rec_id, user_id),
+    })
+
 @router.delete("/api/recordings/{rec_id}")
-async def delete_recording(rec_id: str):
+async def delete_recording(request: Request, rec_id: str):
+    user_id = resolve_user_id(request)
+    rec = db.get_recording(rec_id)
+    if rec is None or rec.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="Record not found")
     db.delete_recording(rec_id)
     log.info(f"Deleted recording: {rec_id}")
     return JSONResponse({"ok": True})
 
 @router.patch("/api/recordings/{rec_id}/tags")
 async def update_recording_tags(request: Request, rec_id: str):
+    user_id = resolve_user_id(request)
+    existing = db.get_recording(rec_id)
+    if existing is None or existing.get("user_id") != user_id:
+        raise HTTPException(status_code=404, detail="Record not found")
     data = await request.json()
     tags = data.get("tags", [])
     category = data.get("category")

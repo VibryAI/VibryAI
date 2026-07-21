@@ -3,6 +3,7 @@
 > 状态：已实现基线，待真实数据验证
 > 目标版本：VibryAI Server Cognitive Core v2
 > 核心定位：面向个人的 Agent 无关认知后端、第二大脑与 AI 网关
+> 文档性质：实现记录与后续路线图。第 10 节只概述接口分组，完整现行契约见 `API_REFERENCE.md`；后文标为规划的内容不得视为已上线功能。
 
 ## 当前实现状态
 
@@ -15,9 +16,9 @@ Server 中落地并由自动化测试覆盖：
 | L1 Claims | 提取四网络主张、实体、时间、置信度与证据片段；精确重复合并，语义相似仅产生待确认关系。 |
 | L2 Projects | 自动多项目归类、置信度、人工多选标签与拒绝记录；人工拒绝不会被后续自动归类覆盖。 |
 | L3 Insights | 脏项目由夜间调度器增量处理，也可在 Dashboard 手动触发；每条洞察绑定 Claim 证据。 |
-| Knowledge | 文档和网页成为可审阅候选知识，启用后与主张和 Source 一起统一检索。 |
-| 检索 | 词法和持久向量混合检索；已配置兼容 Embedding 服务时使用真实向量，离线时稳定降级。 |
-| Dashboard 与扩展 | 第二大脑、项目标签纠偏、知识审阅、任务重试、插件状态、MCP 配置复制均已进入后台。 |
+| 专业资料 | 文档文本和网页内容作为 Source/Claim 进入统一证据链；独立 Knowledge/Wiki 表和审核接口已删除。 |
+| 检索 | 词法和持久向量混合检索；使用本地 FastEmbed 或远程 Embedding，失败时任务明确报错并可重试，不静默降级。 |
+| Dashboard 与扩展 | 第二大脑、项目纠偏、素材管理、洞察证据、任务重试、插件状态和 MCP 配置均已进入后台。 |
 | 遗留系统 | Mem0、Qdrant 与旧 Wiki RAG 不再是运行依赖；历史数据仅能经一次性导入进入新模型。 |
 
 尚未以真实工作数据完成的事项是洞察质量、成本和架构复杂度 ROI
@@ -107,7 +108,7 @@ Dashboard 调用与外部 Agent 相同的公开应用服务，不直接绕过 AP
 - **Agent 无关**：任何 Agent 都可通过标准协议使用 VibryAI Server。
 - **默认自动、允许纠错**：用户无需在上传前完成复杂分类，只在低置信度或重要决策处做轻量确认。
 - **所有推断可回溯**：摘要、洞察、Persona 和项目状态必须能够回到 Source 或 Claim。
-- **派生数据可重建**：向量、聚类、场景摘要和 Wiki 页面均可由基础证据重新生成。
+- **派生数据可重建**：向量、聚类、场景摘要和洞察均可由基础证据重新生成。
 - **先模块化单体，后考虑微服务**：当前规模不需要分布式系统，先用清晰模块边界降低复杂度。
 
 ---
@@ -812,53 +813,69 @@ X-Vibry-Context-Budget: 4000
 6. 风险、机会和证据强度；
 7. 缺失但应当收集的信息；
 8. 三个最值得执行的下一步动作；
-9. 与专业 Knowledge 的差距比较；
+9. 与专业 Source/Claim 的差距比较；
 10. 全部结论的证据链接。
 
 ---
 
-## 10. API 规划
+## 10. 当前 API 与兼容策略
 
-### 10.1 新 REST API
+以下为 Server 1.0 已实现的接口分组。完整参数、响应和认证边界见
+[API_REFERENCE.md](API_REFERENCE.md)。
+
+### 10.1 Cognition v2
 
 ```text
 POST   /api/v2/sources
+GET    /api/v2/sources
 GET    /api/v2/sources/{id}
+PUT    /api/v2/sources/{id}/projects
 GET    /api/v2/jobs/{id}
+POST   /api/v2/jobs/{id}/retry
+GET    /api/v2/dashboard
 
 GET    /api/v2/projects
 POST   /api/v2/projects
 GET    /api/v2/projects/{id}
 PATCH  /api/v2/projects/{id}
+DELETE /api/v2/projects/{id}
+GET    /api/v2/projects/{id}/workspace
+POST   /api/v2/projects/{id}/chat
+POST   /api/v2/projects/{id}/tasks
 POST   /api/v2/projects/{id}/memberships
-DELETE /api/v2/projects/{id}/memberships/{membership_id}
 GET    /api/v2/projects/{id}/brief
 
 GET    /api/v2/insights
 POST   /api/v2/insights/run
 POST   /api/v2/feedback
-
 POST   /api/v2/context/build
-POST   /api/v2/search
-
+GET    /api/v2/memory-matrix
+POST   /api/v2/memory-matrix/chat
+POST   /api/v2/memory-matrix/items
+PATCH  /api/v2/memory-matrix/items/{id}
 GET    /api/v2/plugins
-PATCH  /api/v2/plugins/{id}/config
-POST   /api/v2/plugins/{id}/sync
+GET    /api/v2/operations
 ```
 
-### 10.2 兼容策略
+Server 1.0 尚未提供独立 `/api/v2/search`、`/api/v2/knowledge`、插件配置/同步和
+membership 删除接口；不得在客户端中按已实现能力调用。
 
-保留旧接口作为适配层：
+### 10.2 兼容接口与 OpenAI 网关
+
+保留录音主链路接口，并由 Cognition 流水线承接认知写入：
 
 ```text
-/api/transcribe  -> 创建 audio Source + Job
-/api/summarize   -> 查询或触发 Source Analysis
+/api/transcribe  -> 创建 Recording、Source 和 Cognition Job
+/api/summarize   -> 生成或读取单条录音纪要
 /api/insight     -> 返回 Source 级即时分析
-/api/v2/sources  -> 统一素材采集
-/api/v2/knowledge -> Knowledge 管理
+/api/recordings  -> 录音、音频、标签、内容和项目归属
+/api/voiceprints -> 声纹登记、发现和管理
+/v1/*            -> OpenAI 兼容 models、embeddings 和 chat/completions
+/admin/api/*     -> 后台配置、Token、计费、日志、迁移和重建索引
 ```
 
-兼容接口不再直接维护独立数据，所有写入进入统一流水线。
+独立 Wiki/Knowledge 路由已移除。专业资料通过 Source、Claim、项目和证据检索进入
+上下文，不再维护第二套知识库运行链路。
 
 ---
 
@@ -978,20 +995,14 @@ Scheduler     -> 夜间和每周任务
 
 验收：一份录音可属于多个项目，自动归类错误可一次纠正并保留反馈。
 
-### Phase 4：Knowledge 重构
+### Phase 4：专业资料并入 Cognition（已调整）
 
-目标：把旧 Wiki 改为专业知识投影。
+Server 1.0 已取消独立 Wiki/Knowledge 子系统。小众专业资料作为 `Source` 导入，
+由 Claim、Evidence、Project 和 Context Compiler 统一处理；旧 Wiki 路由与运行依赖
+已经下线。后续只有在真实数据证明“可发布知识页面”有独立价值时，才考虑把它作为
+可重建的只读投影，而不是恢复第二套知识库。
 
-工作项：
-
-- 导入 `raw/` 和 `wiki/` 为 Source/Knowledge；
-- world Claim 到 Knowledge Candidate；
-- Knowledge 编译、版本、来源和 freshness；
-- Markdown 导出；
-- 移除 Wiki 每次查询重新计算文章 embedding 的路径；
-- 旧 Wiki 管理路由在迁移完成后下线；保留原始目录仅用于可验证导入。
-
-验收：Knowledge 文章有完整来源，Memory 与 Knowledge 使用统一检索候选协议。
+验收：任一专业结论都能回到原始 Source 和证据片段，且与个人记忆使用同一召回协议。
 
 ### Phase 5：L2/L3 Insight
 
@@ -1015,7 +1026,7 @@ Scheduler     -> 夜间和每周任务
 工作项：
 
 - 查询分类和上下文计划；
-- Memory/Project/Knowledge/Insight 统一召回；
+- Source/Claim/Project/Insight 统一召回；
 - RRF、图扩展、token budget 和去重；
 - OpenAI API header/metadata 控制；
 - 返回调试用 context trace；
@@ -1070,7 +1081,7 @@ Scheduler     -> 夜间和每周任务
 4. 批量导入历史录音和必要的客户端 MemoryNode；
 5. 对比数量、hash、证据和查询结果；
 6. 旧存储切为只读；
-7. 观察稳定后移除旧 Mem0/Qdrant 和 Wiki 运行依赖；原始目录保留为只读迁移输入。
+7. 旧 Mem0/Qdrant 和 Wiki 运行依赖已移除；需要保留的原始数据仅作为只读迁移输入。
 
 迁移必须保留来源和旧 ID 映射：
 

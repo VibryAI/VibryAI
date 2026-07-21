@@ -6,7 +6,7 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from db.connection import get_conn
@@ -65,12 +65,17 @@ def init_cognition_schema(conn: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL DEFAULT 'anonymous',
             source_id TEXT,
+            recording_id TEXT,
             job_type TEXT NOT NULL,
             payload_json TEXT NOT NULL DEFAULT '{}',
+            progress_json TEXT NOT NULL DEFAULT '{}',
+            dedupe_key TEXT NOT NULL DEFAULT '',
             status TEXT NOT NULL DEFAULT 'queued',
             attempts INTEGER NOT NULL DEFAULT 0,
             max_attempts INTEGER NOT NULL DEFAULT 3,
+            lease_owner TEXT NOT NULL DEFAULT '',
             lease_until TEXT,
+            run_after TEXT,
             error_text TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL,
             started_at TEXT,
@@ -199,9 +204,17 @@ def init_cognition_schema(conn: sqlite3.Connection) -> None:
             confidence REAL NOT NULL DEFAULT 0.5,
             status TEXT NOT NULL DEFAULT 'active',
             evidence_json TEXT NOT NULL DEFAULT '[]',
+            scope_type TEXT NOT NULL DEFAULT 'project',
+            scope_id TEXT NOT NULL DEFAULT '',
+            version INTEGER NOT NULL DEFAULT 1,
+            supersedes_id TEXT,
+            trigger_type TEXT NOT NULL DEFAULT 'scheduled',
+            feedback_status TEXT NOT NULL DEFAULT '',
+            expires_at TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            FOREIGN KEY(project_id) REFERENCES projects_v2(id)
+            FOREIGN KEY(project_id) REFERENCES projects_v2(id),
+            FOREIGN KEY(supersedes_id) REFERENCES insights_v2(id)
         );
         CREATE INDEX IF NOT EXISTS idx_insights_project_created ON insights_v2(project_id, created_at DESC);
 
@@ -329,6 +342,47 @@ def init_cognition_schema(conn: sqlite3.Connection) -> None:
     ]:
         if column not in project_columns:
             conn.execute(f"ALTER TABLE projects_v2 ADD COLUMN {column} {declaration}")
+
+    job_columns = {row["name"] for row in conn.execute("PRAGMA table_info(cognition_jobs)").fetchall()}
+    for column, declaration in [
+        ("recording_id", "TEXT"),
+        ("progress_json", "TEXT NOT NULL DEFAULT '{}'"),
+        ("dedupe_key", "TEXT NOT NULL DEFAULT ''"),
+        ("lease_owner", "TEXT NOT NULL DEFAULT ''"),
+        ("run_after", "TEXT"),
+    ]:
+        if column not in job_columns:
+            conn.execute(f"ALTER TABLE cognition_jobs ADD COLUMN {column} {declaration}")
+    insight_columns = {row["name"] for row in conn.execute("PRAGMA table_info(insights_v2)").fetchall()}
+    for column, declaration in [
+        ("scope_type", "TEXT NOT NULL DEFAULT 'project'"),
+        ("scope_id", "TEXT NOT NULL DEFAULT ''"),
+        ("version", "INTEGER NOT NULL DEFAULT 1"),
+        ("supersedes_id", "TEXT"),
+        ("trigger_type", "TEXT NOT NULL DEFAULT 'scheduled'"),
+        ("feedback_status", "TEXT NOT NULL DEFAULT ''"),
+        ("expires_at", "TEXT"),
+    ]:
+        if column not in insight_columns:
+            conn.execute(f"ALTER TABLE insights_v2 ADD COLUMN {column} {declaration}")
+    conn.execute(
+        "UPDATE insights_v2 SET scope_id=COALESCE(project_id,'') WHERE scope_id=''"
+    )
+    conn.execute(
+        "UPDATE l4_profile_items SET status='confirmed' "
+        "WHERE status='suggested' AND confidence>=0.8"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jobs_recording ON cognition_jobs(recording_id, created_at)"
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_dedupe "
+        "ON cognition_jobs(dedupe_key) WHERE dedupe_key != ''"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jobs_dispatch "
+        "ON cognition_jobs(status,job_type,run_after,created_at)"
+    )
     # Early v2 builds serialized empty lists as `{}`. Normalize those values
     # once so existing projects and insights remain safe for API clients.
     for table, column in [
@@ -470,6 +524,94 @@ def get_source_by_external_id(*, user_id: str, external_id: str, origin: str | N
     return _source_row(conn.execute(query, args).fetchone())
 
 
+def source_project_ids(*, source_id: str, user_id: str) -> list[str]:
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT m.project_id FROM project_memberships m
+           JOIN projects_v2 p ON p.id=m.project_id
+           WHERE m.object_type='source' AND m.object_id=?
+             AND m.status!='rejected' AND p.user_id=?
+           ORDER BY m.updated_at DESC""",
+        (source_id, user_id),
+    ).fetchall()
+    return [row["project_id"] for row in rows]
+
+
+def refresh_source_content(
+    *, source_id: str, user_id: str, content: str,
+    title: str | None = None, metadata: dict | None = None,
+    project_ids: list[str] | None = None,
+) -> tuple[dict, dict, bool]:
+    """Replace changed evidence in place and enqueue a clean extraction pass."""
+    conn = get_conn()
+    source = get_source(source_id, user_id)
+    if not source:
+        raise ValueError("source not found")
+    clean_content = (content or "").strip()
+    if not clean_content:
+        raise ValueError("content is required")
+    content_hash = hashlib.sha256(clean_content.encode("utf-8")).hexdigest()
+    if content_hash == source.get("content_hash"):
+        return source, {}, False
+
+    claim_rows = conn.execute(
+        "SELECT DISTINCT claim_id FROM claim_evidence WHERE source_id=?",
+        (source_id,),
+    ).fetchall()
+    claim_ids = [row["claim_id"] for row in claim_rows]
+    conn.execute("DELETE FROM claim_evidence WHERE source_id=?", (source_id,))
+    orphan_ids = [
+        claim_id for claim_id in claim_ids
+        if not conn.execute(
+            "SELECT 1 FROM claim_evidence WHERE claim_id=? LIMIT 1", (claim_id,),
+        ).fetchone()
+    ]
+    if orphan_ids:
+        placeholders = ",".join("?" for _ in orphan_ids)
+        conn.execute(
+            f"DELETE FROM claim_relations WHERE source_claim_id IN ({placeholders}) OR target_claim_id IN ({placeholders})",
+            [*orphan_ids, *orphan_ids],
+        )
+        conn.execute(
+            f"DELETE FROM claim_entities WHERE claim_id IN ({placeholders})", orphan_ids,
+        )
+        conn.execute(
+            f"DELETE FROM semantic_vectors WHERE object_type='claim' AND object_id IN ({placeholders})",
+            orphan_ids,
+        )
+        conn.execute(f"DELETE FROM claims_v2 WHERE id IN ({placeholders})", orphan_ids)
+
+    merged_metadata = dict(source.get("metadata") or {})
+    merged_metadata.update(metadata or {})
+    effective_project_ids = list(dict.fromkeys(
+        project_ids or source_project_ids(source_id=source_id, user_id=user_id)
+    ))
+    if effective_project_ids:
+        merged_metadata["project_ids"] = effective_project_ids
+    now = _now()
+    conn.execute(
+        """UPDATE sources SET content_text=?,content_hash=?,title=?,metadata_json=?,
+           status='queued',updated_at=? WHERE id=? AND user_id=?""",
+        (
+            clean_content, content_hash, title if title is not None else source.get("title", ""),
+            _json(merged_metadata), now, source_id, user_id,
+        ),
+    )
+    for project_id in effective_project_ids:
+        conn.execute(
+            "UPDATE project_state SET dirty=1,updated_at=? WHERE project_id=? AND user_id=?",
+            (now, project_id, user_id),
+        )
+    conn.commit()
+    job = enqueue_job(
+        user_id=user_id,
+        source_id=source_id,
+        job_type="process_source",
+        dedupe_key=f"source:{source_id}:refresh:{content_hash[:16]}",
+    )
+    return get_source(source_id, user_id) or {}, job, True
+
+
 def count_sources(user_id: str, status: str | None = None) -> int:
     conn = get_conn()
     query = "SELECT COUNT(*) AS count FROM sources WHERE user_id=?"
@@ -563,10 +705,25 @@ def list_jobs(user_id: str, *, status: str | None = None, limit: int = 100) -> l
     return result
 
 
+def list_recording_jobs(recording_id: str, user_id: str) -> list[dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM cognition_jobs WHERE recording_id=? AND user_id=? ORDER BY created_at",
+        (recording_id, user_id),
+    ).fetchall()
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["payload"] = _dict(item.pop("payload_json", "{}"), {})
+        item["progress"] = _dict(item.pop("progress_json", "{}"), {})
+        result.append(item)
+    return result
+
+
 def retry_job(job_id: str, user_id: str) -> dict | None:
     conn = get_conn()
     conn.execute(
-        """UPDATE cognition_jobs SET status='queued', attempts=0, lease_until=NULL,
+        """UPDATE cognition_jobs SET status='queued', attempts=0, lease_until=NULL,run_after=NULL,
            error_text='', started_at=NULL, finished_at=NULL WHERE id=? AND user_id=?""",
         (job_id, user_id),
     )
@@ -574,27 +731,38 @@ def retry_job(job_id: str, user_id: str) -> dict | None:
     return get_job(job_id, user_id)
 
 
-def claim_next_job() -> dict | None:
+def claim_next_job(job_types: set[str] | None = None) -> dict | None:
     """Lease one queued job. The transaction makes multiple workers safe."""
     conn = get_conn()
+    type_clause = ""
+    params: list[Any] = [_now(), _now()]
+    if job_types:
+        placeholders = ",".join("?" for _ in job_types)
+        type_clause = f" AND job_type IN ({placeholders})"
+        params.extend(sorted(job_types))
+    candidate_query = f"""SELECT * FROM cognition_jobs
+       WHERE attempts < max_attempts AND (
+            (status='queued' AND (run_after IS NULL OR run_after <= ?))
+            OR (status='running' AND lease_until < ?)
+       ){type_clause}
+       ORDER BY created_at LIMIT 1"""
+    if not conn.execute(candidate_query, params).fetchone():
+        return None
+
     conn.execute("BEGIN IMMEDIATE")
     try:
-        row = conn.execute(
-            """SELECT * FROM cognition_jobs
-               WHERE status='queued' OR (status='running' AND lease_until < ?)
-               ORDER BY created_at LIMIT 1""",
-            (_now(),),
-        ).fetchone()
+        row = conn.execute(candidate_query, params).fetchone()
         if not row:
             conn.commit()
             return None
         now = _now()
         lease = datetime.now(timezone.utc).timestamp() + 300
         lease_until = datetime.fromtimestamp(lease, timezone.utc).isoformat(timespec="seconds")
+        lease_owner = uuid.uuid4().hex
         conn.execute(
             """UPDATE cognition_jobs SET status='running', attempts=attempts+1,
-               lease_until=?, started_at=COALESCE(started_at,?) WHERE id=?""",
-            (lease_until, now, row["id"]),
+               lease_owner=?, lease_until=?, started_at=COALESCE(started_at,?) WHERE id=?""",
+            (lease_owner, lease_until, now, row["id"]),
         )
         conn.commit()
         return get_job(row["id"])
@@ -603,40 +771,142 @@ def claim_next_job() -> dict | None:
         raise
 
 
-def complete_job(job_id: str) -> None:
+def renew_job_lease(job_id: str, lease_owner: str, seconds: int = 300) -> bool:
+    conn = get_conn()
+    lease = datetime.now(timezone.utc).timestamp() + max(30, seconds)
+    lease_until = datetime.fromtimestamp(lease, timezone.utc).isoformat(timespec="seconds")
+    cur = conn.execute(
+        "UPDATE cognition_jobs SET lease_until=? WHERE id=? AND status='running' AND lease_owner=?",
+        (lease_until, job_id, lease_owner),
+    )
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def update_job_progress(job_id: str, progress: dict) -> None:
     conn = get_conn()
     conn.execute(
-        "UPDATE cognition_jobs SET status='completed', lease_until=NULL, finished_at=? WHERE id=?",
-        (_now(), job_id),
+        "UPDATE cognition_jobs SET progress_json=? WHERE id=?",
+        (_json(progress), job_id),
     )
+    conn.commit()
+
+
+def complete_job(job_id: str, lease_owner: str | None = None) -> None:
+    conn = get_conn()
+    query = (
+        "UPDATE cognition_jobs SET status='completed', lease_owner='', lease_until=NULL,run_after=NULL, "
+        "progress_json='{}', error_text='', finished_at=? WHERE id=?"
+    )
+    args: list[Any] = [_now(), job_id]
+    if lease_owner:
+        query += " AND lease_owner=?"
+        args.append(lease_owner)
+    conn.execute(query, args)
     conn.commit()
 
 
 def enqueue_job(
-    *, user_id: str, job_type: str, payload: dict | None = None, source_id: str | None = None,
+    *, user_id: str, job_type: str, payload: dict | None = None,
+    source_id: str | None = None, recording_id: str | None = None,
+    dedupe_key: str = "", max_attempts: int = 3, run_after: str | None = None,
 ) -> dict:
     conn = get_conn()
     job_id = f"job_{uuid.uuid4().hex}"
     now = _now()
-    conn.execute(
-        """INSERT INTO cognition_jobs (
-            id,user_id,source_id,job_type,payload_json,status,created_at
-        ) VALUES (?,?,?,?,?,?,?)""",
-        (job_id, user_id, source_id, job_type, _json(payload or {}), "queued", now),
-    )
-    conn.commit()
+    try:
+        conn.execute(
+            """INSERT INTO cognition_jobs (
+                id,user_id,source_id,recording_id,job_type,payload_json,dedupe_key,
+                status,max_attempts,run_after,created_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                job_id, user_id, source_id, recording_id, job_type, _json(payload or {}),
+                dedupe_key, "queued", max(1, max_attempts), run_after, now,
+            ),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        if not dedupe_key:
+            raise
+        row = conn.execute(
+            "SELECT * FROM cognition_jobs WHERE dedupe_key=?", (dedupe_key,)
+        ).fetchone()
+        return dict(row) if row else {}
     return get_job(job_id) or {}
 
 
-def fail_job(job_id: str, error: str) -> None:
+def fail_job(job_id: str, error: str, lease_owner: str | None = None) -> str:
     conn = get_conn()
     row = conn.execute("SELECT attempts,max_attempts FROM cognition_jobs WHERE id=?", (job_id,)).fetchone()
-    status = "failed" if row and row["attempts"] >= row["max_attempts"] else "queued"
-    conn.execute(
-        "UPDATE cognition_jobs SET status=?, lease_until=NULL, error_text=? WHERE id=?",
-        (status, error[:2000], job_id),
+    attempts = int(row["attempts"] or 0) if row else 0
+    status = "failed" if row and attempts >= row["max_attempts"] else "queued"
+    run_after = None
+    if status == "queued":
+        delay_seconds = min(120, 5 * (2 ** max(0, attempts - 1)))
+        run_after = (
+            datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
+        ).isoformat(timespec="seconds")
+    query = (
+        "UPDATE cognition_jobs SET status=?, lease_owner='', lease_until=NULL, "
+        "run_after=?,error_text=? WHERE id=?"
     )
+    args: list[Any] = [status, run_after, error[:2000], job_id]
+    if lease_owner:
+        query += " AND lease_owner=?"
+        args.append(lease_owner)
+    conn.execute(query, args)
     conn.commit()
+    return status
+
+
+def recover_stuck_jobs() -> dict[str, int]:
+    """Release expired leases and terminalize jobs that exhausted retries."""
+    conn = get_conn()
+    now = _now()
+    exhausted = conn.execute(
+        """UPDATE cognition_jobs SET status='failed',lease_owner='',lease_until=NULL,
+           run_after=NULL,error_text=CASE WHEN error_text='' THEN 'retry budget exhausted' ELSE error_text END
+           WHERE attempts>=max_attempts AND (
+             status='queued' OR (status='running' AND lease_until<?)
+           )""",
+        (now,),
+    ).rowcount
+    released = conn.execute(
+        """UPDATE cognition_jobs SET status='queued',lease_owner='',lease_until=NULL,
+           run_after=NULL WHERE status='running' AND lease_until<? AND attempts<max_attempts""",
+        (now,),
+    ).rowcount
+    conn.commit()
+    return {"released": released, "failed": exhausted}
+
+
+def queue_snapshot() -> dict:
+    conn = get_conn()
+    rows = conn.execute(
+        """SELECT job_type,status,COUNT(*) AS count,MIN(created_at) AS oldest
+           FROM cognition_jobs
+           WHERE status IN ('queued','running','failed')
+           GROUP BY job_type,status"""
+    ).fetchall()
+    by_type: dict[str, dict[str, int]] = {}
+    totals = {"queued": 0, "running": 0, "failed": 0}
+    oldest_queued_at = None
+    for row in rows:
+        job_type = row["job_type"]
+        status = row["status"]
+        count = int(row["count"])
+        by_type.setdefault(job_type, {})[status] = count
+        totals[status] += count
+        if status == "queued" and row["oldest"]:
+            if oldest_queued_at is None or row["oldest"] < oldest_queued_at:
+                oldest_queued_at = row["oldest"]
+    return {
+        **totals,
+        "oldest_queued_at": oldest_queued_at,
+        "by_type": by_type,
+    }
 
 
 def set_source_status(source_id: str, status: str) -> None:
@@ -1039,16 +1309,32 @@ def set_source_projects(*, user_id: str, source_id: str, project_ids: list[str])
 def create_insight(
     *, user_id: str, project_id: str | None, insight_type: str, title: str,
     content: str, confidence: float, evidence: list[dict] | None = None,
+    trigger_type: str = "scheduled",
 ) -> dict:
     conn = get_conn()
     now = _now()
     insight_id = f"ins_{uuid.uuid4().hex}"
+    previous = conn.execute(
+        """SELECT id,version FROM insights_v2
+           WHERE user_id=? AND project_id IS ? AND insight_type=? AND status='active'
+           ORDER BY created_at DESC LIMIT 1""",
+        (user_id, project_id, insight_type),
+    ).fetchone()
+    version = int(previous["version"] or 1) + 1 if previous else 1
+    if previous:
+        conn.execute(
+            "UPDATE insights_v2 SET status='superseded',updated_at=? WHERE id=?",
+            (now, previous["id"]),
+        )
     conn.execute(
         """INSERT INTO insights_v2 (
-            id,user_id,project_id,insight_type,title,content,confidence,evidence_json,created_at,updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            id,user_id,project_id,insight_type,title,content,confidence,evidence_json,
+            scope_type,scope_id,version,supersedes_id,trigger_type,created_at,updated_at
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (insight_id, user_id, project_id, insight_type, title, content,
-         max(0.0, min(float(confidence), 1.0)), _json(evidence or []), now, now),
+         max(0.0, min(float(confidence), 1.0)), _json(evidence or []),
+         "project" if project_id else "global", project_id or "", version,
+         previous["id"] if previous else None, trigger_type, now, now),
     )
     conn.commit()
     row = conn.execute("SELECT * FROM insights_v2 WHERE id=?", (insight_id,)).fetchone()
@@ -1401,6 +1687,9 @@ def create_l4_item(
     conn = get_conn()
     item_id = f"l4_{uuid.uuid4().hex}"
     now = _now()
+    normalized_confidence = max(0.0, min(float(confidence), 1.0))
+    if status == "suggested" and normalized_confidence >= 0.8:
+        status = "confirmed"
     version = 1
     if supersedes_id:
         previous = conn.execute(
@@ -1417,7 +1706,7 @@ def create_l4_item(
            (id,user_id,category,title,content_html,confidence,status,evidence_json,version,supersedes_id,created_at,updated_at)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (item_id, user_id, category, title.strip(), content_html.strip(),
-         max(0.0, min(float(confidence), 1.0)), status, _json(evidence or []),
+         normalized_confidence, status, _json(evidence or []),
          version, supersedes_id, now, now),
     )
     conn.commit()
@@ -1464,9 +1753,31 @@ def project_workspace(project_id: str, user_id: str) -> dict | None:
 
 def memory_matrix(user_id: str) -> dict:
     thread = ensure_thread(user_id=user_id, scope_type="global", scope_id="", title="Memory Matrix")
+    insights = [
+        item for item in list_insights(user_id, limit=100)
+        if item.get("status") == "active"
+    ]
+    project_names = {
+        item["id"]: item["name"] for item in list_projects(user_id, limit=200)
+    }
+    for item in insights:
+        item["project_name"] = project_names.get(item.get("project_id"), "")
+    profile = list_l4_items(user_id=user_id, limit=100)
+    visible_profile = [
+        item for item in profile
+        if item.get("status") == "confirmed"
+        or (
+            item.get("status") == "suggested"
+            and float(item.get("confidence") or 0) < 0.55
+        )
+    ]
+    pending_confirmations = sum(
+        1 for item in visible_profile if item.get("status") == "suggested"
+    )
     return {
         "thread": thread,
         "messages": list_messages(thread_id=thread["id"], user_id=user_id, limit=200),
-        "profile": list_l4_items(user_id=user_id, limit=100),
-        "pending_confirmations": len(list_l4_items(user_id=user_id, status="suggested", limit=500)),
+        "profile": visible_profile,
+        "insights": insights,
+        "pending_confirmations": pending_confirmations,
     }

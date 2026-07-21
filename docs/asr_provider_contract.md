@@ -1,5 +1,10 @@
 # Vibry ASR Provider Contract
 
+> 本文描述 ASR Provider 内部协议和可选的 `audio_processing_server.py:8008`。
+> VibryAI Server 主服务对外接口是 `POST /api/transcribe` 和
+> `POST /api/transcribe/voice`；`/api/asr/transcribe`、
+> `/v1/audio/transcriptions` 只属于可选的独立 ASR 服务。
+
 VibryServer now treats ASR engines as providers. Every provider returns the same
 internal result and can be rendered as:
 
