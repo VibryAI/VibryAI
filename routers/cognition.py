@@ -135,6 +135,10 @@ class AggregateInput(BaseModel):
     project_ids: list[str] = Field(default_factory=list, max_length=20)
 
 
+class GroupSuggestionActionInput(BaseModel):
+    action: str = Field(pattern="^(accept|reject)$")
+
+
 class LegacyMigrationInput(BaseModel):
     user_id: str | None = None
     limit: int = Field(default=1000, ge=1, le=10000)
@@ -510,6 +514,44 @@ async def get_aggregate(request: Request, aggregate_id: str):
     if not aggregate:
         raise HTTPException(status_code=404, detail="aggregate not found")
     return {"aggregate": aggregate}
+
+
+@router.post("/api/v2/recording-group-suggestions/{suggestion_id}/respond")
+async def respond_recording_group_suggestion(
+    request: Request, suggestion_id: str, payload: GroupSuggestionActionInput,
+):
+    from services.recording_grouping import respond_to_group_suggestion
+
+    try:
+        suggestion, aggregate = respond_to_group_suggestion(
+            user_id=resolve_user_id(request),
+            suggestion_id=suggestion_id,
+            action=payload.action,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if message == "group suggestion not found" else 422
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return {"suggestion": suggestion, "aggregate": aggregate}
+
+
+@router.post("/api/v2/task-suggestions/{suggestion_id}/respond")
+async def respond_task_suggestion(
+    request: Request, suggestion_id: str, payload: GroupSuggestionActionInput,
+):
+    from services.task_suggestions import respond_to_task_suggestion
+
+    try:
+        suggestion, task = respond_to_task_suggestion(
+            user_id=resolve_user_id(request),
+            suggestion_id=suggestion_id,
+            action=payload.action,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        status_code = 404 if message == "task suggestion not found" else 422
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return {"suggestion": suggestion, "task": task}
 
 
 @router.post("/api/v2/insights/run", status_code=202)

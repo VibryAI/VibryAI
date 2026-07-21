@@ -613,6 +613,11 @@ def on_source_processed(source_id: str) -> None:
     source = store.get_source(source_id)
     if not source:
         return
+    from services.task_suggestions import publish_action_item_suggestions
+    try:
+        publish_action_item_suggestions(source)
+    except Exception:
+        log.exception("task suggestion publishing failed for source %s", source_id)
     metadata = source.get("metadata") or {}
     recording_id = metadata.get("recording_id")
     if not recording_id:
@@ -625,6 +630,11 @@ def on_source_processed(source_id: str) -> None:
         recording["user_id"], recording_id, "recording_memory_ingested",
         memory_insight_status="ingested", source_id=source_id,
     )
+    from services.recording_grouping import discover_recording_groups
+    try:
+        discover_recording_groups(recording["user_id"])
+    except Exception:
+        log.exception("recording group discovery failed for user %s", recording["user_id"])
 
 
 def _memory_insight(job: dict) -> None:

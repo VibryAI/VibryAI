@@ -374,3 +374,44 @@ def test_refresh_batch_requeues_ingested_but_stale_cognition_source(pipeline_db)
     assert result["memory_requeued"] == 1
     assert store.get_job(memory_job["id"], "admin")["status"] == "queued"
     assert db.get_recording(recording_id)["memory_insight_status"] == "queued"
+
+
+def test_optional_suggestion_failures_do_not_fail_completed_recording(
+    pipeline_db, monkeypatch,
+):
+    from services import recording_grouping, task_suggestions
+
+    recording_id = "rec_suggestion_isolation"
+    db.upsert_recording(
+        recording_id,
+        user_id="admin",
+        title="note20260718-220000.opus",
+        filename="note20260718-220000.opus",
+        transcript="有效转写",
+        summary_markdown="# 录音纪要\n\n## 行动项\n- 完成测试",
+        status="completed",
+        core_status="completed",
+        memory_insight_status="ingesting",
+    )
+    source, _, _ = store.create_source(
+        user_id="admin",
+        source_type="recording",
+        content="# 录音纪要\n\n## 行动项\n- 完成测试",
+        origin="test",
+        external_id=f"recording_summary:{recording_id}",
+        metadata={"recording_id": recording_id, "kind": "minutes"},
+    )
+    monkeypatch.setattr(
+        task_suggestions,
+        "publish_action_item_suggestions",
+        lambda _: (_ for _ in ()).throw(RuntimeError("task card unavailable")),
+    )
+    monkeypatch.setattr(
+        recording_grouping,
+        "discover_recording_groups",
+        lambda _: (_ for _ in ()).throw(RuntimeError("grouping unavailable")),
+    )
+
+    recording_pipeline.on_source_processed(source["id"])
+
+    assert db.get_recording(recording_id)["memory_insight_status"] == "ingested"

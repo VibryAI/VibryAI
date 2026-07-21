@@ -107,6 +107,47 @@ def init_cognition_schema(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_recording_aggregates_user_created
             ON recording_aggregates(user_id, created_at DESC);
 
+        CREATE TABLE IF NOT EXISTS recording_group_suggestions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL DEFAULT 'anonymous',
+            suggestion_type TEXT NOT NULL,
+            title TEXT NOT NULL DEFAULT '',
+            recording_ids_json TEXT NOT NULL DEFAULT '[]',
+            reason_json TEXT NOT NULL DEFAULT '{}',
+            status TEXT NOT NULL DEFAULT 'pending',
+            message_id TEXT,
+            aggregate_id TEXT,
+            dedupe_key TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, dedupe_key),
+            FOREIGN KEY(message_id) REFERENCES cognition_messages(id),
+            FOREIGN KEY(aggregate_id) REFERENCES recording_aggregates(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_recording_group_suggestions_user_created
+            ON recording_group_suggestions(user_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS task_suggestions (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL DEFAULT 'anonymous',
+            source_id TEXT NOT NULL,
+            project_id TEXT,
+            title TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            message_id TEXT,
+            task_id TEXT,
+            dedupe_key TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, dedupe_key),
+            FOREIGN KEY(source_id) REFERENCES sources(id),
+            FOREIGN KEY(project_id) REFERENCES projects_v2(id),
+            FOREIGN KEY(message_id) REFERENCES cognition_messages(id),
+            FOREIGN KEY(task_id) REFERENCES project_tasks(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_task_suggestions_user_created
+            ON task_suggestions(user_id, created_at DESC);
+
         CREATE TABLE IF NOT EXISTS projects_v2 (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL DEFAULT 'anonymous',
@@ -468,6 +509,180 @@ def _aggregate_row(row: sqlite3.Row | None) -> dict | None:
     data["recording_ids"] = _list(data.pop("recording_ids_json", "[]"))
     data["project_ids"] = _list(data.pop("project_ids_json", "[]"))
     return data
+
+
+def _group_suggestion_row(row: sqlite3.Row | None) -> dict | None:
+    if not row:
+        return None
+    data = dict(row)
+    data["recording_ids"] = _list(data.pop("recording_ids_json", "[]"))
+    data["reason"] = _dict(data.pop("reason_json", "{}"), {})
+    return data
+
+
+def create_recording_group_suggestion(
+    *, user_id: str, suggestion_type: str, title: str,
+    recording_ids: list[str], reason: dict, dedupe_key: str,
+) -> tuple[dict, bool]:
+    conn = get_conn()
+    existing = conn.execute(
+        "SELECT * FROM recording_group_suggestions WHERE user_id=? AND dedupe_key=?",
+        (user_id, dedupe_key),
+    ).fetchone()
+    if existing:
+        return _group_suggestion_row(existing) or {}, True
+
+    suggestion_id = f"rgs_{uuid.uuid4().hex}"
+    now = _now()
+    try:
+        conn.execute(
+            """INSERT INTO recording_group_suggestions (
+                   id,user_id,suggestion_type,title,recording_ids_json,reason_json,
+                   status,dedupe_key,created_at,updated_at
+               ) VALUES (?,?,?,?,?,?,'pending',?,?,?)""",
+            (
+                suggestion_id, user_id, suggestion_type, title.strip(),
+                _json(recording_ids), _json(reason), dedupe_key, now, now,
+            ),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        existing = conn.execute(
+            "SELECT * FROM recording_group_suggestions WHERE user_id=? AND dedupe_key=?",
+            (user_id, dedupe_key),
+        ).fetchone()
+        if existing:
+            return _group_suggestion_row(existing) or {}, True
+        raise
+    return get_recording_group_suggestion(suggestion_id, user_id) or {}, False
+
+
+def get_recording_group_suggestion(
+    suggestion_id: str, user_id: str | None = None,
+) -> dict | None:
+    query = "SELECT * FROM recording_group_suggestions WHERE id=?"
+    args: list[Any] = [suggestion_id]
+    if user_id is not None:
+        query += " AND user_id=?"
+        args.append(user_id)
+    return _group_suggestion_row(get_conn().execute(query, args).fetchone())
+
+
+def update_recording_group_suggestion(
+    suggestion_id: str, **changes: Any,
+) -> dict | None:
+    allowed = {"status", "message_id", "aggregate_id", "title"}
+    assignments: list[str] = []
+    values: list[Any] = []
+    for key, value in changes.items():
+        if key in allowed:
+            assignments.append(f"{key}=?")
+            values.append(value)
+    if not assignments:
+        return get_recording_group_suggestion(suggestion_id)
+    assignments.append("updated_at=?")
+    values.extend([_now(), suggestion_id])
+    conn = get_conn()
+    conn.execute(
+        f"UPDATE recording_group_suggestions SET {','.join(assignments)} WHERE id=?",
+        values,
+    )
+    conn.commit()
+    return get_recording_group_suggestion(suggestion_id)
+
+
+def update_message_metadata(
+    message_id: str, user_id: str, changes: dict[str, Any],
+) -> dict | None:
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT * FROM cognition_messages WHERE id=? AND user_id=?",
+        (message_id, user_id),
+    ).fetchone()
+    message = _message_row(row)
+    if not message:
+        return None
+    metadata = dict(message.get("metadata") or {})
+    metadata.update(changes)
+    conn.execute(
+        "UPDATE cognition_messages SET metadata_json=? WHERE id=? AND user_id=?",
+        (_json(metadata), message_id, user_id),
+    )
+    conn.commit()
+    return _message_row(conn.execute(
+        "SELECT * FROM cognition_messages WHERE id=?", (message_id,),
+    ).fetchone())
+
+
+def create_task_suggestion(
+    *, user_id: str, source_id: str, title: str, dedupe_key: str,
+    project_id: str | None = None,
+) -> tuple[dict, bool]:
+    conn = get_conn()
+    existing = conn.execute(
+        "SELECT * FROM task_suggestions WHERE user_id=? AND dedupe_key=?",
+        (user_id, dedupe_key),
+    ).fetchone()
+    if existing:
+        return dict(existing), True
+    suggestion_id = f"tss_{uuid.uuid4().hex}"
+    now = _now()
+    try:
+        conn.execute(
+            """INSERT INTO task_suggestions (
+                   id,user_id,source_id,project_id,title,status,dedupe_key,created_at,updated_at
+               ) VALUES (?,?,?,?,?,'pending',?,?,?)""",
+            (
+                suggestion_id, user_id, source_id, project_id, title.strip(),
+                dedupe_key, now, now,
+            ),
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        existing = conn.execute(
+            "SELECT * FROM task_suggestions WHERE user_id=? AND dedupe_key=?",
+            (user_id, dedupe_key),
+        ).fetchone()
+        if existing:
+            return dict(existing), True
+        raise
+    return dict(conn.execute(
+        "SELECT * FROM task_suggestions WHERE id=?", (suggestion_id,),
+    ).fetchone()), False
+
+
+def get_task_suggestion(
+    suggestion_id: str, user_id: str | None = None,
+) -> dict | None:
+    query = "SELECT * FROM task_suggestions WHERE id=?"
+    args: list[Any] = [suggestion_id]
+    if user_id is not None:
+        query += " AND user_id=?"
+        args.append(user_id)
+    row = get_conn().execute(query, args).fetchone()
+    return dict(row) if row else None
+
+
+def update_task_suggestion(suggestion_id: str, **changes: Any) -> dict | None:
+    allowed = {"status", "message_id", "task_id"}
+    assignments: list[str] = []
+    values: list[Any] = []
+    for key, value in changes.items():
+        if key in allowed:
+            assignments.append(f"{key}=?")
+            values.append(value)
+    if not assignments:
+        return get_task_suggestion(suggestion_id)
+    assignments.append("updated_at=?")
+    values.extend([_now(), suggestion_id])
+    conn = get_conn()
+    conn.execute(
+        f"UPDATE task_suggestions SET {','.join(assignments)} WHERE id=?", values,
+    )
+    conn.commit()
+    return get_task_suggestion(suggestion_id)
 
 
 def create_recording_aggregate(
