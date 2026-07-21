@@ -198,7 +198,6 @@ def test_summary_completes_core_before_memory_ingest(pipeline_db, monkeypatch):
             "tags": [],
             "detailed_summary": "核心记录已经完成。",
         }
-        db.upsert_recording(recording_id, summary_json=json.dumps(result, ensure_ascii=False))
         return result
 
     monkeypatch.setattr("services.asr.summarize", fake_summarize)
@@ -213,6 +212,8 @@ def test_summary_completes_core_before_memory_ingest(pipeline_db, monkeypatch):
     completed = db.get_recording(recording_id)
     jobs = store.list_recording_jobs(recording_id, "admin")
     assert completed["core_status"] == "completed"
+    assert completed["summary_json"]
+    assert completed["summary_markdown"]
     assert completed["recording_insight_status"] == "disabled"
     assert completed["memory_insight_status"] == "queued"
     assert {item["job_type"] for item in jobs} == {

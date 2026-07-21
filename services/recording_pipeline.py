@@ -439,6 +439,21 @@ def _summarize_recording(job: dict) -> None:
     if result.get("error"):
         raise RuntimeError(result["error"])
 
+    summary_markdown = sanitize_summary_markdown(
+        str(result.get("markdown") or result.get("detailed_summary") or "")
+    )
+    if not summary_markdown:
+        summary_markdown = summary_to_markdown(result)
+    if not summary_markdown.strip():
+        raise RuntimeError("summary is empty")
+    tags = result.get("tags") if isinstance(result.get("tags"), list) else []
+    db.upsert_recording(
+        recording["id"],
+        summary_json=json.dumps(result, ensure_ascii=False),
+        summary_markdown=summary_markdown,
+        tags=json.dumps(tags, ensure_ascii=False),
+    )
+
     db.upsert_recording(
         recording["id"],
         status="completed",
